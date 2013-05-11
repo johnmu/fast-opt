@@ -74,6 +74,9 @@ int main(int argc, char** argv) {
     } else if (mode == "dfopt") {
 
         error_num = dfopt(params);
+    } else if (mode == "disopt") {
+
+        error_num = disopt(params);
     } else if (mode == "hell_dist") {
 
         error_num = hell_dist(params);
@@ -336,6 +339,71 @@ int dfopt(vector<string> params) {
 
 
 
+
+int disopt(vector<string> params) {
+
+
+    string usage_text = "Usage: " + c::PROG_NAME + " disopt [-np] <percent_points> <levels> <top_percent_points> <data_file>\n"
+            + "       -np            -- Don't prune the tree, a bit faster but more memory usage\n"
+            + "       percent_points -- Ratio of total region data to stop at for each look-ahead (0.01 = 1%)\n"
+            + "   top_percent_points -- Ratio of total data to stop at (0.01 = 1% or 2 = 2 points)\n"
+            + "               levels -- Maximum levels for each look-ahead\n "
+            + "            data_file -- One sample each row\n"
+            + "MAP partitions output to STDOUT. Log to STDERR \n"
+            + "Run discrepancy limited look-ahead OPT. Good for moderate dimensions (6-15)\n";
+
+    if (params.size() < 4 || params.size() > 5) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    bool prune_tree = true;
+    int params_offset = 0;
+    if (params.size() == 5) {
+        if (params[0] == "-np") {
+            prune_tree = false;
+            params_offset = 1;
+        } else {
+            cerr << usage_text << endl;
+            return 3;
+        }
+    }
+
+
+    vector<vector<double> > data = read_data(params[params_offset + 3],false);
+
+    int dim = (int)data[0].size();
+    int N   = data.size();
+
+    cerr << "Running discrepancy limited look-ahead OPT" << '\n';
+    cerr << N << " points in " << dim << " dimensions.\n";
+
+    int ll_levels = strTo<int>(params[params_offset + 1]);
+    double stop_ratio = strTo<double>(params[params_offset + 0]);
+    double top_stop_ratio = strTo<double>(params[params_offset + 2]);
+
+    cerr << "Each small OPT stopping at " << ll_levels << " levels.\n";
+    cerr << "Each level stopping at " << stop_ratio*100 << "% of points.\n";
+    cerr << "Total stopping at " << top_stop_ratio*100 << "% of points.\n";
+
+
+    mu_timer mt;
+
+    disopt_tree disopt(dim,stop_ratio,top_stop_ratio,ll_levels,20*dim);
+    map_tree map_region_tree(data.size());
+    opt_region_hash<uint32_t> map_regions(24);
+
+    mt.reset();
+    disopt.construct_disopt_tree(data, map_region_tree, map_regions,prune_tree);
+    mt.print_elapsed_time(cerr, "disOPT("+ toStr<int>(ll_levels) +") construction");
+
+    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
+
+    return 0;
+}
+
+
+
 int hell_dist(vector<string> params){
     string usage_text = "Usage: " + c::PROG_NAME + " hell_dist <true_samples> <MAP_partitions> \n"
             + "     true_samples   -- Each row one data point followed by true density\n"
@@ -414,7 +482,7 @@ int classify(vector<string> params){
             + " classify <learned_dist_0> ... <learned_dist_n-1> <test_data> \n"
             + "     learned_dist_0...n-1 -- MAP partitions from each class\n"
             + "     test_data            -- Each row one data point\n "
-            + "Do classification.\n";
+            + "Do classification. Doesn't deal with the case of equal densities yet\n";
 
     if (params.size() < 3) {
         cerr << usage_text << endl;
@@ -565,8 +633,9 @@ void print_usage_and_exit() {
     cerr << "-== Density Estimation ==-" << '\n';
     cerr << "  opt        -- MAP partitions from full OPT" << "\n";
     cerr << "  llopt      -- MAP partitions from LL-OPT" << "\n";
-    cerr << "  lsopt      -- MAP partitions from LL-sampled OPT" << "\n";
-    cerr << "  dfopt      -- MAP partitions from depth-first OPT [experimental]" << "\n";
+    cerr << "  lsopt      -- MAP partitions from LL-sampled OPT [experimental]" << "\n";
+    cerr << "  dfopt      -- MAP partitions from depth-first OPT" << "\n";
+    cerr << "  disopt     -- MAP partitions from discrepancy-LL-OPT [experimental]" << "\n";
     cerr << "\n";
     cerr << "-== Other tools ==-" << '\n';
     cerr << "  hell_dist   -- Compute sample Hellinger distance from a known density" << "\n";

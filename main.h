@@ -43,6 +43,7 @@
 #include "general_utils.h"
 #include "opt_tree.h"
 #include "llopt_tree.h"
+#include "disopt_tree.h"
 #include "lsopt_tree.h"
 #include "dfopt.h"
 #include "map_tree.h"
@@ -126,6 +127,7 @@ int lsopt(vector<string> params);
 int sopt(vector<string> params);
 int opt(vector<string> params);
 int dfopt(vector<string> params);
+int disopt(vector<string> params);
 int hell_dist(vector<string> params);
 int classify(vector<string> params);
 int density(vector<string> params);

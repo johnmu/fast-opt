@@ -443,8 +443,8 @@ inline int choose_dim(const vector<double> &d, MT_random &rand_gen) {
 
 class current_region{
 private:
-    vector<double> lim_pile;
-    vector<double> resolution;
+    vector<double> lim_pile; // center of the region
+    vector<double> resolution; // 1/2 the size of the region
     int num_children;
 
 
@@ -471,6 +471,31 @@ public:
 
     double get_resolution(int dim){
         return resolution[dim];
+    }
+    
+    vector<pair<double,double> > get_limits(){
+        vector<pair<double,double> > result;
+        
+        for (int i = 0;i<num_children;i++){
+            double res = resolution[i];
+            double lim = lim_pile[i];
+            result.push_back(pair<double,double>(lim-res,lim+res));
+        }
+        
+        return result;
+    }
+    
+    // this one returns min and range
+    vector<pair<double,double> > get_limits2(){
+        vector<pair<double,double> > result;
+        
+        for (int i = 0;i<num_children;i++){
+            double res = resolution[i];
+            double lim = lim_pile[i];
+            result.push_back(pair<double,double>(lim-res,2*res));
+        }
+        
+        return result;
     }
 
     void cut(int dim, int cut) {
