@@ -168,7 +168,51 @@ public:
         (*map_ra)[map_node]->set_count(count);
     }
 
-    static uint32_t get_child(opt_region working_reg, opt_region_hash<uint32_t> &region_cache,
+    static uint32_t get_child(region_allocator<dis_tree_node_sparse> &ra, opt_region working_reg, 
+                opt_region_hash<uint32_t> &region_cache,
+            int dim, int cut, int count=-1, bool is_diff=true) {
+
+
+        if (!working_reg.cut(dim, cut)) {
+            cerr << "CANNOT CUT: ";
+            working_reg.print_region();
+            cerr << '\n';
+
+            exit(2);
+        }
+
+        uint32_t working_hash = region_cache.hash(working_reg);
+        pair<uint32_t, bool> out = region_cache.find(working_reg, working_hash);
+
+        if (out.second) {
+            return out.first;
+        } else {
+            
+            if(count == -1){
+                cerr << "Fatal Error: Region not found.. " << dim << "," << cut << '\n';
+                return c::ra_null_val;
+            }
+            
+            pair<uint32_t, dis_tree_node_sparse*> out2 = ra.create_node(working_reg.num_children());
+            out.first = out2.first;
+
+            if (is_diff) {
+                out2.second->count = count;
+            } else {
+                out2.second->count = -count;
+            }
+
+            //cerr << "INSERT" << '\n';
+            region_cache.insert(working_reg, out.first, working_hash);
+
+            return out.first;
+        }
+    }
+    
+    
+    
+    static uint32_t get_child(opt_region working_reg, 
+                opt_region_hash<uint32_t> &region_cache,
             int dim, int cut) {
 
 
@@ -180,8 +224,8 @@ public:
             exit(2);
         }
 
-
-        pair<uint32_t, bool> out = region_cache.find(working_reg);
+        uint32_t working_hash = region_cache.hash(working_reg);
+        pair<uint32_t, bool> out = region_cache.find(working_reg, working_hash);
 
         if (out.second) {
             return out.first;
@@ -953,13 +997,7 @@ public:
                 }
                 cerr << '\n';
 
-                cerr << "DONE MAP\n";
-
-
-                uint32_t map_child_idx_0 = get_child(wu_it->working_reg, region_cache, map_dim, 0);
-                uint32_t map_child_idx_1 = get_child(wu_it->working_reg, region_cache, map_dim, 1);
-
-                cerr << "children: " << map_child_idx_0 << "," << map_child_idx_1 << '\n';
+                cerr << "DONE MAP: " << map_dim << "\n";
 
                 // Split
                 vector<vector<double> > new_data_0;
@@ -967,6 +1005,12 @@ public:
 
                 bool is_diff = cut_region2(wu_it->data, new_data_0, new_data_1,
                         map_dim, wu_it->curr_reg.get_lim(map_dim));
+                
+                uint32_t map_child_idx_0 = get_child(ra, wu_it->working_reg, region_cache, map_dim, 0, new_data_0.size(),is_diff);
+                uint32_t map_child_idx_1 = get_child(ra, wu_it->working_reg, region_cache, map_dim, 1, new_data_1.size(),is_diff);
+
+                cerr << "children: " << map_child_idx_0 << "," << map_child_idx_1 << '\n';
+                
 
                 if (is_diff) {
 
