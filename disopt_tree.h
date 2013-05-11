@@ -857,7 +857,7 @@ public:
             if (map_depth >= top_max_depth || (int) wu_it->data.size() <= count_lim
                     || wu_it->working_reg.full()) {
 
-                //cerr << "mini-STOP count: " << ra[wu_it->node_idx]->count << '\n';
+                cerr << "mini-STOP count: " << ra[wu_it->node_idx]->count << '\n';
 
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
                         ra[wu_it->node_idx]->count, map_depth);
@@ -873,9 +873,9 @@ public:
             // for each good region
             int curr_data_size = wu_it->data.size();
 
-            //cerr << "Good [" << map_depth << "](" << count << "/"
-            //        << llpile[map_depth].good_regions.size()
-            //        << "), Data size: " << curr_data_size << '\n';
+            cerr << "Good [" << map_depth << "](" << count << "/"
+                    << llpile[map_depth].good_regions.size()
+                    << "), Data size: " << curr_data_size << '\n';
 
 
             // If there are many points in the region, use discrepancy to
@@ -891,6 +891,9 @@ public:
                 // the best cut
                 
                 if (A > 4){
+                    
+                    cerr << "Cut by discrepancy! A: " << A << '\n';
+                    
                     // we cut!
                     dis_non_unif = true;
                     
@@ -907,15 +910,15 @@ public:
                         region_cache, gt, rand_gen,
                         num_nodes, num_zero_nodes, map_depth, count_lim);
 
-                //cerr << "\nNodes:" << num_nodes
-                //        << " : " << num_zero_nodes
-                //        << " : " << (num_nodes - num_zero_nodes) << '\n';
+                cerr << "\nNodes:" << num_nodes
+                        << " : " << num_zero_nodes
+                        << " : " << (num_nodes - num_zero_nodes) << '\n';
 
 
                 compute_lphi(ra, wu_it->working_reg, region_cache,
                         wu_it->node_idx, map_depth, gt, 3, wu_it->data, wu_it->curr_reg, num_children);
 
-                //cerr << "lphi: " << ra[wu_it->node_idx]->get_lphi2(map_depth) << "\n";
+                cerr << "lphi: " << ra[wu_it->node_idx]->get_lphi2(map_depth) << "\n";
 
             }
             // compute the posterior pho and decide if we stop
@@ -929,7 +932,7 @@ public:
             if (!dis_non_unif && post_rho>-c::l2) {
                 // STOP
 
-                //cerr << "STOP count: " << ra[wu_it->node_idx]->count << '\n';
+                cerr << "STOP count: " << ra[wu_it->node_idx]->count << '\n';
 
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
                         ra[wu_it->node_idx]->count, map_depth);
@@ -941,22 +944,22 @@ public:
             } else {
                 // Choose MAP dimension
 
-                //cerr << "MAP dim: ";
+                cerr << "MAP dim: ";
                 int map_dim = -1;
                 if (!dis_non_unif) {
                     map_dim = get_map_dim(*wu_it, region_cache, gt, map_depth);
                 } else {
                     map_dim = dis_cut_dim;
                 }
-                //cerr << '\n';
+                cerr << '\n';
 
-                //cerr << "DONE MAP\n";
+                cerr << "DONE MAP\n";
 
 
                 uint32_t map_child_idx_0 = get_child(wu_it->working_reg, region_cache, map_dim, 0);
                 uint32_t map_child_idx_1 = get_child(wu_it->working_reg, region_cache, map_dim, 1);
 
-                //cerr << "children: " << map_child_idx_0 << "," << map_child_idx_1 << '\n';
+                cerr << "children: " << map_child_idx_0 << "," << map_child_idx_1 << '\n';
 
                 // Split
                 vector<vector<double> > new_data_0;
