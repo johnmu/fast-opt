@@ -99,7 +99,7 @@ inline vector<vector<double> > read_data(string filename, bool end_line) {
         for (int i = 0; i < dim; i++) {
             d[i] = strTo<double>(ll[i]);
             if (end_line) {
-                if ((i != (dim - 1)) && (d[i] > 1.0) || (d[i] < 0)) {
+                if ((i != (dim - 1)) && ((d[i] > 1.0) || (d[i] < 0))) {
                     good_data = false;
                     break;
                 }
