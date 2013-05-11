@@ -703,7 +703,8 @@ public:
                 }
             }
             
-            double max_A = max(A[0],A[1]);
+            //double max_A = max(A[0],A[1]);
+            double max_A = min(A[0],A[1]); // try the min
             if(max_A < min_score){
                 min_score = max_A;
                 best_d = dim;
