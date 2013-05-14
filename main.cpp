@@ -220,7 +220,7 @@ int llopt(vector<string> params) {
     opt_region_hash<uint32_t> map_regions(24);
 
     mt.reset();
-    llopt.construct_llopt_tree(data, map_region_tree, map_regions,prune_tree);
+    llopt.construct_llopt_tree(&data, map_region_tree, map_regions,prune_tree);
     mt.print_elapsed_time(cerr, "LLOPT("+ toStr<int>(ll_levels) +") construction");
 
     print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());

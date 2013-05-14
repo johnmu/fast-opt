@@ -85,7 +85,7 @@ struct ll_tree_node_sparse{
 
 
 struct ll_working_unit_t{
-    vector<vector<double> > data;
+    vector<uint32_t > data;
     current_region curr_reg;
     opt_region working_reg;
     uint32_t node_idx;
@@ -97,7 +97,7 @@ struct ll_working_unit_t{
         node_idx = c::ra_null_val;
     }
 
-    ll_working_unit_t(vector<vector<double> > &data, current_region &curr_reg
+    ll_working_unit_t(vector<uint32_t > &data, current_region &curr_reg
         , opt_region &working_reg, uint32_t node_idx){
 
 
@@ -129,6 +129,8 @@ struct ll_mouse_params_t{
     region_allocator<ll_tree_node_sparse> *ra;
     int64_t *num_nodes;
     int64_t *num_zero_nodes;
+    
+    vector<vector<double> > *all_data;
 
     pthread_mutex_t* locker;
 };
@@ -329,24 +331,14 @@ public:
         int64_t *num_zero_nodes = p->num_zero_nodes;
         //pthread_mutex_t* locker = p->locker;
 
-        vector<vector<double> > *all_data = &wup->data;
-        
-        uint32_t N = (uint32_t)all_data->size();
-        
-        
-        
+        vector<vector<double> > *all_data = p->all_data;
+
         vector<pile_t<uint32_t,uint32_t> > pile;
         pile.push_back(pile_t<uint32_t,uint32_t> ());
         pile[0].node = wup->node_idx;
         pile[0].dim = start_dimension;
         pile[0].cut = 0;
-        {
-            vector<uint32_t> temp_vec(N,0);
-            for(uint32_t i = 0;i<N;i++){
-                temp_vec[i] = i;
-            }
-            pile[0].data = temp_vec;
-        }
+        pile[0].data = wup->data;
         
 
         current_region curr_reg = wup->curr_reg;
@@ -531,7 +523,7 @@ public:
     }
 
 
-    void do_small_opt(ll_working_unit_t &w,
+    void do_small_opt(vector<vector<double> > *all_data, ll_working_unit_t &w,
             opt_region_hash<uint32_t> &region_cache,gamma_table &gt,
             MT_random &rand_gen,
             int64_t &num_nodes, int64_t &num_zero_nodes, int start_depth,
@@ -562,6 +554,7 @@ public:
             params[d].start_dimension = d;
             params[d].top_depth = start_depth;
             params[d].wup = &w;
+            params[d].all_data = all_data;
         }
 
         for (int d = 0; d < num_children; d++) {
@@ -645,7 +638,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
     }
 
-    void construct_llopt_tree(vector<vector<double> > &data,
+    void construct_llopt_tree(vector<vector<double> > *all_data,
             map_tree &map_region_tree, opt_region_hash<uint32_t> &map_regions,
             bool prune_tree) {
 
@@ -656,8 +649,12 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
         int64_t num_nodes = 0;
         int64_t num_zero_nodes = 0;
 
-        int N = data.size();
-
+        uint32_t N = all_data->size();
+        vector<uint32_t> data(N,0);
+        for (uint32_t i = 0;i<N;i++){
+            data[i] = i;
+        }
+        
         int count_lim = 0;
 
         if (top_count_ratio < 1) {
@@ -741,7 +738,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
             // do a smaller OPT for the good region to determine which
             // dimension to cut
 
-            do_small_opt(*wu_it,
+            do_small_opt(all_data, *wu_it,
                     region_cache, gt, rand_gen,
                     num_nodes, num_zero_nodes, map_depth, count_lim);
 
@@ -790,10 +787,10 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 //cerr << "children: " << map_child_idx_0 << "," << map_child_idx_1 << '\n';
 
                 // Split
-                vector<vector<double> > new_data_0;
-                vector<vector<double> > new_data_1;
+                vector<uint32_t > new_data_0;
+                vector<uint32_t > new_data_1;
 
-                bool is_diff = cut_region2(wu_it->data,new_data_0,new_data_1,
+                bool is_diff = cut_region2(*all_data,wu_it->data,new_data_0,new_data_1,
                         map_dim, wu_it->curr_reg.get_lim(map_dim));
 
                 if(is_diff){
