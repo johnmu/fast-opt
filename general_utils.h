@@ -84,7 +84,7 @@ inline bool cut_region2(vector<vector<double> > &data,vector<vector<double> > &o
     for (int i = 0; i < (int) data.size(); i++) {
 
         if(all_same){
-            if(fabs(first - data[i][dim]) > 1E-20) all_same = false;
+            if(fabs(first - data[i][dim]) > 1E-19) all_same = false;
         }
 
         if (data[i][dim] < lim) {
@@ -111,7 +111,7 @@ inline bool cut_region(vector<vector<double> > &data,
     for (int i = 0;i<(int)data.size();i++){
 
         if(all_same){
-            if(fabs(first - data[i][dim]) > 1E-9) all_same = false;
+            if(fabs(first - data[i][dim]) > 1E-19) all_same = false;
         }
 
         if(cut == 0){
@@ -557,6 +557,7 @@ public:
         return (genrand_norm() * sd) +mean;
     }
 
+    // stupid way
     double genrand_norm() {
         double sum = 0;
 

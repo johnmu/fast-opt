@@ -131,6 +131,7 @@ int disopt(vector<string> params);
 int hell_dist(vector<string> params);
 int classify(vector<string> params);
 int density(vector<string> params);
+int bench(vector<string> params);
 
 void print_usage_and_exit();
 

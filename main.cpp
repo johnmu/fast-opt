@@ -86,6 +86,9 @@ int main(int argc, char** argv) {
     } else if (mode == "density") {
 
         error_num = density(params);
+    } else if (mode == "bench") {
+
+        error_num = bench(params);
     } else {
         print_usage_and_exit();
 
@@ -627,6 +630,164 @@ int density(vector<string> params){
 }
 
 
+int bench(vector<string> params){
+    string usage_text = "Usage: " + c::PROG_NAME
+            + " bench <num_points> <dim> \n"
+            + "     num_points -- Number of random points to generate\n"
+            + "     dim        -- Total dimension, we only count one though\n "
+            + "Do benchmarking!.\n";
+
+    if (params.size() != 2) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    int N   = strTo<int>(params[0]);
+    int dim = strTo<int>(params[1]);
+    
+    MT_random randgen(0);
+    
+    vector<vector<double> > data(N,vector<double>(dim,0.0));
+    vector<int> data_one(N,0);
+
+    for(int i = 0; i < N; i++){
+        data_one[i] = i;
+        for (int j = 0;j < dim;j++){
+            data[i][j] = randgen.genrand64_real1();
+        }
+    }
+
+    mu_timer mt;
+    
+    mt.reset();
+    {
+        int cut = 0;
+        double lim = 0.5;
+        vector<vector<double> > &out;
+        double first = data[0][dim];
+        bool all_same = true;
+
+        for (int i = 0; i < (int) data.size(); i++) {
+
+            if (all_same) {
+                if (fabs(first - data[i][dim]) > 1E-19) all_same = false;
+            }
+
+            if (cut == 0) {
+                if (data[i][dim] < lim) {
+                    out.push_back(data[i]);
+                }
+
+            } else if (cut == 1) {
+                if (data[i][dim] >= lim) {
+                    out.push_back(data[i]);
+                }
+
+            } 
+        }
+
+    }
+    mt.print_elapsed_time(cerr, "Full vector try 1");
+    
+    
+    mt.reset();
+    {
+        int cut = 0;
+        double lim = 0.5;
+        vector<vector<double> > &out;
+        double first = data[0][dim];
+        bool all_same = true;
+
+        for (int i = 0; i < (int) data.size(); i++) {
+
+            if (all_same) {
+                if (fabs(first - data[i][dim]) > 1E-19) all_same = false;
+            }
+
+            if (cut == 0) {
+                if (data[i][dim] < lim) {
+                    out.push_back(data[i]);
+                }
+
+            } else if (cut == 1) {
+                if (data[i][dim] >= lim) {
+                    out.push_back(data[i]);
+                }
+
+            } 
+        }
+
+    }
+    mt.print_elapsed_time(cerr, "Full vector try 2");
+    
+    
+    mt.reset();
+    {
+        int cut = 0;
+        double lim = 0.5;
+        vector<int> &out;
+        double first = data[data_one[0]][dim];
+        bool all_same = true;
+
+        for (int i = 0; i < (int) data_one.size(); i++) {
+
+            if (all_same) {
+                if (fabs(first - data[data_one[i]][dim]) > 1E-19) all_same = false;
+            }
+
+            if (cut == 0) {
+                if (data[data_one[i]][dim] < lim) {
+                    out.push_back(data_one[i]);
+                }
+
+            } else if (cut == 1) {
+                if (data[data_one[i]][dim] >= lim) {
+                    out.push_back(data_one[i]);
+                }
+
+            } 
+        }
+
+    }
+    mt.print_elapsed_time(cerr, "single vector try 1");
+    
+    
+    
+    mt.reset();
+    {
+        int cut = 0;
+        double lim = 0.5;
+        vector<int> &out;
+        double first = data[data_one[0]][dim];
+        bool all_same = true;
+
+        for (int i = 0; i < (int) data_one.size(); i++) {
+
+            if (all_same) {
+                if (fabs(first - data[data_one[i]][dim]) > 1E-19) all_same = false;
+            }
+
+            if (cut == 0) {
+                if (data[data_one[i]][dim] < lim) {
+                    out.push_back(data_one[i]);
+                }
+
+            } else if (cut == 1) {
+                if (data[data_one[i]][dim] >= lim) {
+                    out.push_back(data_one[i]);
+                }
+
+            } 
+        }
+
+    }
+    mt.print_elapsed_time(cerr, "single vector try 2");
+    
+    
+    return 0;
+}
+
+
 void print_usage_and_exit() {
     cerr << "Usage: " + c::PROG_NAME + " <option>" << "\n";
     cerr << "Options:" << "\n";
@@ -641,6 +802,7 @@ void print_usage_and_exit() {
     cerr << "  hell_dist   -- Compute sample Hellinger distance from a known density" << "\n";
     cerr << "  classify    -- Do classification with MAP partitions [experimental]" << "\n";
     cerr << "  density     -- Get the density at particular points [experimental]" << "\n";
+    cerr << "  bench       -- Benchmark counting speed [temporary]" << "\n";
     exit(2);
 }
 
