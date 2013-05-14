@@ -195,7 +195,6 @@ inline bool cut_region_one(vector<vector<double> > &all_data,vector<uint32_t> &d
         }
     }
 
-
     return !all_same;
 
 }
@@ -206,7 +205,6 @@ inline int count_region(vector<vector<double> > &data,
     int output = 0;
 
     for (int i = 0;i<(int)data.size();i++){
-
 
         if(cut == 0){
             if(data[i][dim] < lim) {
@@ -219,8 +217,6 @@ inline int count_region(vector<vector<double> > &data,
                 output++;
 
             }
-
-
         }else{
             cerr << "Wrong cut! " << cut << '\n';
             exit(2);

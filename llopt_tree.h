@@ -320,7 +320,6 @@ public:
         int top_depth = p->top_depth;
         int num_children = p->num_children;
         int count_lim = p->count_lim;
-        //int top_count_lim = p->top_count_lim;
         int max_depth = p->max_depth;
         int top_max_depth = p->top_max_depth;
         ll_working_unit_t* wup = p->wup;
@@ -731,9 +730,9 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
             // for each good region
             int curr_data_size = wu_it->data.size();
 
-            //cerr << "Good [" << map_depth << "](" << count << "/"
-            //        << llpile[map_depth].good_regions.size()
-            //        << "), Data size: " << curr_data_size << '\n';
+            cerr << "Good [" << map_depth << "](" << count << "/"
+                    << llpile[map_depth].good_regions.size()
+                    << "), Data size: " << curr_data_size << '\n';
 
             // do a smaller OPT for the good region to determine which
             // dimension to cut
@@ -742,9 +741,9 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                     region_cache, gt, rand_gen,
                     num_nodes, num_zero_nodes, map_depth, count_lim);
 
-            //cerr << "\nNodes:" << num_nodes
-            //        << " : " << num_zero_nodes
-            //        << " : " << (num_nodes - num_zero_nodes) << '\n';
+            cerr << "\nNodes:" << num_nodes
+                    << " : " << num_zero_nodes
+                    << " : " << (num_nodes - num_zero_nodes) << '\n';
 
 
             compute_lphi(ra,wu_it->working_reg, region_cache,
@@ -857,7 +856,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
             // remove all the nodes not consistent with current good regions
 
-            if(prune_tree && ((curr_data_size > 500 && ra.free_locs.size() < 1000000) || (curr_data_size > 1000))) {
+            if(prune_tree && ((curr_data_size > 500 && ra.free_locs.size() < 1000000) || (curr_data_size > 10000))) {
                 int64_t num_removed = 0;
                 int64_t total_nodes = 0;
 
@@ -898,8 +897,8 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                     }
                 }
 
-                //if(total_nodes>0)cerr << "Removed " << num_removed << "/" << total_nodes
-                //        << "(" << (num_removed / (total_nodes / 100.0)) << "%)" << '\n';
+                if(total_nodes>0)cerr << "Removed " << num_removed << "/" << total_nodes
+                        << "(" << (num_removed / (total_nodes / 100.0)) << "%)" << '\n';
             }
 
         }
