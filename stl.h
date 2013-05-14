@@ -91,7 +91,7 @@ namespace c{
     static const double inf = INFINITY;
     static const uint32_t ra_null_val = 4294967295u;
     static const string PROG_NAME = "opt-fast";
-    static const string BUILD = "0.4-r53";
+    static const string BUILD = "0.4-r54";
     static const int MAX_COORD_DEPTH = 30;
 }
 

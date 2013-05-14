@@ -135,6 +135,37 @@ inline bool cut_region(vector<vector<double> > &data,
 
 }
 
+inline bool cut_region2(vector<vector<double> > &all_data,vector<uint32_t > &data,vector<uint32_t > &out0,
+        vector<uint32_t > &out1, int dim, double lim) {
+
+    double first = all_data[data[0]][dim];
+    bool all_same = true;
+
+    for (int i = 0; i < (int) data.size(); i++) {
+
+        register uint32_t idx = data[i];
+        
+        if(all_same){
+            if(fabs(first - all_data[idx][dim]) > 1E-19) all_same = false;
+        }
+
+        register double val = all_data[idx][dim];
+        
+        if (val < lim) {
+            out0.push_back(idx);
+        }else if (val >= lim) {
+            out1.push_back(idx);
+
+        }
+
+
+
+    }
+
+    return !all_same;
+
+}
+
 // uses the index rather than the actual value
 inline bool cut_region_one(vector<vector<double> > &all_data,vector<uint32_t> &data,
         vector<uint32_t> &out ,int dim, int cut, double lim){
@@ -144,20 +175,20 @@ inline bool cut_region_one(vector<vector<double> > &all_data,vector<uint32_t> &d
 
     for (int i = 0;i<(int)data.size();i++){
 
+        register uint32_t idx = data[i];
+        
         if(all_same){
-            if(fabs(first - all_data[data[i]][dim]) > 1E-19) all_same = false;
+            if(fabs(first - all_data[idx][dim]) > 1E-19) all_same = false;
         }
 
         if(cut == 0){
-            if(all_data[data[i]][dim] < lim) {
-                out.push_back(data[i]);
+            if(all_data[idx][dim] < lim) {
+                out.push_back(idx);
             }
-
         }else if(cut == 1){
-            if(all_data[data[i]][dim] >= lim) {
-                out.push_back(data[i]);
+            if(all_data[idx][dim] >= lim) {
+                out.push_back(idx);
             }
-
         }else{
             cerr << "Wrong cut! " << cut << '\n';
             exit(2);
