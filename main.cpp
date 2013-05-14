@@ -663,7 +663,7 @@ int bench(vector<string> params){
     {
         int cut = 0;
         double lim = 0.5;
-        vector<vector<double> > &out;
+        vector<vector<double> > out;
         double first = data[0][dim];
         bool all_same = true;
 
@@ -694,7 +694,7 @@ int bench(vector<string> params){
     {
         int cut = 0;
         double lim = 0.5;
-        vector<vector<double> > &out;
+        vector<vector<double> > out;
         double first = data[0][dim];
         bool all_same = true;
 
@@ -725,7 +725,7 @@ int bench(vector<string> params){
     {
         int cut = 0;
         double lim = 0.5;
-        vector<int> &out;
+        vector<int> out;
         double first = data[data_one[0]][dim];
         bool all_same = true;
 
@@ -757,7 +757,7 @@ int bench(vector<string> params){
     {
         int cut = 0;
         double lim = 0.5;
-        vector<int> &out;
+        vector<int> out;
         double first = data[data_one[0]][dim];
         bool all_same = true;
 
