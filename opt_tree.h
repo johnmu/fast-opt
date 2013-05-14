@@ -255,8 +255,8 @@ public:
         root->set_count(N);
 
 
-        vector<pile_t<tree_node*> > pile;
-        pile.push_back(pile_t<tree_node*>());
+        vector<pile_t<tree_node*,vector<double> > > pile;
+        pile.push_back(pile_t<tree_node*,vector<double> >());
 
         pile[0].data = data;
         pile[0].node = root;
@@ -379,7 +379,7 @@ public:
                 cerr << "Add node: " << curr_dim << "," << curr_cut << '\n';
 #endif
 
-                pile.push_back(pile_t<tree_node*>());
+                pile.push_back(pile_t<tree_node*,vector<double> >());
                 depth++;
 
                 bool is_diff = cut_region(pile[depth - 1].data,pile[depth].data,
@@ -459,8 +459,8 @@ public:
 
 
 
-        vector<pile_t<uint32_t> > map_pile;
-        map_pile.push_back(pile_t<uint32_t>());
+        vector<pile_t<uint32_t,vector<double> > > map_pile;
+        map_pile.push_back(pile_t<uint32_t,vector<double> >());
         map_pile[0].node = map_region_tree.get_full_tree();
         map_pile[0].dim  = -1;
         map_pile[0].cut  = -1;
@@ -476,8 +476,8 @@ public:
 
 
 
-        vector<pile_t<tree_node*> > pile;
-        pile.push_back(pile_t<tree_node*>());
+        vector<pile_t<tree_node*,vector<double> > > pile;
+        pile.push_back(pile_t<tree_node*,vector<double> >());
 
         pile[0].data = vector<vector<double> >();
         pile[0].node = root;
@@ -640,14 +640,14 @@ public:
             (*map_ra)[curr_map_node]->set_dim(curr_dim);
             (*map_ra)[curr_map_node]->set_child(curr_cut,new_map_node.first);
 
-            map_pile.push_back(pile_t<uint32_t>());
+            map_pile.push_back(pile_t<uint32_t,vector<double> >());
             map_pile[depth].node = new_map_node.first;
 
 
 
             working_reg.cut(curr_dim, curr_cut);
 
-            pile.push_back(pile_t<tree_node*>());
+            pile.push_back(pile_t<tree_node*,vector<double> >());
 
 
 

@@ -135,6 +135,40 @@ inline bool cut_region(vector<vector<double> > &data,
 
 }
 
+// uses the index rather than the actual value
+inline bool cut_region_one(vector<vector<double> > &all_data,vector<uint32_t> &data,
+        vector<uint32_t> &out ,int dim, int cut, double lim){
+
+    double first = all_data[data[0]][dim];
+    bool all_same = true;
+
+    for (int i = 0;i<(int)data.size();i++){
+
+        if(all_same){
+            if(fabs(first - all_data[data[i]][dim]) > 1E-19) all_same = false;
+        }
+
+        if(cut == 0){
+            if(all_data[data[i]][dim] < lim) {
+                out.push_back(data[i]);
+            }
+
+        }else if(cut == 1){
+            if(all_data[data[i]][dim] >= lim) {
+                out.push_back(data[i]);
+            }
+
+        }else{
+            cerr << "Wrong cut! " << cut << '\n';
+            exit(2);
+        }
+    }
+
+
+    return !all_same;
+
+}
+
 
 inline int count_region(vector<vector<double> > &data,
         int dim, int cut, double lim){

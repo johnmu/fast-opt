@@ -625,8 +625,8 @@ public:
 
         MT_random rand_gen;
 
-        vector<pile_t<uint32_t> > pile;
-        pile.push_back(pile_t<uint32_t > ());
+        vector<pile_t<uint32_t,vector<double> > > pile;
+        pile.push_back(pile_t<uint32_t,vector<double>  > ());
 
         pile[0].node = wup->node_idx;
         pile[0].dim = start_dimension;
@@ -932,7 +932,7 @@ public:
 
             if(!backup){
 
-                pile.push_back(pile_t<uint32_t > ());
+                pile.push_back(pile_t<uint32_t,vector<double> > ());
                 depth++;
 
                 is_diff = cut_region(pile[depth - 1].data, pile[depth].data,

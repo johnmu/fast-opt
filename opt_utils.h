@@ -50,9 +50,9 @@ struct child_t{
 
 
 
-template <typename T>
+template <typename T,typename U>
 struct pile_t{
-    vector<vector< double> > data;
+    vector<U> data;
     T node;
     int dim;
     int cut;

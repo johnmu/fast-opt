@@ -206,8 +206,7 @@ public:
 
     static void compute_lphi(region_allocator<ll_tree_node_sparse> &ra,opt_region &working_reg,
             opt_region_hash<uint32_t> &region_cache,
-            uint32_t curr_node, int depth, gamma_table &gt, int calling_loc,
-                vector<vector<double> > &data, current_region &curr_reg, int num_children) {
+            uint32_t curr_node, int depth, gamma_table &gt, int calling_loc,int num_children) {
 
         //cerr << "compute_lphi(" << depth << "): ";
         //working_reg.print_region(cerr);
@@ -330,14 +329,25 @@ public:
         int64_t *num_zero_nodes = p->num_zero_nodes;
         //pthread_mutex_t* locker = p->locker;
 
-        vector<pile_t<uint32_t> > pile;
-        pile.push_back(pile_t<uint32_t > ());
-
+        vector<vector<double> > *all_data = &wup->data;
+        
+        uint32_t N = (uint32_t)all_data->size();
+        
+        
+        
+        vector<pile_t<uint32_t,uint32_t> > pile;
+        pile.push_back(pile_t<uint32_t,uint32_t> ());
         pile[0].node = wup->node_idx;
         pile[0].dim = start_dimension;
         pile[0].cut = 0;
-        pile[0].data = wup->data;
-
+        {
+            vector<uint32_t> temp_vec(N,0);
+            for(uint32_t i = 0;i<N;i++){
+                temp_vec[i] = i;
+            }
+            pile[0].data = temp_vec;
+        }
+        
 
         current_region curr_reg = wup->curr_reg;
         opt_region working_reg = wup->working_reg;
@@ -385,7 +395,7 @@ public:
                     if(depth != 0){
                         compute_lphi(*ra, working_reg, *region_cache,
                             curr_node_idx, depth + top_depth, *gt,
-                            1, pile[depth].data, curr_reg, num_children);
+                            1, num_children);
 
                         //cerr << "COMPUTE LPHI: " << (*((*ra)[curr_node_idx])).lphi << '\n';
 
@@ -409,10 +419,10 @@ public:
 
                 //cerr << "NB dim:cut --- " << curr_dim << ":" << curr_cut << '\n';
 
-                pile.push_back(pile_t<uint32_t > ());
+                pile.push_back(pile_t<uint32_t,uint32_t > ());
                 depth++;
 
-                is_diff = cut_region(pile[depth - 1].data, pile[depth].data,
+                is_diff = cut_region_one(*all_data, pile[depth - 1].data, pile[depth].data,
                         curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
 
 
@@ -741,7 +751,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
 
             compute_lphi(ra,wu_it->working_reg, region_cache,
-                    wu_it->node_idx, map_depth, gt, 3, wu_it->data, wu_it->curr_reg,num_children);
+                    wu_it->node_idx, map_depth, gt, 3,num_children);
 
             //cerr << "lphi: " << ra[wu_it->node_idx]->get_lphi2(map_depth) << "\n";
 

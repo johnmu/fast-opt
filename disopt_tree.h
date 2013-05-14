@@ -359,8 +359,8 @@ public:
         int64_t *num_zero_nodes = p->num_zero_nodes;
         //pthread_mutex_t* locker = p->locker;
 
-        vector<pile_t<uint32_t> > pile;
-        pile.push_back(pile_t<uint32_t > ());
+        vector<pile_t<uint32_t,vector<double> > > pile;
+        pile.push_back(pile_t<uint32_t,vector<double> > ());
 
         pile[0].node = wup->node_idx;
         pile[0].dim = start_dimension;
@@ -438,7 +438,7 @@ public:
 
                 //cerr << "NB dim:cut --- " << curr_dim << ":" << curr_cut << '\n';
 
-                pile.push_back(pile_t<uint32_t > ());
+                pile.push_back(pile_t<uint32_t,vector<double> > ());
                 depth++;
 
                 is_diff = cut_region(pile[depth - 1].data, pile[depth].data,
