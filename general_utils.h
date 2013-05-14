@@ -135,8 +135,8 @@ inline bool cut_region(vector<vector<double> > &data,
 
 }
 
-inline bool cut_region2(vector<vector<double> > &all_data,vector<uint32_t > &data,vector<uint32_t > &out0,
-        vector<uint32_t > &out1, int dim, double lim) {
+inline bool cut_region2(vector<vector<double> > &all_data,vector<uint32_t > &data,
+        vector<uint32_t > &out0,vector<uint32_t > &out1, int dim, double lim) {
 
     double first = all_data[data[0]][dim];
     bool all_same = true;
