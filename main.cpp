@@ -170,7 +170,7 @@ int llopt(vector<string> params) {
 
 
     string usage_text = "Usage: " + c::PROG_NAME + " llopt [-np] <percent_points> <levels> <top_percent_points> <data_file>\n"
-            + "       -np            -- Don't prune the tree, a bit faster but more memory usage\n"
+            + "       -np            -- Don't prune the tree, a lot faster but more memory usage\n"
             + "       percent_points -- Ratio of total region data to stop at for each look-ahead (0.01 = 1%)\n"
             + "   top_percent_points -- Ratio of total data to stop at (0.01 = 1% or 2 = 2 points)\n"
             + "               levels -- Maximum levels for each look-ahead\n "

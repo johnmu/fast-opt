@@ -37,16 +37,6 @@
 
 #define STL_H
 
-// #define DEBUG 1
-// #define DEBUG2 1
-// #define DEBUG3 1
-// #define DEBUG_MAP
-// #define DEBUG_SSE 1
-// #define DEBUG_KMER 1
-// #define DEBUG_PAIR 1
-// #define NO_OUTPUT 1
-// #define TIMER 1
-
 #include <cstddef>
 #include <iostream>
 #include <iomanip>
@@ -91,7 +81,7 @@ namespace c{
     static const double inf = INFINITY;
     static const uint32_t ra_null_val = 4294967295u;
     static const string PROG_NAME = "opt-fast";
-    static const string BUILD = "0.4-r54";
+    static const string BUILD = "0.4-r55";
     static const int MAX_COORD_DEPTH = 30;
 }
 
