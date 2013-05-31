@@ -427,29 +427,54 @@ int copula(vector<string> params){
 
     cerr << "Stopping at " << stop_points << " points.\n";
 
-    double total_time = 0.0;
+    for (int i = 0; i < dim; i++) {
+        
+        cerr << "Computing marginal for dim: " << i+1 << '\n';
+        // Extract one dimension of data
+        
+        vector<double> one_data(N,0.0);
+        
+        for(uint32_t j = 0;j<N;j++){
+            one_data[j] = data[i][j];
+        }
+        
+        // run full OPT on data
+
+        double total_time = 0.0;
+        mu_timer mt;
+        opt_tree opt_slow(1, stop_points, 1000);
+
+        mt.reset();
+        opt_slow.construct_full_tree(one_data);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "OPT tree");
+
+        mt.reset();
+        map_tree map_region_tree(data.size());
+        opt_region_hash<uint32_t> map_regions(20);
+        opt_slow.construct_MAP_tree(map_region_tree, map_regions, data.size());
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "MAP tree");
+
+        cerr << "Total construction time: " << total_time << " s.\n";
+        cerr << "lPhi: " << opt_slow.get_lphi() << endl;
+        //print_MAP_density(cout, map_regions.get_regions(), map_region_tree.get_ra(), data.size());
+
+        // Construct CDF from the regions
+        
+        // Transform the data
+        
+        // Replace the data that was read in
+        
+        for(uint32_t j = 0;j<N;j++){
+            data[i][j] = one_data[j];
+        }
+        
+        // Write out the marginal into the den file 
+        
+    }
     
-    mu_timer mt;
-
-    opt_tree opt_slow(dim,stop_points,1000);
-
-    mt.reset();
-    opt_slow.construct_full_tree(data);
-    total_time += mt.elapsed_time();
-    mt.print_elapsed_time(cerr, "OPT tree");
-
-    mt.reset();
-    map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(20);
-    opt_slow.construct_MAP_tree(map_region_tree, map_regions, data.size());
-    total_time += mt.elapsed_time();
-    mt.print_elapsed_time(cerr, "MAP tree");
-
-    cerr << "OPT construction time: " << total_time << " s.\n";
-    
-    cerr << "lPhi: " << opt_slow.get_lphi() << endl;
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
-
+    // Write out the transformed data
 
     return 0;
 }
