@@ -40,7 +40,6 @@
 
 struct child_t{
     uint32_t val[c::cuts];
-
     child_t(){
         for(int i = 0;i<c::cuts;i++){
             val[i] = c::ra_null_val;
@@ -57,7 +56,6 @@ struct pile_t{
     int dim;
     int cut;
 };
-
 
 
 //template <typename T>
@@ -122,19 +120,8 @@ public:
     }
 
     bool operator<(const opt_region& b) const{
-        //cerr << "Compare: ";
-        //this->print_region();
-        //cerr << " to ";
-        //b.print_region();
-        //cerr << "\n";
 
         bool out = dim_cuts < b.dim_cuts;
-
-        //if(out){
-        //    cerr << "ALL-LESS\n";
-        //}else{
-        //    cerr << "ALL-NOTLESS\n";
-        //}
 
         return out;
     }
@@ -389,7 +376,7 @@ public:
         }
     }
 
-    vector<pair<opt_region, T> > print_density() {
+    vector<pair<opt_region, T> > get_regions() {
 
         vector<pair<opt_region, T> > output;
 
