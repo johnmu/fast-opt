@@ -376,9 +376,9 @@ public:
 
                 //cerr << "BOTTOM BACKUP\n";
 
-                backup = true;
+                // make sure we at least cut once
+                if(depth != 0) backup = true;
             } else {
-
                 if ((depth == 0&&pile[depth].dim !=start_dimension)
                         || pile[depth].dim > num_children - 1){
 
@@ -391,8 +391,6 @@ public:
                         //cerr << "COMPUTE LPHI: " << (*((*ra)[curr_node_idx])).lphi << '\n';
 
                     }
-
-
                     backup = true;
                 }
 
@@ -400,13 +398,9 @@ public:
 
             bool is_diff = true;
 
-
             if (!backup) {
-
-
                 int curr_dim = pile[depth].dim;
                 int curr_cut = pile[depth].cut;
-
 
                 //cerr << "NB dim:cut --- " << curr_dim << ":" << curr_cut << '\n';
 
@@ -415,7 +409,6 @@ public:
 
                 is_diff = cut_region_one(*all_data, pile[depth - 1].data, pile[depth].data,
                         curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
-
 
                 curr_reg.cut(curr_dim, curr_cut);
                 working_reg.cut(curr_dim, curr_cut);
@@ -458,9 +451,7 @@ public:
                     // UNMUTEX
                     //pthread_mutex_unlock(locker);
 
-
                 } else {
-
 
                     //cerr << "found node(" << (*ra)[new_node.first]->count << "): " << curr_dim << "," << curr_cut << '\n';
 
@@ -531,7 +522,6 @@ public:
         int count_lim = (int)floor(w.data.size()*count_ratio);
         if(count_lim < top_count_lim) count_lim = top_count_lim;
 
-
         //pthread_t* t_group = new pthread_t[num_children]; // just do 3 threads for now :)
         //pthread_mutex_t* locker = new pthread_mutex_t();
         //pthread_mutex_init(locker, NULL);
@@ -561,10 +551,7 @@ public:
 
             small_opt_thread((void*) &(params[d]));
             
-            
             //pthread_create(&(t_group[d]), NULL, small_opt_thread, (void*) &(params[d]));
-
-
         // no threading for now
         //}
 
@@ -574,10 +561,7 @@ public:
             //void* output;
             //pthread_join(t_group[d], &output);
         }
-
-
-
-
+        
         //delete locker;
         delete [] params;
         //delete [] t_group;
