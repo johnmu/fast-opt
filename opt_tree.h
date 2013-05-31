@@ -60,13 +60,11 @@ private:
     }
 
 public:
-
     tree_node(){
         children = NULL;
         num_children = 0;
 
         init();
-
     }
 
     tree_node(int num_children){
@@ -106,7 +104,6 @@ public:
     void compute_lphi(int depth, gamma_table& gt){
         
         //cerr << "lphi depth:" << depth << '\n';
-        
         //cerr << "count: " << count << '\n';
         
         vector<double> lphi_list;
@@ -168,8 +165,6 @@ public:
 
         //if(isnan(lphi)) cerr <<"nan sum:" << sum << "," << max_val << '\n';
         //if(isinf(lphi)) cerr <<"inf sum:" << sum << "," << max_val << '\n';
-
-
     }
 
     double get_lphi(){
@@ -233,32 +228,31 @@ public:
     }
 
     opt_tree(int num_children){
-
         init(num_children,5,1000);
-
     }
 
     ~opt_tree(){
         delete root;
     }
 
-    void construct_full_tree(vector<vector<double> > &data){
-
-
-
+    void construct_full_tree(vector<vector<double> > &all_data){
         int64_t num_nodes = 0;
         int64_t num_zero_nodes = 0;
 
-        int N = data.size();
+        uint32_t N = (uint32_t)all_data.size();
 
         gamma_table gt(N);
         root->set_count(N);
 
-
-        vector<pile_t<tree_node*,vector<double> > > pile;
-        pile.push_back(pile_t<tree_node*,vector<double> >());
-
-        pile[0].data = data;
+        vector<pile_t<tree_node*,uint32_t > > pile;
+        pile.push_back(pile_t<tree_node*,uint32_t >());
+        
+        pile[0].data = vector<uint32_t>(N,0);
+        
+        for(uint32_t i = 0;i<N;i++){
+            pile[0].data[i] = i;
+        }
+        
         pile[0].node = root;
         pile[0].dim  = 0;
         pile[0].cut  = 0;
@@ -269,19 +263,14 @@ public:
         opt_region_hash<tree_node*> region_cache(24);
 
         int depth = 0;
-        //double lvolume = 0;
-
-        //cerr << "count_lim: " << count_lim << '\n';
         
         bool done = false;
-
         while (!done){
 
             if(pile.size() == 0){
                 done = true;
                 continue;
             }
-
 
             // print the pile
 #ifdef DEBUG
@@ -378,11 +367,10 @@ public:
 #ifdef DEBUG
                 cerr << "Add node: " << curr_dim << "," << curr_cut << '\n';
 #endif
-
-                pile.push_back(pile_t<tree_node*,vector<double> >());
+                pile.push_back(pile_t<tree_node*,uint32_t >());
                 depth++;
 
-                bool is_diff = cut_region(pile[depth - 1].data,pile[depth].data,
+                bool is_diff = cut_region_one(all_data,pile[depth - 1].data,pile[depth].data,
                         curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
 
                 curr_reg.cut(curr_dim, curr_cut);
@@ -392,24 +380,19 @@ public:
 
                 int curr_count = pile[depth].data.size();
 
-
                 if (!is_diff || curr_count <= count_lim || depth >= max_depth){
                     new_node.first = new tree_node();
                 }else {
                     new_node.first = new tree_node(num_children);
                 }
 
-
                 new_node.first->set_count(curr_count);
 
                 num_nodes++;
                 if (!is_diff || new_node.first->get_count() <= count_lim)num_zero_nodes++;
 
-
                 curr_node->set_child(curr_dim, curr_cut, new_node.first);
-
                 pile[depth].node = new_node.first;
-
                 region_cache.insert(working_reg,new_node.first,working_hash);
 
                 if (num_nodes % 1000000 == 0) {
@@ -419,7 +402,6 @@ public:
                 }
 
             } else {
-
 #ifdef DEBUG
                 cerr << "found node: " << curr_dim << "," << curr_cut << '\n';
 #endif
@@ -427,9 +409,6 @@ public:
                 //cerr << "fUNCUT: " << curr_dim  << '\n';
                 working_reg.uncut(curr_dim);
             }
-
-
-
         }
 
 
@@ -450,36 +429,29 @@ public:
     // N is number of data points
     void construct_MAP_tree(map_tree &map_region_tree,opt_region_hash<uint32_t> &map_regions,int N){
 
-
         // Check tree and region is empty
 
         // NEED TO DO
 
         // copy the root over
 
-
-
-        vector<pile_t<uint32_t,vector<double> > > map_pile;
-        map_pile.push_back(pile_t<uint32_t,vector<double> >());
+        // the second part is actually not used :/
+        vector<pile_t<uint32_t,char> > map_pile;
+        map_pile.push_back(pile_t<uint32_t,char>());
         map_pile[0].node = map_region_tree.get_full_tree();
         map_pile[0].dim  = -1;
         map_pile[0].cut  = -1;
-
 
         region_allocator<map_tree_node> *map_ra = map_region_tree.get_ra();
 
         // initialise state variables
         int depth = 0;
-
-
         gamma_table gt(N);
 
+        vector<pile_t<tree_node*,char > > pile;
+        pile.push_back(pile_t<tree_node*,char >());
 
-
-        vector<pile_t<tree_node*,vector<double> > > pile;
-        pile.push_back(pile_t<tree_node*,vector<double> >());
-
-        pile[0].data = vector<vector<double> >();
+        pile[0].data = vector<char>();
         pile[0].node = root;
         pile[0].dim  = -1;
         pile[0].cut  = -1;
@@ -581,8 +553,6 @@ public:
                     curr_cut = 0;
                     pile[depth].cut = 0;
 
-
-
                 }
 
             }else{
@@ -611,9 +581,7 @@ public:
 
                 (*map_ra)[curr_map_node]->set_area(-depth);
                 (*map_ra)[curr_map_node]->set_count(curr_node->get_count());
-
             }
-
 
             if(back_up){
 #ifdef DEBUG_MAP
@@ -622,9 +590,6 @@ public:
                 depth--;
                 pile.pop_back();
                 if (depth < 0) continue;
-
-                //curr_reg.uncut(pile[depth].dim, pile[depth].cut);
-
                 working_reg.uncut(pile[depth].dim);
 
                 continue;
@@ -640,28 +605,17 @@ public:
             (*map_ra)[curr_map_node]->set_dim(curr_dim);
             (*map_ra)[curr_map_node]->set_child(curr_cut,new_map_node.first);
 
-            map_pile.push_back(pile_t<uint32_t,vector<double> >());
+            map_pile.push_back(pile_t<uint32_t,char >());
             map_pile[depth].node = new_map_node.first;
-
-
 
             working_reg.cut(curr_dim, curr_cut);
 
-            pile.push_back(pile_t<tree_node*,vector<double> >());
-
-
-
-            //curr_reg.cut(curr_dim, curr_cut);
-
+            pile.push_back(pile_t<tree_node*,char >());
 
             pile[depth].dim  = -1;
             pile[depth].cut  = -1;
             pile[depth].node = curr_node->get_child(curr_dim,curr_cut);
-
-
         }
-
-
     }
 
 

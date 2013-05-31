@@ -773,7 +773,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 vector<uint32_t > new_data_0;
                 vector<uint32_t > new_data_1;
 
-                bool is_diff = cut_region2(*all_data,wu_it->data,new_data_0,new_data_1,
+                bool is_diff = cut_region2_one(*all_data,wu_it->data,new_data_0,new_data_1,
                         map_dim, wu_it->curr_reg.get_lim(map_dim));
 
                 if(is_diff){

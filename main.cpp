@@ -63,35 +63,25 @@ int main(int argc, char** argv) {
 
 
     if (mode == "opt") {
-
         error_num = opt(params);
     } else if (mode == "llopt") {
-
         error_num = llopt(params);
     } else if (mode == "lsopt") {
-
         error_num = lsopt(params);
     } else if (mode == "dfopt") {
-
         error_num = dfopt(params);
     } else if (mode == "disopt") {
-
         error_num = disopt(params);
     } else if (mode == "hell_dist") {
-
         error_num = hell_dist(params);
     } else if (mode == "classify") {
-
         error_num = classify(params);
     } else if (mode == "density") {
-
         error_num = density(params);
     } else if (mode == "bench") {
-
         error_num = bench(params);
     } else {
         print_usage_and_exit();
-
     }
 
     return error_num;
@@ -109,7 +99,7 @@ int opt(vector<string> params) {
             + "            data_file -- One sample each row\n"
             + "MAP partitions output to STDOUT. Log to STDERR \n"
             + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
-            + "greater than 5 use the other approaches\n";
+            + "greater than 5 use the other methods\n";
 
     if (params.size() != 2) {
         cerr << usage_text << endl;
