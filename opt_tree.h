@@ -213,7 +213,6 @@ private:
     int count_lim;
     int max_depth;
 
-
     void init(int num_children, int count_lim, int max_depth){
         this->num_children = num_children;
         root = new tree_node(num_children);
@@ -260,7 +259,7 @@ public:
         current_region curr_reg(num_children);
         opt_region working_reg(num_children);
 
-        opt_region_hash<tree_node*> region_cache(24);
+        opt_region_hash<tree_node*> region_cache(27);
 
         int depth = 0;
         
@@ -286,7 +285,6 @@ public:
             }
             cerr << "*******\n";
 #endif
-
             // this is only kind of temporary
 
             int curr_dim = pile[depth].dim;
@@ -345,7 +343,6 @@ public:
 
                 continue;
             }
-
 
             curr_dim = pile[depth].dim;
             curr_cut = pile[depth].cut;
@@ -411,7 +408,6 @@ public:
             }
         }
 
-
         cerr << "Nodes:" << num_nodes
                 << ", Zero nodes:" << num_zero_nodes
                 << ", Non-Zero nodes:" << (num_nodes-num_zero_nodes) <<'\n';
@@ -421,17 +417,12 @@ public:
     }
 
 
-
-
-
     /////////////////////////
     // the tree and the regions
     // N is number of data points
     void construct_MAP_tree(map_tree &map_region_tree,opt_region_hash<uint32_t> &map_regions,int N){
 
         // Check tree and region is empty
-
-        // NEED TO DO
 
         // copy the root over
 
@@ -459,9 +450,7 @@ public:
         //current_region curr_reg(num_children);
         opt_region working_reg(num_children);
 
-
         bool done = false;
-
 
         while(!done) {
 
@@ -469,8 +458,6 @@ public:
                 done = true;
                 continue;
             }
-
-
             // this is only kind of temporary
 
             int curr_dim = pile[depth].dim;
