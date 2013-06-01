@@ -48,7 +48,6 @@ class map_tree_node
 private:
     int count;
     int area;
-
     int dim;
     child_t children;
 
@@ -71,7 +70,6 @@ public:
         init();
     }
 
-
     void set_count(int count){
         this->count = count;
     }
@@ -79,7 +77,6 @@ public:
     int get_count(){
         return count;
     }
-
 
     void set_area(int area){
         this->area = area;
@@ -101,7 +98,6 @@ public:
         return exp(area*c::l2);
     }
 
-
     // N is total number of points
     double get_density(int N){
         return exp(log(count/(double)N) - (area*c::l2));
@@ -118,7 +114,21 @@ public:
     bool is_leaf(){
         return (dim==-1);
     }
-
+    
+    void save(ostream & out){
+        out.write((char*)&count,sizeof(count));
+        out.write((char*)&area,sizeof(area));
+        out.write((char*)&dim,sizeof(dim));
+        children.save(out);
+    }
+    
+    void load(istream & in){
+        in.read((char*)&count,sizeof(count));
+        in.read((char*)&area,sizeof(area));
+        in.read((char*)&dim,sizeof(dim));
+        children.load(in);
+    }
+    
 };
 
 
@@ -154,9 +164,9 @@ class map_tree
 private:
     uint32_t root;
     region_allocator<map_tree_node> ra;
-    int num_points; // total number of data points, used to compute density
+    uint32_t num_points; // total number of data points, used to compute density
 
-    void init(int num_points){
+    void init(uint32_t num_points){
         pair<uint32_t,map_tree_node*> out = ra.create_node();
         root = out.first;
         this->num_points = num_points;
@@ -164,10 +174,9 @@ private:
 
 public:
 
-    map_tree(int num_points){
+    map_tree(uint32_t num_points){
         init(num_points);
     }
-
 
     region_allocator<map_tree_node>* get_ra(){
         return &ra;
@@ -196,13 +205,108 @@ public:
         }
         
         return ra[curr_node]->get_density(num_points);
-        
     }
 
+    uint32_t get_num_points(){
+        return num_points;
+    }
+    
+    void save(ostream & out){
+        out.write((char*)&root,sizeof(root));
+        out.write((char*)&num_points,sizeof(num_points));
+        
+        ra.save(out);
+                
+    }
+    
+    void load(istream & in){
+        in.read((char*)&root,sizeof(root));
+        in.read((char*)&num_points,sizeof(num_points));
+        
+        ra.load(in);
+    }
+};
+
+
+// one-dimensional CDF constructed from OPT regions
+
+struct cdf_t{
+    double start;
+    double den;
+    
+    cdf_t(){
+        start = 0.0;
+        den = 1.0;
+    }
+    
+    cdf_t(const double &start,const double &den){
+        this->start = start;
+        this->den = den;
+    }
+    
+    bool operator<(const cdf_t &a) const{
+        return (start < a.start);
+    }
+    
 };
 
 
 
+class cdf{
+private:
+    vector<cdf_t> cdf_data;
+    
+public:
+    cdf(map_tree &map_region_tree, opt_region_hash<uint32_t> &map_regions){
+        uint32_t N = map_region_tree.get_num_points();
+        region_allocator<map_tree_node>* ra = map_region_tree.get_ra();
+        
+        // extract regions as (start, density) assume last one goes to 1
+        vector<pair<opt_region, uint32_t> > regs = map_regions.get_regions();
+
+        for (int i = 0; i < (int) regs.size(); i++) {
+            // get the start location (assume only 1-D)
+            pair<double, double> lims = regs[i].first.get_limits(1);
+            double start = lims.first;
+            
+            // get the density
+            double den = (*ra)[regs[i].second]->get_density(N);
+            
+            cdf_data.push_back(cdf_t(start,den));
+        }
+        
+        // sort by start location
+        sort(cdf_data.begin(),cdf_data.end());
+        
+        // sum up the densities
+        double cum_sum = 0.0;
+        for (int i = 0; i < (int) regs.size(); i++){
+            cum_sum += cdf_data[i].den;
+            cdf_data[i].den = cum_sum;
+        }
+    }
+    
+    double transform(double x) const{
+        cdf_t temp;
+        temp.start = x;
+        
+        vector<cdf_t>::const_iterator it = lower_bound(cdf_data.begin(),cdf_data.end(),temp);
+        
+        double start = 0.0;
+        double start_den = 0.0;
+        double end = it->start;
+        double end_den = it->den;
+        if(it != cdf_data.begin()){
+            vector<cdf_t>::const_iterator it_prev = it - 1;
+            start = it_prev->start;
+            start_den = it_prev->den;
+        }
+        
+        // interpolate to find the transformed value
+        
+        return ((end_den-start_den)/(end-start))*(x-start) + start_den;
+    }
+};
 
 
 #endif	/* MAP_TREE_H */
