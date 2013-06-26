@@ -115,7 +115,7 @@ public:
         return (dim==-1);
     }
     
-    void save(ostream & out){
+    void save(ostream & out) const{
         out.write((char*)&count,sizeof(count));
         out.write((char*)&area,sizeof(area));
         out.write((char*)&dim,sizeof(dim));
@@ -211,11 +211,15 @@ public:
         return num_points;
     }
     
+    int get_num_children(){
+        return ra[root]->get_dim();
+    }
+    
     void save(ostream & out){
         out.write((char*)&root,sizeof(root));
         out.write((char*)&num_points,sizeof(num_points));
         
-        ra.save(out);
+        ra.save2(out);
                 
     }
     
@@ -223,7 +227,7 @@ public:
         in.read((char*)&root,sizeof(root));
         in.read((char*)&num_points,sizeof(num_points));
         
-        ra.load(in);
+        ra.load2(in);
     }
 };
 

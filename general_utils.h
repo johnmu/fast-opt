@@ -331,6 +331,14 @@ public:
         }
 
     }
+    
+    void save(ostream & out) const{
+        out.write((char*)&data,sizeof(data));
+    }
+    
+    void load(istream & in){
+        in.read((char*)&data,sizeof(data));
+    } 
 
 };
 

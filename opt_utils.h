@@ -47,7 +47,7 @@ struct child_t{
         }
     }
     
-    void save(ostream & out){
+    void save(ostream & out) const{
         for(int i = 0;i<c::cuts;i++){
             out.write((char*)&(val[i]),sizeof(val[i]));
         }
@@ -216,6 +216,29 @@ public:
     int num_children() const{
         return (int)dim_cuts.size();
     }
+    
+    
+    void save(ostream & out) const{
+        uint32_t len = dim_cuts.size();
+        
+        out.write((char*)&len,sizeof(len));
+        
+        for(uint32_t i = 0;i<len;i++){
+            dim_cuts[i].save(out);
+        }
+    }
+    
+    void load(istream & in){
+        uint32_t len = 0;
+        
+        in.read((char*)&len,sizeof(len));
+        
+        dim_cuts.resize(len,bit_str());
+        
+        for(uint32_t i = 0;i<len;i++){
+            dim_cuts[i].load(in);
+        }
+    } 
 
 };
 
@@ -310,7 +333,8 @@ public:
         return &store[idx];
     }
     
-    void save(ostream & out){
+    // common save and load operations (these should be private)
+    void save_common(ostream & out) const{
         uint32_t free_len = (uint32_t)free_locs.size();
         uint32_t store_len = (uint32_t)store.size();
         
@@ -320,20 +344,16 @@ public:
         for(uint32_t i = 0;i<free_len;i++){
             out.write((char*)&free_locs[i],sizeof(uint32_t));
         }
-        
-        for(uint32_t i = 0;i<store_len;i++){
-            out.write((char*)&store[i],sizeof(T));
-        }
     }
     
-    void load(istream & in){
-
+    void load_common(istream & in){
         uint32_t free_len = 0;
         uint32_t store_len = 0;
         
         in.read((char*)&free_len,sizeof(free_len));
         in.read((char*)&store_len,sizeof(store_len));
         
+        free_locs.clear();
         for(uint32_t i = 0;i<free_len;i++){
             free_locs.push_back(0);
         }
@@ -342,9 +362,44 @@ public:
             in.read((char*)&free_locs[i],sizeof(uint32_t));
         }
         
+        store.clear();
         for(uint32_t i = 0;i<store_len;i++){
             store.push_back(T());
         }
+    }
+    
+    // save and load for custom save/load
+    void save2(ostream & out) const{
+        save_common(out);
+        uint32_t store_len = (uint32_t)store.size();
+        
+        for(uint32_t i = 0;i<store_len;i++){
+            store[i].save(out);
+        }
+    }
+    
+    void load2(istream & in){
+        load_common(in);
+        uint32_t store_len = (uint32_t)store.size();
+        
+        for(uint32_t i = 0;i<store_len;i++){
+            store[i].load(in);
+        }
+    }
+    
+    // default save/load
+    void save(ostream & out) const{
+        save_common(out);
+        uint32_t store_len = (uint32_t)store.size();
+        
+        for(uint32_t i = 0;i<store_len;i++){
+            out.write((char*)&store[i],sizeof(T));
+        }
+    }
+    
+    void load(istream & in){
+        load_common(in);
+        uint32_t store_len = (uint32_t)store.size();
         
         for(uint32_t i = 0;i<store_len;i++){
             in.read((char*)&store[i],sizeof(T));
@@ -454,13 +509,92 @@ public:
         return output;
     }
 
-    void save(ostream & out){
-
+    void save(ostream & out) const{
+        out.write((char*)&table_bits,sizeof(table_bits));
+        out.write((char*)&table_size,sizeof(table_size));
+        out.write((char*)&mask,sizeof(mask));
+        
+        // count the number of non-null entries
+        uint32_t non_null_count = 0;
+        for (uint32_t i = 0; i < table_size; i++) {
+            if (map_table[i] != NULL) {
+                non_null_count++;
+            }
+        }
+        
+        out.write((char*)&non_null_count,sizeof(non_null_count));
+        
+        // write out the non-null entries of the hash-table
+        for (uint32_t i = 0; i < table_size; i++) {
+            if (map_table[i] != NULL) {
+                // write out the location
+                out.write((char*)&i,sizeof(i));
+                
+                // write out the Map
+                map<opt_region, T>* it = map_table[i];
+                uint32_t map_len = it->size();
+                
+                out.write((char*)&map_len,sizeof(map_len));
+                
+                for(typename map<opt_region, T>::iterator map_it = it->begin();
+                        map_it != it->end();map_it++){
+                    map_it->first.save(out);
+                    out.write((char*)&(map_it->second),sizeof(map_it->second));
+                }
+            }
+        }
     }
     
     void load(istream & in){
+        in.read((char*)&table_bits,sizeof(table_bits));
+        in.read((char*)&table_size,sizeof(table_size));
+        in.read((char*)&mask,sizeof(mask));
+        
+        uint32_t non_null_count = 0;
+        in.read((char*) &non_null_count, sizeof (non_null_count));
 
-    }
+        // delete the old table first
+        for (uint32_t i = 0; i < table_size; i++) {
+            if (map_table[i] != NULL) {
+                delete map_table[i];
+            }
+        }
+        delete [] map_table;
+        
+        // initialise the table
+        map_table = new map<opt_region, T>*[table_size];
+        for (uint32_t i = 0; i < table_size; i++) {
+            map_table[i] = NULL;
+        }
+        
+        // read in the values
+        for (uint32_t i = 0; i < non_null_count; i++) {
+
+            // read in the location
+            uint32_t loc = 0;
+            in.read((char*) &loc, sizeof (loc));
+            
+            // initialise the location
+            map_table[loc] = new map<opt_region, T>();
+
+            // read in the map
+            map<opt_region, T>* it = map_table[loc];
+            uint32_t map_len = 0;
+
+            in.read((char*) &map_len, sizeof (map_len));
+
+            for(uint32_t j = 0;i<map_len;j++){
+                opt_region temp_region;
+                T val;
+                
+                temp_region.load(in);
+                in.read((char*)&(val),sizeof(val));
+                
+                it->insert(pair<opt_region, T>(temp_region, val));
+            }
+
+        }
+    }   
 
 };
 
