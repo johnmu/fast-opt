@@ -191,8 +191,9 @@ int load_densities(string joint_filename, string marginal_filename,
         map_tree** m_map_region_tree, opt_region_hash<uint32_t>** m_map_regions,
         cdf** marginal, bool copula){
     
-    int num_dim = 0;
+    
     {
+        int num_dim = 0;
         ifstream den_file;
         
         init_file_in(den_file, joint_filename, num_dim);
@@ -205,6 +206,7 @@ int load_densities(string joint_filename, string marginal_filename,
         map_region_tree->load(den_file);
         
         cerr << "DONE map_region_tree\n";
+        cerr << "num children: " << map_region_tree->get_num_children() << '\n';
         
         map_regions->load(den_file);
         
@@ -214,6 +216,7 @@ int load_densities(string joint_filename, string marginal_filename,
     }
     
     // load the marginal densities
+    int num_dim = 0;
     if(copula){
         cerr << "Loading Marginals...\n";
         
@@ -231,7 +234,7 @@ int load_densities(string joint_filename, string marginal_filename,
         
         for(int i = 0;i<num_dim;i++){
             // load each dimension
-            m_map_region_tree[i] = new map_tree(0);
+            m_map_region_tree[i] = new map_tree(0,num_dim);
             m_map_regions[i] = new opt_region_hash<uint32_t>(2);
             
             m_map_region_tree[i]->load(den_file);
