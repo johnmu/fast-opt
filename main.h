@@ -152,7 +152,7 @@ void init_file_in(ifstream &den_file, string file_name, int &num_den) {
     
     den_file.read((char*) &num_den, sizeof (num_den));
     
-    cerr<< "num_den: " << num_den << '\n';
+    //cerr<< "num_den: " << num_den << '\n';
 
 }
 
@@ -180,8 +180,10 @@ double compute_density(vector<double> &point, map_tree *map_region_tree,
         }
     }
 
-    log_density += map_region_tree->get_density(trans_data);
+    log_density += log(map_region_tree->get_density(trans_data));
 
+    cerr << "Density: " << exp(log_density) << '\n';
+    
     return exp(log_density);
     
 }
@@ -205,12 +207,12 @@ int load_densities(string joint_filename, string marginal_filename,
 
         map_region_tree->load(den_file);
         
-        cerr << "DONE map_region_tree\n";
-        cerr << "num children: " << map_region_tree->get_num_children() << '\n';
+        //cerr << "DONE map_region_tree\n";
+        //cerr << "num children: " << map_region_tree->get_num_children() << '\n';
         
         map_regions->load(den_file);
         
-        cerr << "DONE map_regions\n";
+        //cerr << "DONE map_regions\n";
 
         den_file.close();
     }

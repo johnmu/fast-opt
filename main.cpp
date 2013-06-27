@@ -801,9 +801,9 @@ int density(vector<string> params){
     map_tree map_region_tree(1,1);
     opt_region_hash<uint32_t> map_regions(20);
     
-    map_tree** m_map_region_tree;
-    opt_region_hash<uint32_t>** m_map_regions;
-    cdf** marginal;
+    map_tree** m_map_region_tree = NULL;
+    opt_region_hash<uint32_t>** m_map_regions = NULL;
+    cdf** marginal = NULL;
     
     int num_dim = 0;
     
@@ -818,28 +818,34 @@ int density(vector<string> params){
     num_dim = map_region_tree.get_num_children();
     
     // Check things were loaded sensibly
-    cerr << "num_dim: " << num_dim << '\n';
-    cerr << "num points: " << map_region_tree.get_num_points() << '\n';
-    map_regions.print_regions();
+    //cerr << "num_dim: " << num_dim << '\n';
+    //cerr << "num points: " << map_region_tree.get_num_points() << '\n';
+    //cerr << "---------\n";
+    //print_MAP_density(cerr, map_regions.get_regions(),map_region_tree.get_ra(),map_region_tree.get_num_points());
     
     // Loop through the data
     for (vector<vector<double> >::iterator it = test_data.begin();
             it != test_data.end(); it++) {
         // for each data point
-        cerr << ios::scientific 
-                << compute_density(*it, &map_region_tree,m_map_region_tree,marginal,copula) 
+        
+        double den = compute_density(*it, &map_region_tree,m_map_region_tree,marginal,copula);
+        
+        cerr << "den: " << den << '\n';
+        
+        cout << std::scientific
+                << den
                 << '\n';
     }
     
     for(int i = 0;i<num_dim;i++){
-        delete m_map_region_tree[i];
-        delete m_map_regions[i];
-        delete marginal[i];
+        if(m_map_region_tree != NULL) delete m_map_region_tree[i];
+        if(m_map_regions != NULL) delete m_map_regions[i];
+        if(marginal != NULL) delete marginal[i];
     }
     
-    delete [] m_map_region_tree;
-    delete [] m_map_regions;
-    delete [] marginal;
+    if(m_map_region_tree != NULL) delete [] m_map_region_tree;
+    if(m_map_regions != NULL) delete [] m_map_regions;
+    if(marginal != NULL) delete [] marginal;
 
     return 0;
 }
