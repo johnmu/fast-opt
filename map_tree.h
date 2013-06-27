@@ -126,6 +126,11 @@ public:
         in.read((char*)&count,sizeof(count));
         in.read((char*)&area,sizeof(area));
         in.read((char*)&dim,sizeof(dim));
+        
+        //cerr << "count: " << count << '\n'; 
+        //cerr << "area: " << area << '\n';
+        //cerr << "dim: " << dim << '\n';
+        
         children.load(in);
     }
     
@@ -227,7 +232,12 @@ public:
         in.read((char*)&root,sizeof(root));
         in.read((char*)&num_points,sizeof(num_points));
         
+        cerr << "Root: " << root << '\n';
+        cerr << "num_points: " << num_points << '\n';
+        
         ra.load2(in);
+        
+        
     }
 };
 

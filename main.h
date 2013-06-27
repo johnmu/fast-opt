@@ -151,6 +151,8 @@ void init_file_in(ifstream &den_file, string file_name, int &num_den) {
     }
     
     den_file.read((char*) &num_den, sizeof (num_den));
+    
+    cerr<< "num_den: " << num_den << '\n';
 
 }
 
@@ -200,6 +202,9 @@ int load_densities(string joint_filename, string marginal_filename,
         }
 
         map_region_tree->load(den_file);
+        
+        cerr << "DONE map_region_tree\n";
+        
         map_regions->load(den_file);
 
         den_file.close();
@@ -208,6 +213,8 @@ int load_densities(string joint_filename, string marginal_filename,
     // load the marginal densities
     int num_dim = 0;
     if(copula){
+        cerr << "Loading Marginals...\n";
+        
         ifstream den_file;
         
         init_file_in(den_file, marginal_filename, num_dim);
