@@ -191,9 +191,10 @@ int load_densities(string joint_filename, string marginal_filename,
         map_tree** m_map_region_tree, opt_region_hash<uint32_t>** m_map_regions,
         cdf** marginal, bool copula){
     
+    int num_dim = 0;
     {
         ifstream den_file;
-        int num_dim = 0;
+        
         init_file_in(den_file, joint_filename, num_dim);
 
         if (num_dim != 1) {
@@ -206,12 +207,13 @@ int load_densities(string joint_filename, string marginal_filename,
         cerr << "DONE map_region_tree\n";
         
         map_regions->load(den_file);
+        
+        cerr << "DONE map_regions\n";
 
         den_file.close();
     }
     
     // load the marginal densities
-    int num_dim = 0;
     if(copula){
         cerr << "Loading Marginals...\n";
         
