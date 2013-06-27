@@ -174,7 +174,7 @@ int llopt(vector<string> params) {
 
     bool prune_tree = true;
     int params_offset = 0;
-    if (params.size() == 5) {
+    if (params.size() == 6) {
         if (params[0] == "-np") {
             prune_tree = false;
             params_offset = 1;
@@ -197,7 +197,7 @@ int llopt(vector<string> params) {
     double stop_ratio = strTo<double>(params[params_offset + 0]);
     double top_stop_ratio = strTo<double>(params[params_offset + 2]);
     
-    string out_filename = params[params_offset + 3];
+    string out_filename = params[params_offset + 4];
 
     cerr << "Each small OPT stopping at " << ll_levels << " levels.\n";
     cerr << "Each level stopping at " << stop_ratio*100 << "% of points.\n";
@@ -214,9 +214,10 @@ int llopt(vector<string> params) {
     llopt.construct_llopt_tree(&data, map_region_tree, map_regions,prune_tree);
     mt.print_elapsed_time(cerr, "LLOPT("+ toStr<int>(ll_levels) +") construction");
 
+    // write to cout
     print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
 
-    // write out the density
+    // write out the density to file
     ofstream den_file;
     init_file_out(den_file,out_filename+".den",1);
     
@@ -584,7 +585,6 @@ int hell_dist(vector<string> params){
     for(int i = 0;i<true_N;i++){
         double true_den = true_samples[i][dim];
         double map_den  = 0.0;
-        bool found = false;
         
         vector<double> point(true_samples[i].begin(),true_samples[i].end()-1);
         

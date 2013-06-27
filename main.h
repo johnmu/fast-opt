@@ -212,7 +212,7 @@ int load_densities(string joint_filename, string marginal_filename,
         
         init_file_in(den_file, marginal_filename, num_dim);
 
-        if (num_dim != map_region_tree.get_num_children()) {
+        if (num_dim != map_region_tree->get_num_children()) {
             cerr << "marginal densities num not consistent with joint\n";
             return 1;
         }
@@ -240,6 +240,8 @@ int load_densities(string joint_filename, string marginal_filename,
             marginal[i] = new cdf(*(m_map_region_tree[i]), *(m_map_regions[i]));
         }
     }
+    
+    return 0;
 }
 
 
@@ -253,6 +255,7 @@ int copula(vector<string> params);
 int hell_dist(vector<string> params);
 int classify(vector<string> params);
 int density(vector<string> params);
+int density_old(vector<string> params);
 int bench(vector<string> params);
 
 void print_usage_and_exit();
