@@ -131,6 +131,7 @@ int opt(vector<string> params) {
     
     mu_timer mt;
 
+
     opt_tree opt_slow(dim,stop_points,1000);
 
     mt.reset();
@@ -449,7 +450,7 @@ int copula(vector<string> params){
     
     ofstream den_file;
     init_file_out(den_file,out_filename+".copula.den",dim);
-
+    
     
     for (int i = 0; i < dim; i++) {
         
@@ -461,6 +462,7 @@ int copula(vector<string> params){
         for(uint32_t j = 0;j<N;j++){
             one_data[j][0] = data[j][i];
         }
+
         
         // run full OPT on data
 
@@ -495,7 +497,7 @@ int copula(vector<string> params){
         // Replace the data that was read in
         
         for(uint32_t j = 0;j<N;j++){
-            data[i][j] = one_data[j][0];
+            data[j][i] = one_data[j][0];
         }
         
         // Write out the marginal into the den file
