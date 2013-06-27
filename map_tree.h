@@ -310,7 +310,19 @@ public:
         // sum up the densities
         double cum_sum = 0.0;
         for (int i = 0; i < (int) regs.size(); i++){
-            cum_sum += cdf_data[i].den;
+            
+            double dist = 0;
+            if(i == 0){
+                dist = cdf_data[i].start;
+            }else{
+                dist = cdf_data[i].start - cdf_data[i-1].start;
+            }
+            
+            cum_sum += cdf_data[i].den * dist;
+            
+            // fix rounding errors
+            if(cum_sum>1)cum_sum = 1.0;
+            
             cdf_data[i].den = cum_sum;
         }
     }
@@ -334,6 +346,12 @@ public:
         // interpolate to find the transformed value
         
         return ((end_den-start_den)/(end-start))*(x-start) + start_den;
+    }
+    
+    void print_cdf(ostream o) const{
+        for(int i = 0;i<(int)cdf_data.size();i++){
+            o << cdf_data[i].start << ":" << cdf_data[i].den << '\n';
+        }
     }
 };
 

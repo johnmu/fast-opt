@@ -489,6 +489,8 @@ int copula(vector<string> params){
         // Construct CDF from the regions
         cdf marginal(map_region_tree,map_regions);
         
+        marginal.print_cdf(cerr);
+        
         // Transform the data
         for(uint32_t j = 0;j<N;j++){
             one_data[j][0] = marginal.transform(one_data[j][0]);
