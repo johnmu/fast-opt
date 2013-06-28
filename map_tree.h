@@ -145,16 +145,17 @@ inline void print_MAP_density(ostream &o,vector<pair<opt_region, uint32_t> > vec
     int    total_count   = 0;
 
     for(int i = 0;i<(int)vec.size();i++){
+        
+         double area = exp(vec[i].first.get_area()*c::l2);
+        
         vec[i].first.print_region_limits(o);
         o << scientific << (*ra)[vec[i].second]->get_density(N);
+        o << ' ' << (*ra)[vec[i].second]->get_count();
         o << '\n';
-
-        double area = exp(vec[i].first.get_area()*c::l2);
 
         total_area    += area;
         total_density += (*ra)[vec[i].second]->get_density(N) * area;
         total_count   += (*ra)[vec[i].second]->get_count();
-
     }
 
     cerr << "Regions: " << vec.size() <<   ", Total area: " << total_area
@@ -260,21 +261,21 @@ public:
 // one-dimensional CDF constructed from OPT regions
 
 struct cdf_t{
-    double start;
+    double end;
     double den;
     
     cdf_t(){
-        start = 0.0;
+        end = 1.0;
         den = 1.0;
     }
     
-    cdf_t(const double &start,const double &den){
-        this->start = start;
+    cdf_t(const double &end,const double &den){
+        this->end = end;
         this->den = den;
     }
     
     bool operator<(const cdf_t &a) const{
-        return (start < a.start);
+        return (end < a.end);
     }
     
 };
@@ -286,7 +287,10 @@ private:
     vector<cdf_t> cdf_data;
     
 public:
+    
+    // should add some sanity checks
     cdf(map_tree &map_region_tree, opt_region_hash<uint32_t> &map_regions){
+        
         uint32_t N = map_region_tree.get_num_points();
         region_allocator<map_tree_node>* ra = map_region_tree.get_ra();
         
@@ -295,29 +299,31 @@ public:
 
         for (int i = 0; i < (int) regs.size(); i++) {
             // get the start location (assume only 1-D)
-            pair<double, double> lims = regs[i].first.get_limits(1);
-            double start = lims.first;
+   
+            pair<double, double> lims = regs[i].first.get_limits(0);
+            double end = lims.second;
             
             // get the density
             double den = (*ra)[regs[i].second]->get_density(N);
-            
-            cdf_data.push_back(cdf_t(start,den));
+
+            cdf_data.push_back(cdf_t(end,den));
         }
         
-        // sort by start location
+        // sort by end location
         sort(cdf_data.begin(),cdf_data.end());
         
         // sum up the densities
+        int N_reg = (int)regs.size();
         double cum_sum = 0.0;
-        for (int i = 0; i < (int) regs.size(); i++){
+        for (int i = 0; i < N_reg; i++){
             
             double dist = 0;
             if(i == 0){
-                dist = cdf_data[i].start;
+                dist = cdf_data[i].end;
             }else{
-                dist = cdf_data[i].start - cdf_data[i-1].start;
+                dist = cdf_data[i].end - cdf_data[i-1].end;
             }
-            
+
             cum_sum += cdf_data[i].den * dist;
             
             // fix rounding errors
@@ -325,32 +331,33 @@ public:
             
             cdf_data[i].den = cum_sum;
         }
+        
     }
     
     double transform(double x) const{
         cdf_t temp;
-        temp.start = x;
+        temp.end = x;
+        temp.den = 0.0;
         
         vector<cdf_t>::const_iterator it = lower_bound(cdf_data.begin(),cdf_data.end(),temp);
         
         double start = 0.0;
         double start_den = 0.0;
-        double end = it->start;
+        double end = it->end;
         double end_den = it->den;
         if(it != cdf_data.begin()){
             vector<cdf_t>::const_iterator it_prev = it - 1;
-            start = it_prev->start;
+            start = it_prev->end;
             start_den = it_prev->den;
         }
         
         // interpolate to find the transformed value
-        
-        return ((end_den-start_den)/(end-start))*(x-start) + start_den;
+        return ((x-start)/(end-start))*(end_den-start_den) + start_den;
     }
     
     void print_cdf(ostream &o) const{
         for(int i = 0;i<(int)cdf_data.size();i++){
-            o << cdf_data[i].start << ":" << cdf_data[i].den << '\n';
+            o << cdf_data[i].end << ":" << cdf_data[i].den << '\n';
         }
     }
 };
