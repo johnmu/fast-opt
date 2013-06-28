@@ -19,6 +19,7 @@
 
 
 // num_den is number of densities stored in this file
+
 void init_file_out(ofstream &den_file, string file_name, int num_den) {
 
     string temp = file_name;
@@ -31,6 +32,7 @@ void init_file_out(ofstream &den_file, string file_name, int num_den) {
 }
 
 // num_den is number of densities stored in this file
+
 void init_file_in(ifstream &den_file, string file_name, int &num_den) {
 
     string temp = file_name;
@@ -39,15 +41,15 @@ void init_file_in(ifstream &den_file, string file_name, int &num_den) {
     // write den file headers
     int magic_val = 0;
     den_file.read((char*) &magic_val, sizeof (magic_val));
-    
-    if(magic_val != c::magic){
+
+    if (magic_val != c::magic) {
         cerr << "ERROR: Filetype mismatch\n";
         den_file.close();
         return;
     }
-    
+
     den_file.read((char*) &num_den, sizeof (num_den));
-    
+
     //cerr<< "num_den: " << num_den << '\n';
 
 }
@@ -55,20 +57,21 @@ void init_file_in(ifstream &den_file, string file_name, int &num_den) {
 
 
 // This class stores densities that could be copulas
-class density_store{
+
+class density_store {
 private:
     bool copula;
-    
+
     map_tree map_region_tree;
     opt_region_hash<uint32_t> map_regions;
-    
+
     map_tree** m_map_region_tree;
     opt_region_hash<uint32_t>** m_map_regions;
     cdf** marginal;
-    
+
     int num_dim;
-    
-    void init(){
+
+    void init() {
         m_map_region_tree = NULL;
         m_map_regions = NULL;
         marginal = NULL;
@@ -135,17 +138,29 @@ private:
 
         return 0;
     }
-    
+
+    void destroy() {
+        for (int i = 0; i < num_dim; i++) {
+            if (m_map_region_tree != NULL) delete m_map_region_tree[i];
+            if (m_map_regions != NULL) delete m_map_regions[i];
+            if (marginal != NULL) delete marginal[i];
+        }
+
+        if (m_map_region_tree != NULL) delete [] m_map_region_tree;
+        if (m_map_regions != NULL) delete [] m_map_regions;
+        if (marginal != NULL) delete [] marginal;
+    }
+
 public:
-    
-    density_store(){
+
+    density_store() {
         init();
     }
-    
-    density_store(string joint_filename, string marginal_filename, bool copula){
+
+    density_store(string joint_filename, string marginal_filename, bool copula) {
         init();
         this->copula = copula;
-        
+
         int status = load_densities(joint_filename, marginal_filename);
 
         if (status != 0) {
@@ -153,13 +168,29 @@ public:
         }
 
         num_dim = map_region_tree.get_num_children();
-        
-        
-    }
-    
-    double compute_density(const vector<double> &point){
 
-        if(num_dim != (int)point.size()){
+
+    }
+
+    int load_files(string joint_filename, string marginal_filename, bool copula) {
+        destroy();
+        init();
+        this->copula = copula;
+
+        int status = load_densities(joint_filename, marginal_filename);
+
+        if (status != 0) {
+            cerr << "ERROR: Failed loading of file: " << joint_filename << '\n';
+            return status;
+        }
+
+        num_dim = map_region_tree.get_num_children();
+        return 0;
+    }
+
+    double compute_density(const vector<double> &point) {
+
+        if (num_dim != (int) point.size()) {
             cerr << "Error: Compute density dimension mismatch\n";
             return -c::inf;
         }
@@ -190,19 +221,11 @@ public:
 
         return exp(log_density);
     }
-    
-    ~density_store() {
-        for (int i = 0; i < num_dim; i++) {
-            if (m_map_region_tree != NULL) delete m_map_region_tree[i];
-            if (m_map_regions != NULL) delete m_map_regions[i];
-            if (marginal != NULL) delete marginal[i];
-        }
 
-        if (m_map_region_tree != NULL) delete [] m_map_region_tree;
-        if (m_map_regions != NULL) delete [] m_map_regions;
-        if (marginal != NULL) delete [] marginal;
+    ~density_store() {
+        destroy();
     }
-    
+
 };
 
 #endif	/* DENSITY_STORE_H */

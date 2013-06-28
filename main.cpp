@@ -615,7 +615,7 @@ int classify(vector<string> params){
         marginal_filenames = split(params[2],',');
     }
     
-    if(joint_filenames.size() != marginal_filenames.size()){
+    if(copula && joint_filenames.size() != marginal_filenames.size()){
         cerr << "ERROR: Must if marginals are given, must be same number as copula densities.\n";
     }
     
@@ -625,12 +625,15 @@ int classify(vector<string> params){
 
     // load the joint/copula densities
     
-    vector<vector<vector<double> > > class_dist(num_class);
-    
-    for(int i = 0;i<num_class;i++){
-        
-        
-        
+    vector<density_store> class_dist(num_class);
+
+    for (int i = 0; i < num_class; i++) {
+        if (copula) {
+            class_dist[i].load_files(joint_filenames[i], marginal_filenames[i], copula);
+        } else {
+            class_dist[i].load_files(joint_filenames[i], "", copula);
+        }
+
     }
 
 
@@ -645,34 +648,16 @@ int classify(vector<string> params){
 
         for(int c = 0;c < num_class; c++) {
             double map_den = 0.0;
-            bool found = false;
-            for (int j = 0; !found && j < (int)class_dist[c].size(); j++) {
-                found = true;
-                for (int k = 0; found && k < dim; k++) {
 
-                    double low = class_dist[c][j][2 * k];
-                    double high = class_dist[c][j][(2 * k) + 1];
+            map_den = class_dist[c].compute_density(test_data[i]);
 
-                    if (test_data[i][k] <= low || test_data[i][k] > high) {
-                        found = false;
-                    }
-                }
+            class_density[c] = map_den;
 
-                if (found) {
-                    map_den = class_dist[c][j][2 * dim];
-                }
+            if (map_den > max_den) {
+                max_class = c;
+                max_den = map_den;
             }
-
-            if (!found) {
-                cerr << "Sample not found: class:" << c << ", idx:" << i << '\n';
-            }else{
-                class_density[c] = map_den;
-
-                if(map_den > max_den){
-                    max_class = c;
-                    max_den = map_den;
-                }
-            }
+            
         }
 
         // Print it out
