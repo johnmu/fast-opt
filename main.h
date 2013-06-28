@@ -168,7 +168,8 @@ double compute_density(vector<double> &point, map_tree *map_region_tree,
             vector<double> single_point;
             single_point.push_back(point[i]);
 
-            log_density += log(m_map_region_tree[i]->get_density(single_point));
+            double curr_density = log(m_map_region_tree[i]->get_density(single_point));
+            log_density += curr_density;
         }
     }
 
@@ -180,18 +181,18 @@ double compute_density(vector<double> &point, map_tree *map_region_tree,
         }
     }
 
-    log_density += log(map_region_tree->get_density(trans_data));
-
-    cerr << "Density: " << exp(log_density) << '\n';
+    double joint_density = log(map_region_tree->get_density(trans_data));
+    
+    log_density += joint_density;
     
     return exp(log_density);
     
 }
 
 int load_densities(string joint_filename, string marginal_filename,
-        map_tree *map_region_tree, opt_region_hash<uint32_t> *map_regions,
-        map_tree** m_map_region_tree, opt_region_hash<uint32_t>** m_map_regions,
-        cdf** marginal, bool copula){
+        map_tree & map_region_tree, opt_region_hash<uint32_t> & map_regions,
+        map_tree **& m_map_region_tree, opt_region_hash<uint32_t> **& m_map_regions,
+        cdf **& marginal, bool copula){
     
     
     {
@@ -205,12 +206,12 @@ int load_densities(string joint_filename, string marginal_filename,
             return 1;
         }
 
-        map_region_tree->load(den_file);
+        map_region_tree.load(den_file);
         
         //cerr << "DONE map_region_tree\n";
         //cerr << "num children: " << map_region_tree->get_num_children() << '\n';
         
-        map_regions->load(den_file);
+        map_regions.load(den_file);
         
         //cerr << "DONE map_regions\n";
 
@@ -226,7 +227,7 @@ int load_densities(string joint_filename, string marginal_filename,
         
         init_file_in(den_file, marginal_filename, num_dim);
 
-        if (num_dim != map_region_tree->get_num_children()) {
+        if (num_dim != map_region_tree.get_num_children()) {
             cerr << "marginal densities num not consistent with joint\n";
             return 1;
         }
@@ -242,14 +243,14 @@ int load_densities(string joint_filename, string marginal_filename,
             m_map_region_tree[i]->load(den_file);
             m_map_regions[i]->load(den_file);
         }
-        
+
         den_file.close();
         
     }
     
     // create the CDFs
-    marginal = new cdf*[num_dim];
     if (copula) {
+        marginal = new cdf*[num_dim];
         for (int i = 0; i < num_dim; i++) {
             marginal[i] = new cdf(*(m_map_region_tree[i]), *(m_map_regions[i]));
         }

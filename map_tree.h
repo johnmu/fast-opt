@@ -197,7 +197,7 @@ public:
     double get_density(const vector<double> &data){
         
         if(num_children != (int)data.size()){
-            cerr << "Warning: wrong dimension" << '\n';
+            cerr << "Warning: wrong dimension(" << num_children << ")" << '\n';
             return -c::inf;
         }
         
@@ -209,19 +209,19 @@ public:
             int curr_dim = ra[curr_node]->get_dim();
             int curr_cut = curr_reg.determine_cut(curr_dim,data[curr_dim]);
             
-            cerr << "--" << '\n';
-            cerr << "curr_node: " << curr_node << '\n';
-            cerr << "curr_dim: " << curr_dim << '\n';
-            cerr << "curr_cut: " << curr_cut << '\n';
-            cerr << "leaf area: " << ra[curr_node]->get_area() << '\n';
+            //cerr << "--" << '\n';
+            //cerr << "curr_node: " << curr_node << '\n';
+            //cerr << "curr_dim: " << curr_dim << '\n';
+            //cerr << "curr_cut: " << curr_cut << '\n';
+            //cerr << "leaf area: " << ra[curr_node]->get_area() << '\n';
             
             curr_reg.cut(curr_dim,curr_cut);
             curr_node = ra[curr_node]->get_child(curr_cut);
-            cerr << "next node: " << curr_node << '\n';
+            //cerr << "next node: " << curr_node << '\n';
         }
-        cerr << "LEAF\n";
-        cerr << "leaf count: " << ra[curr_node]->get_count() << '\n';
-        cerr << "leaf area: " << ra[curr_node]->get_area() << '\n';
+        //cerr << "LEAF\n";
+        //cerr << "leaf count: " << ra[curr_node]->get_count() << '\n';
+        //cerr << "leaf area: " << ra[curr_node]->get_area() << '\n';
         
         return ra[curr_node]->get_density(num_points);
     }
