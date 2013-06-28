@@ -429,6 +429,10 @@ public:
     int table_bits;
     uint32_t table_size;
     uint32_t mask;
+    
+    opt_region_hash(){
+        // in this is used, must load
+    }
 
     opt_region_hash(int table_bits) {
         this->table_bits = table_bits;
