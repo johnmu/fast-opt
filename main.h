@@ -155,27 +155,23 @@ void init_file_in(ifstream &den_file, string file_name, int &num_den) {
 }
 
 double compute_density(vector<double> &point, map_tree *map_region_tree, 
-        map_tree** m_map_region_tree, cdf** marginal, bool copula) {
+        map_tree** m_map_region_tree, cdf** marginal) {
 
     int num_dim = point.size();
     
     double log_density = 0;
     // product of the marginal densities
-    if (copula) {
-        for (int i = 0; i < num_dim; i++) {
-            vector<double> single_point;
-            single_point.push_back(point[i]);
+    for (int i = 0; i < num_dim; i++) {
+        vector<double> single_point;
+        single_point.push_back(point[i]);
 
-            log_density += log(m_map_region_tree[i]->get_density(single_point));
-        }
+        log_density += log(m_map_region_tree[i]->get_density(single_point));
     }
 
     // copula transform the data point
     vector<double> trans_data = point;
-    if (copula) {
-        for (int i = 0; i < num_dim; i++) {
-            trans_data[i] = marginal[i]->transform(trans_data[i]);
-        }
+    for (int i = 0; i < num_dim; i++) {
+        trans_data[i] = marginal[i]->transform(trans_data[i]);
     }
 
     log_density += map_region_tree->get_density(trans_data);
@@ -183,65 +179,6 @@ double compute_density(vector<double> &point, map_tree *map_region_tree,
     return exp(log_density);
     
 }
-
-int load_densities(string joint_filename, string marginal_filename,
-        map_tree *map_region_tree, opt_region_hash<uint32_t> *map_regions,
-        map_tree** m_map_region_tree, opt_region_hash<uint32_t>** m_map_regions,
-        cdf** marginal, bool copula){
-    
-    {
-        ifstream den_file;
-        int num_dim = 0;
-        init_file_in(den_file, joint_filename, num_dim);
-
-        if (num_dim != 1) {
-            cerr << "More than one density in joint file\n";
-            return 1;
-        }
-
-        map_region_tree->load(den_file);
-        map_regions->load(den_file);
-
-        den_file.close();
-    }
-    
-    // load the marginal densities
-    int num_dim = 0;
-    if(copula){
-        ifstream den_file;
-        
-        init_file_in(den_file, marginal_filename, num_dim);
-
-        if (num_dim != map_region_tree.get_num_children()) {
-            cerr << "marginal densities num not consistent with joint\n";
-            return 1;
-        }
-        
-        m_map_region_tree = new map_tree*[num_dim];
-        m_map_regions = new opt_region_hash<uint32_t>*[num_dim];
-        
-        for(int i = 0;i<num_dim;i++){
-            // load each dimension
-            m_map_region_tree[i] = new map_tree(0);
-            m_map_regions[i] = new opt_region_hash<uint32_t>(2);
-            
-            m_map_region_tree[i]->load(den_file);
-            m_map_regions[i]->load(den_file);
-        }
-        
-        den_file.close();
-        
-    }
-    
-    // create the CDFs
-    marginal = new cdf*[num_dim];
-    if (copula) {
-        for (int i = 0; i < num_dim; i++) {
-            marginal[i] = new cdf(*(m_map_region_tree[i]), *(m_map_regions[i]));
-        }
-    }
-}
-
 
 int llopt(vector<string> params);
 int lsopt(vector<string> params);

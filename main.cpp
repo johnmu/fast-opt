@@ -548,49 +548,47 @@ int hell_dist(vector<string> params){
 
     cerr << true_N << " samples in " << dim << " dimensions.\n";
 
-    
-    string joint_filename = params[1];
-    
-    string marginal_filename = "";
-    bool copula = false;
-    if(params.size() == 3){
-        copula = true;
-        marginal_filename = params[2];
+    vector<vector<double> > map_partitions = read_data(params[1],true);
+
+    int N_part = (int)map_partitions.size();
+    if((2*(dim)) != ((int)map_partitions[0].size()-1)){
+        cerr << "ERROR: Dimension mismatch!\n";
+        exit(2);
+
     }
 
-    // load the joint/copula densities
-    map_tree map_region_tree(1);
-    opt_region_hash<uint32_t> map_regions(20);
-    
-    map_tree** m_map_region_tree;
-    opt_region_hash<uint32_t>** m_map_regions;
-    cdf** marginal;
-    
-    int num_dim = 0;
-    
-    int status = load_densities(joint_filename, marginal_filename,
-        &map_region_tree, &map_regions, m_map_region_tree, m_map_regions,
-        marginal, copula);
-    
-    if(status != 0){
-        return status;
-    }
-    
-    num_dim = map_region_tree.get_num_children();
-    
-    
+
     double val = 0.0;
     int not_found = 0;
     for(int i = 0;i<true_N;i++){
         double true_den = true_samples[i][dim];
         double map_den  = 0.0;
         bool found = false;
-        
-        vector<double> point(true_samples[i].begin(),true_samples[i].end()-1);
-        
-        map_den = compute_density(point, &map_region_tree,m_map_region_tree,marginal,copula);
+        for(int j = 0;!found&&j<N_part;j++){
+            found = true;
+            for(int k = 0;found&&k<dim;k++){
 
-        val += sqrt(map_den / true_den); // importance sample
+                double low  = map_partitions[j][2*k];
+                double high = map_partitions[j][(2*k)+1];
+
+                if(true_samples[i][k] <= low || true_samples[i][k] > high){
+                    found = false;
+                }
+            }
+
+            if(found){
+                map_den = map_partitions[j][2*dim];
+            }
+        }
+
+        if(found){
+                val += sqrt(map_den/true_den);
+
+                //cerr << val << "," << map_den << "," << true_den << '\n';
+        }else{
+            cerr << "Sample not found: " << i  << ":" << true_den << '\n';
+            not_found++;
+        }
     }
 
     if (val/(double)(true_N-not_found) > 1){
@@ -601,17 +599,6 @@ int hell_dist(vector<string> params){
 
     cout << sqrt(1-(val/(double)(true_N-not_found))) << '\n';
 
-    
-    for(int i = 0;i<num_dim;i++){
-        delete m_map_region_tree[i];
-        delete m_map_regions[i];
-        delete marginal[i];
-    }
-    
-    delete [] m_map_region_tree;
-    delete [] m_map_regions;
-    delete [] marginal;
-    
     return 0;
 }
 
@@ -803,39 +790,71 @@ int density(vector<string> params){
     
     map_tree** m_map_region_tree;
     opt_region_hash<uint32_t>** m_map_regions;
-    cdf** marginal;
-    
     int num_dim = 0;
-    
-    int status = load_densities(joint_filename, marginal_filename,
-        &map_region_tree, &map_regions, m_map_region_tree, m_map_regions,
-        marginal, copula);
-    
-    if(status != 0){
-        return status;
+
+    {
+        ifstream den_file;
+        int num_dim = 0;
+        init_file_in(den_file, joint_filename, num_dim);
+
+        if (num_dim != 1) {
+            cerr << "More than one density in joint file\n";
+            return 1;
+        }
+
+        map_region_tree.load(den_file);
+        map_regions.load(den_file);
+
+        den_file.close();
     }
     
-    num_dim = map_region_tree.get_num_children();
+    // load the marginal densities
+    
+    if(copula){
+        ifstream den_file;
+        
+        init_file_in(den_file, marginal_filename, num_dim);
+
+        if (num_dim != map_region_tree.get_num_children()) {
+            cerr << "marginal densities num not consistent with joint\n";
+            return 1;
+        }
+        
+        m_map_region_tree = new map_tree*[num_dim];
+        m_map_regions = new opt_region_hash<uint32_t>*[num_dim];
+        
+        for(int i = 0;i<num_dim;i++){
+            // load each dimension
+            m_map_region_tree[i] = new map_tree(0);
+            m_map_regions[i] = new opt_region_hash<uint32_t>(2);
+            
+            m_map_region_tree[i]->load(den_file);
+            m_map_regions[i]->load(den_file);
+        }
+        
+        den_file.close();
+        
+    }
+    
+    // create the CDFs
+    cdf** marginal = new cdf*[num_dim];
+    for(int i = 0;i<num_dim;i++){
+        marginal[i] = new cdf(*(m_map_region_tree[i]),*(m_map_regions[i]));
+    }
+    
     
     // Loop through the data
     // This should be changed to binary tree
     for (vector<vector<double> >::iterator it = test_data.begin();
             it != test_data.end(); it++) {
         // for each data point
+        
+        
         cerr << ios::scientific 
-                << compute_density(*it, &map_region_tree,m_map_region_tree,marginal,copula) 
+                << compute_density(*it, &map_region_tree,m_map_region_tree,marginal) 
                 << '\n';
+
     }
-    
-    for(int i = 0;i<num_dim;i++){
-        delete m_map_region_tree[i];
-        delete m_map_regions[i];
-        delete marginal[i];
-    }
-    
-    delete [] m_map_region_tree;
-    delete [] m_map_regions;
-    delete [] marginal;
 
     return 0;
 }
