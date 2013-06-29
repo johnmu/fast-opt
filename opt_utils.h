@@ -234,12 +234,12 @@ public:
         
         in.read((char*)&len,sizeof(len));
         
-        //cerr << "in len: " << len << '\n';
+        cerr << "in len: " << len << '\n';
         
         dim_cuts.resize(len,bit_str());
         
         for(uint32_t i = 0;i<len;i++){
-            //cerr << "len[i]= " << i << '\n';
+            cerr << "len[i]= " << i << '\n';
             dim_cuts[i].load(in);
         }
     } 
@@ -591,7 +591,7 @@ public:
             uint32_t loc = 0;
             in.read((char*) &loc, sizeof (loc));
             
-            //cerr << "loc: " << loc << '\n';
+            cerr << "loc: " << loc << '\n';
             
             // initialise the location
             map_table[loc] = new map<opt_region, T>();
@@ -602,22 +602,22 @@ public:
 
             in.read((char*) &map_len, sizeof (map_len));
             
-            //cerr << "map_len: " << map_len << '\n';
+            cerr << "map_len: " << map_len << '\n';
 
             for(uint32_t j = 0;j<map_len;j++){
                 opt_region temp_region;
                 T val;
                 
-                //cerr << "map[j]: " << j << '\n';
+                cerr << "map[j]: " << j << '\n';
                 
                 temp_region.load(in);
                 in.read((char*)&(val),sizeof(val));
                 
-                //cerr << "val: " << val << '\n';
+                cerr << "val: " << val << '\n';
                 
                 it->insert(pair<opt_region, T>(temp_region, val));
             }
-            //cerr << "load map done" << '\n';
+            cerr << "load map done" << '\n';
 
         }
     }   
