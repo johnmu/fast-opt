@@ -55,9 +55,9 @@ private:
     static const int num_children = 2;
 
     void init(){
-        dim = -1; // this means it is a leaf
+        dim = -1;
         count = -1;
-        area = 0; // real_area = 2^(-area)  
+        area = 1;  // this means it is a leaf
     }
 
 public:

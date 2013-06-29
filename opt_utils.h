@@ -535,14 +535,8 @@ public:
 
 };
 
-// one-dimensional CDF constructed from OPT regions
-class cdf{
-private:
-public:
-    cdf(){
-        
-    }
-};
+
+
 
 #endif	/* OPT_UTILS_H */
 
