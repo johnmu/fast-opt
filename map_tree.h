@@ -202,25 +202,14 @@ public:
         
         uint32_t curr_node = root;
         
-        current_region curr_reg(num_children);
+        current_region curr_reg(data.size());
         
         while(!ra[curr_node]->is_leaf()){
             int curr_dim = ra[curr_node]->get_dim();
             int curr_cut = curr_reg.determine_cut(curr_dim,data[curr_dim]);
-            
-            cerr << "--" << '\n';
-            cerr << "curr_node: " << curr_node << '\n';
-            cerr << "curr_dim: " << curr_dim << '\n';
-            cerr << "curr_cut: " << curr_cut << '\n';
-            cerr << "leaf area: " << ra[curr_node]->get_area() << '\n';
-            
             curr_reg.cut(curr_dim,curr_cut);
             curr_node = ra[curr_node]->get_child(curr_cut);
-            cerr << "next node: " << curr_node << '\n';
         }
-        cerr << "LEAF\n";
-        cerr << "leaf count: " << ra[curr_node]->get_count() << '\n';
-        cerr << "leaf area: " << ra[curr_node]->get_area() << '\n';
         
         return ra[curr_node]->get_density(num_points);
     }
@@ -247,8 +236,8 @@ public:
         in.read((char*)&num_points,sizeof(num_points));
         in.read((char*)&num_children,sizeof(num_children));
         
-        //cerr << "Root: " << root << '\n';
-        //cerr << "num_points: " << num_points << '\n';
+        cerr << "Root: " << root << '\n';
+        cerr << "num_points: " << num_points << '\n';
         
         ra.load2(in);
         
