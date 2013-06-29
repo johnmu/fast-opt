@@ -448,12 +448,15 @@ public:
 
     ~opt_region_hash() {
        //  iterate through and delete all the nodes
-        for (uint32_t i = 0; i < table_size; i++) {
-            if (map_table[i] != NULL) {
-                delete map_table[i];
+        
+        if(map_table != NULL){
+            for (uint32_t i = 0; i < table_size; i++) {
+                if (map_table[i] != NULL) {
+                    delete map_table[i];
+                }
             }
+            delete [] map_table;
         }
-        delete [] map_table;
     }
 
     uint32_t hash(const opt_region& reg) const {
@@ -562,12 +565,14 @@ public:
     
     void load(istream & in){
         // delete the old table first
-        for (uint32_t i = 0; i < table_size; i++) {
-            if (map_table[i] != NULL) {
-                delete map_table[i];
+        if (map_table != NULL) {
+            for (uint32_t i = 0; i < table_size; i++) {
+                if (map_table[i] != NULL) {
+                    delete map_table[i];
+                }
             }
+            delete [] map_table;
         }
-        delete [] map_table;
         //cerr << "delete ok\n";
         
         in.read((char*)&table_bits,sizeof(table_bits));
