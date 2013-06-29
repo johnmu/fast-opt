@@ -146,7 +146,7 @@ int opt(vector<string> params) {
     cerr << "OPT construction time: " << total_time << " s.\n";
     
     cerr << "lPhi: " << opt_slow.get_lphi() << endl;
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
 
 
     return 0;
@@ -210,7 +210,7 @@ int llopt(vector<string> params) {
     llopt.construct_llopt_tree(&data, map_region_tree, map_regions,prune_tree);
     mt.print_elapsed_time(cerr, "LLOPT("+ toStr<int>(ll_levels) +") construction");
 
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
 
     return 0;
 }
@@ -267,7 +267,7 @@ int lsopt(vector<string> params) {
     lsopt.construct_lsopt_tree(data, iterations,convergence_iterations, map_region_tree, map_regions);
     mt.print_elapsed_time(cerr, "LSOPT construction");
 
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
 
     return 0;
 }
@@ -322,7 +322,7 @@ int dfopt(vector<string> params) {
     dfopt.construct_dfopt_tree(data, map_region_tree, map_regions);
     mt.print_elapsed_time(cerr, "DFOPT construction");
 
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
 
     return 0;
 }
@@ -387,7 +387,7 @@ int disopt(vector<string> params) {
     disopt.construct_disopt_tree(data, map_region_tree, map_regions,prune_tree);
     mt.print_elapsed_time(cerr, "disOPT("+ toStr<int>(ll_levels) +") construction");
 
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
 
     return 0;
 }
@@ -448,7 +448,7 @@ int copula(vector<string> params){
     cerr << "OPT construction time: " << total_time << " s.\n";
     
     cerr << "lPhi: " << opt_slow.get_lphi() << endl;
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
 
 
     return 0;

@@ -154,7 +154,7 @@ class map_tree
 private:
     uint32_t root;
     region_allocator<map_tree_node> ra;
-    int num_points; // total number of data points, used to compute density
+    int num_points;
 
     void init(int num_points){
         pair<uint32_t,map_tree_node*> out = ra.create_node();
@@ -165,6 +165,7 @@ private:
 public:
 
     map_tree(int num_points){
+        
         init(num_points);
     }
 
