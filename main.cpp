@@ -410,7 +410,7 @@ int copula(vector<string> params){
     vector<vector<double> > data = read_data(params[1],false);
 
     int dim = (int)data[0].size();
-    uint32_t N   = (uint32_t)data.size();
+    int N   = data.size();
 
     cerr << "Running copula via Full-OPT" << '\n';
     cerr << N << " points in " << dim << " dimensions.\n";
@@ -432,10 +432,10 @@ int copula(vector<string> params){
         cerr << "Computing marginal for dim: " << i+1 << '\n';
         // Extract one dimension of data
         
-        vector<vector<double> > one_data(N,vector<double>(1,0.0));
+        vector<double> one_data(N,0.0);
         
         for(uint32_t j = 0;j<N;j++){
-            one_data[j][0] = data[i][j];
+            one_data[j] = data[i][j];
         }
         
         // run full OPT on data
@@ -461,17 +461,13 @@ int copula(vector<string> params){
         //print_MAP_density(cout, map_regions.get_regions(), map_region_tree.get_ra(), data.size());
 
         // Construct CDF from the regions
-        cdf marginal(map_region_tree,map_regions);
         
         // Transform the data
-        for(uint32_t j = 0;j<N;j++){
-            one_data[j][0] = marginal.transform(one_data[j][0]);
-        }
         
         // Replace the data that was read in
         
         for(uint32_t j = 0;j<N;j++){
-            data[i][j] = one_data[j][0];
+            data[i][j] = one_data[j];
         }
         
         // Write out the marginal into the den file 

@@ -38,24 +38,11 @@
 
 #include "general_utils.h"
 
-
 struct child_t{
     uint32_t val[c::cuts];
     child_t(){
         for(int i = 0;i<c::cuts;i++){
             val[i] = c::ra_null_val;
-        }
-    }
-    
-    void save(ostream & out){
-        for(int i = 0;i<c::cuts;i++){
-            out.write((char*)&(val[i]),sizeof(val[i]));
-        }
-    }
-    
-    void load(istream & in){
-        for(int i = 0;i<c::cuts;i++){
-            in.read((char*)&(val[i]),sizeof(val[i]));
         }
     }
 };
@@ -162,28 +149,20 @@ public:
     void print_region_limits(ostream &o) const{
         for(int i = 0;i<(int)dim_cuts.size();i++){
 
-            pair<double, double> lims = get_limits(i);
-            o << scientific << lims.first << ' ' << lims.second << ' ';
-        }
+            double middle = 0.5;
+            double length = 0.5;
 
-    }
-
-    // get the limits of the d-th dimension
-
-    pair<double, double> get_limits(int d) const{
-        double middle = 0.5;
-        double length = 0.5;
-
-        for (int j = 0; j < (int) dim_cuts[d].size(); j++) {
-            length = length / 2.0;
-            if (dim_cuts[d][j] == 0) {
-                middle = middle - length;
-            } else {
-                middle = middle + length;
+            for (int j = 0;j<(int)dim_cuts[i].size();j++){
+                length = length/2.0;
+                if (dim_cuts[i][j] == 0){
+                    middle = middle - length;
+                }else{
+                    middle = middle + length;
+                }
             }
+            o << scientific << (middle - length) << ' ' << (middle + length) << ' ';
         }
-        
-        return pair<double, double>(middle - length,middle + length);
+
     }
 
     int get_area(){
@@ -229,6 +208,7 @@ public:
 
     pair<uint32_t,T*> create_node(int num_children){
         pair<uint32_t,T*> output;
+
 
         if (free_locs.size() == 0) {
 
@@ -309,48 +289,6 @@ public:
         }
         return &store[idx];
     }
-    
-    void save(ostream & out){
-        uint32_t free_len = (uint32_t)free_locs.size();
-        uint32_t store_len = (uint32_t)store.size();
-        
-        out.write((char*)&free_len,sizeof(free_len));
-        out.write((char*)&store_len,sizeof(store_len));
-        
-        for(uint32_t i = 0;i<free_len;i++){
-            out.write((char*)&free_locs[i],sizeof(uint32_t));
-        }
-        
-        for(uint32_t i = 0;i<store_len;i++){
-            out.write((char*)&store[i],sizeof(T));
-        }
-    }
-    
-    void load(istream & in){
-
-        uint32_t free_len = 0;
-        uint32_t store_len = 0;
-        
-        in.read((char*)&free_len,sizeof(free_len));
-        in.read((char*)&store_len,sizeof(store_len));
-        
-        for(uint32_t i = 0;i<free_len;i++){
-            free_locs.push_back(0);
-        }
-        
-        for(uint32_t i = 0;i<free_len;i++){
-            in.read((char*)&free_locs[i],sizeof(uint32_t));
-        }
-        
-        for(uint32_t i = 0;i<store_len;i++){
-            store.push_back(T());
-        }
-        
-        for(uint32_t i = 0;i<store_len;i++){
-            in.read((char*)&store[i],sizeof(T));
-        }
-    }
-    
 };
 
 
@@ -454,13 +392,6 @@ public:
         return output;
     }
 
-    void save(ostream & out){
-
-    }
-    
-    void load(istream & in){
-
-    }
 
 };
 
@@ -604,7 +535,14 @@ public:
 
 };
 
-
+// one-dimensional CDF constructed from OPT regions
+class cdf{
+private:
+public:
+    cdf(){
+        
+    }
+};
 
 #endif	/* OPT_UTILS_H */
 
