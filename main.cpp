@@ -138,7 +138,7 @@ int opt(vector<string> params) {
 
     mt.reset();
     map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(20);
+    opt_region_hash<uint32_t> map_regions(24);
     opt_slow.construct_MAP_tree(map_region_tree, map_regions, data.size());
     total_time += mt.elapsed_time();
     mt.print_elapsed_time(cerr, "MAP tree");
@@ -204,7 +204,7 @@ int llopt(vector<string> params) {
 
     llopt_tree llopt(dim,stop_ratio,top_stop_ratio,ll_levels,20*dim);
     map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(20);
+    opt_region_hash<uint32_t> map_regions(24);
 
     mt.reset();
     llopt.construct_llopt_tree(&data, map_region_tree, map_regions,prune_tree);
@@ -261,7 +261,7 @@ int lsopt(vector<string> params) {
 
     lsopt_tree lsopt(dim,stop_ratio,top_stop_ratio,lookahead_depth,1000);
     map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(20);
+    opt_region_hash<uint32_t> map_regions(24);
 
     mt.reset();
     lsopt.construct_lsopt_tree(data, iterations,convergence_iterations, map_region_tree, map_regions);
@@ -316,7 +316,7 @@ int dfopt(vector<string> params) {
 
     dfopt_tree dfopt(dim,top_stop_ratio,stop_ratio,100,levels);
     map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(20);
+    opt_region_hash<uint32_t> map_regions(24);
 
     mt.reset();
     dfopt.construct_dfopt_tree(data, map_region_tree, map_regions);
@@ -381,7 +381,7 @@ int disopt(vector<string> params) {
 
     disopt_tree disopt(dim,stop_ratio,top_stop_ratio,ll_levels,20*dim);
     map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(20);
+    opt_region_hash<uint32_t> map_regions(24);
 
     mt.reset();
     disopt.construct_disopt_tree(data, map_region_tree, map_regions,prune_tree);
@@ -440,7 +440,7 @@ int copula(vector<string> params){
 
     mt.reset();
     map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(20);
+    opt_region_hash<uint32_t> map_regions(24);
     opt_slow.construct_MAP_tree(map_region_tree, map_regions, data.size());
     total_time += mt.elapsed_time();
     mt.print_elapsed_time(cerr, "MAP tree");
