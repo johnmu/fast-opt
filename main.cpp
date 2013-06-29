@@ -414,7 +414,7 @@ int copula(vector<string> params){
             + "       percent_points -- Data count to stop at (0.01 = 1% or 2 = 2 points)\n"
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
             + "Transformed data to <output_name>.copula.txt\n"
-            + "Marginal densities to <output_name>.marginal.den\n"
+            + "Marginal densities to <output_name>.copula.den\n"
             + "Log to STDERR \n"
             + "Do copula transform by estimating marginal densities with full OPT \n";
 
@@ -449,7 +449,7 @@ int copula(vector<string> params){
     // create file to save all the densities
     
     ofstream den_file;
-    init_file_out(den_file,out_filename+".marginal.den",dim);
+    init_file_out(den_file,out_filename+".copula.den",dim);
     
     
     for (int i = 0; i < dim; i++) {
@@ -476,7 +476,7 @@ int copula(vector<string> params){
         mt.print_elapsed_time(cerr, "OPT tree");
 
         mt.reset();
-        map_tree map_region_tree(N,1);
+        map_tree map_region_tree(N,dim);
         opt_region_hash<uint32_t> map_regions(20);
         opt_slow.construct_MAP_tree(map_region_tree, map_regions, N);
         total_time += mt.elapsed_time();
@@ -553,6 +553,7 @@ int hell_dist(vector<string> params){
 
     cerr << true_N << " samples in " << dim << " dimensions.\n";
 
+    
     string joint_filename = params[1];
     
     string marginal_filename = "";
@@ -573,7 +574,7 @@ int hell_dist(vector<string> params){
     int num_dim = 0;
     
     int status = load_densities(joint_filename, marginal_filename,
-        map_region_tree, map_regions, m_map_region_tree, m_map_regions,
+        &map_region_tree, &map_regions, m_map_region_tree, m_map_regions,
         marginal, copula);
     
     if(status != 0){
@@ -811,7 +812,7 @@ int density(vector<string> params){
     int num_dim = 0;
     
     int status = load_densities(joint_filename, marginal_filename,
-        map_region_tree, map_regions, m_map_region_tree, m_map_regions,
+        &map_region_tree, &map_regions, m_map_region_tree, m_map_regions,
         marginal, copula);
     
     if(status != 0){
@@ -832,6 +833,9 @@ int density(vector<string> params){
         // for each data point
         
         double den = compute_density(*it, &map_region_tree,m_map_region_tree,marginal,copula);
+        
+        cerr << "den: " << den << '\n';
+        
         cout << std::scientific
                 << den
                 << '\n';
