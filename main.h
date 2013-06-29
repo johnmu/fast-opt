@@ -122,64 +122,6 @@ inline vector<vector<double> > read_data(string filename, bool end_line) {
     return data;
 }
 
-// num_den is number of densities stored in this file
-void init_file_out(ofstream &den_file, string file_name, int num_den) {
-
-    string temp = file_name;
-    den_file.open(temp.c_str(), ios::out | ios::binary);
-
-    // write den file headers
-    den_file.write((char*) &c::magic, sizeof (c::magic));
-    den_file.write((char*) &num_den, sizeof (num_den));
-
-}
-
-// num_den is number of densities stored in this file
-void init_file_in(ifstream &den_file, string file_name, int &num_den) {
-
-    string temp = file_name;
-    den_file.open(temp.c_str(), ios::in | ios::binary);
-
-    // write den file headers
-    int magic_val = 0;
-    den_file.read((char*) &magic_val, sizeof (magic_val));
-    
-    if(magic_val != c::magic){
-        cerr << "ERROR: Filetype mismatch\n";
-        den_file.close();
-        return;
-    }
-    
-    den_file.read((char*) &num_den, sizeof (num_den));
-
-}
-
-double compute_density(vector<double> &point, map_tree *map_region_tree, 
-        map_tree** m_map_region_tree, cdf** marginal) {
-
-    int num_dim = point.size();
-    
-    double log_density = 0;
-    // product of the marginal densities
-    for (int i = 0; i < num_dim; i++) {
-        vector<double> single_point;
-        single_point.push_back(point[i]);
-
-        log_density += log(m_map_region_tree[i]->get_density(single_point));
-    }
-
-    // copula transform the data point
-    vector<double> trans_data = point;
-    for (int i = 0; i < num_dim; i++) {
-        trans_data[i] = marginal[i]->transform(trans_data[i]);
-    }
-
-    log_density += map_region_tree->get_density(trans_data);
-
-    return exp(log_density);
-    
-}
-
 int llopt(vector<string> params);
 int lsopt(vector<string> params);
 int sopt(vector<string> params);
