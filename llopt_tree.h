@@ -672,6 +672,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
         llpile[0].map_nodes.push_back(map_region_tree.get_full_tree());
 
         int map_depth = 0;
+        int max_depth = -1;
 
         // Now create the MAP tree!
         // Do a breadth first search on the MAP tree
@@ -710,10 +711,13 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 continue;
 
             }
-
+            
             // for each good region
             int curr_data_size = wu_it->data.size();
-
+            if(map_depth>max_depth){
+                max_depth = map_depth;
+                cerr << "Depth("<< map_depth <<"):Size("<< curr_data_size <<")\n "; 
+            }
             //cerr << "Good [" << map_depth << "](" << count << "/"
             //        << llpile[map_depth].good_regions.size()
             //        << "), Data size: " << curr_data_size << '\n';
