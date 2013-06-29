@@ -128,7 +128,6 @@ int sopt(vector<string> params);
 int opt(vector<string> params);
 int dfopt(vector<string> params);
 int disopt(vector<string> params);
-int copula(vector<string> params);
 int hell_dist(vector<string> params);
 int classify(vector<string> params);
 int density(vector<string> params);

@@ -43,6 +43,8 @@ int main(int argc, char** argv) {
     cerr << "http://www.stanford.edu/group/wonglab" << "\n";
     cerr << "\n";
 
+
+
     string mode = "";
     string temp = "";
     int error_num = 0;
@@ -59,6 +61,7 @@ int main(int argc, char** argv) {
         params.push_back(temp);
     }
 
+
     if (mode == "opt") {
         error_num = opt(params);
     } else if (mode == "llopt") {
@@ -69,8 +72,6 @@ int main(int argc, char** argv) {
         error_num = dfopt(params);
     } else if (mode == "disopt") {
         error_num = disopt(params);
-    } else if (mode == "copula") {
-        error_num = copula(params);
     } else if (mode == "hell_dist") {
         error_num = hell_dist(params);
     } else if (mode == "classify") {
@@ -95,7 +96,7 @@ int opt(vector<string> params) {
 
     string usage_text = "Usage: " + c::PROG_NAME + " opt <percent_points> <data_file>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%)\n"
-            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "            data_file -- One sample each row\n"
             + "MAP partitions output to STDOUT. Log to STDERR \n"
             + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
             + "greater than 5 use the other methods\n";
@@ -104,6 +105,8 @@ int opt(vector<string> params) {
         cerr << usage_text << endl;
         return 3;
     }
+
+
 
     vector<vector<double> > data = read_data(params[1],false);
 
@@ -161,7 +164,7 @@ int llopt(vector<string> params) {
             + "       percent_points -- Ratio of total region data to stop at for each look-ahead (0.01 = 1%)\n"
             + "   top_percent_points -- Ratio of total data to stop at (0.01 = 1% or 2 = 2 points)\n"
             + "               levels -- Maximum levels for each look-ahead\n "
-            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "            data_file -- One sample each row\n"
             + "MAP partitions output to STDOUT. Log to STDERR \n"
             + "Run limited look-ahead OPT. Good for moderate dimensions (6-15)\n";
 
@@ -225,7 +228,7 @@ int lsopt(vector<string> params) {
             + "     top_percent_points -- Ratio of total data to stop at (0.01 = 1%)\n"
             + "             iterations -- Maximum number of iterations for each look-ahead\n "
             + " convergence_iterations -- Number of iterations the same before convergence\n "
-            + "              data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "              data_file -- One sample each row\n"
             + "MAP partitions output to STDOUT. Log to STDERR \n"
             + "Run limited look-ahead sampled-OPT. Good for higher dimensions (>10).\n"
             + "iterations = [50-1000], convergence_iterations=[20-100]";
@@ -279,7 +282,7 @@ int dfopt(vector<string> params) {
             + "     top_percent_points -- Points to stop at (0.01 = 1%, 1 = 1point)\n"
             + "     percent_points     -- Points in each level to stop at (0.01 = 1%, 1 = 1point))\n"
             + "     levels             -- look ahead levels\n"
-            + "     data_file          -- One sample per row (Restricted to [0,1] cube)\n"
+            + "     data_file          -- One sample per row\n"
             + "MAP partitions output to STDOUT. Log to STDERR\n "
             + "Run depth-first-OPT, very slow but technically can do any number of dimensions\n "
             + "if you wait several years. Run in a similar fashion to limited look-ahead. \n";
@@ -338,7 +341,7 @@ int disopt(vector<string> params) {
             + "       percent_points -- Ratio of total region data to stop at for each look-ahead (0.01 = 1%)\n"
             + "   top_percent_points -- Ratio of total data to stop at (0.01 = 1% or 2 = 2 points)\n"
             + "               levels -- Maximum levels for each look-ahead\n "
-            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "            data_file -- One sample each row\n"
             + "MAP partitions output to STDOUT. Log to STDERR \n"
             + "Run discrepancy limited look-ahead OPT. Good for moderate dimensions (6-15)\n";
 
@@ -388,68 +391,6 @@ int disopt(vector<string> params) {
     mt.print_elapsed_time(cerr, "disOPT("+ toStr<int>(ll_levels) +") construction");
 
     print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
-
-    return 0;
-}
-
-
-int copula(vector<string> params){
-    string usage_text = "Usage: " + c::PROG_NAME + " copula <percent_points> <data_file>\n"
-            + "       percent_points -- Data count to stop at (0.01 = 1% or 2 = 2 points)\n"
-            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
-            + "Transformed data to <data_file>.copula.txt\n"
-            + "Marginal densities to <data_file>.copula.den\n"
-            + "Log to STDERR \n"
-            + "Do copula transform by estimating marginal densities with full OPT \n";
-
-    if (params.size() != 2) {
-        cerr << usage_text << endl;
-        return 3;
-    }
-
-    vector<vector<double> > data = read_data(params[1],false);
-
-    int dim = (int)data[0].size();
-    int N   = data.size();
-
-    cerr << "Running copula via Full-OPT" << '\n';
-    cerr << N << " points in " << dim << " dimensions.\n";
-
-    double stop_ratio = strTo<double>(params[0]);
-    int stop_points = 0;
-    
-    if(stop_ratio<1){
-        stop_points = (int)(N*stop_ratio);
-    }else{
-        stop_points = (int)stop_ratio;
-    }
-    if(stop_points < 1) stop_points = 1;
-
-    cerr << "Stopping at " << stop_points << " points.\n";
-
-    double total_time = 0.0;
-    
-    mu_timer mt;
-
-    opt_tree opt_slow(dim,stop_points,1000);
-
-    mt.reset();
-    opt_slow.construct_full_tree(data);
-    total_time += mt.elapsed_time();
-    mt.print_elapsed_time(cerr, "OPT tree");
-
-    mt.reset();
-    map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(24);
-    opt_slow.construct_MAP_tree(map_region_tree, map_regions, data.size());
-    total_time += mt.elapsed_time();
-    mt.print_elapsed_time(cerr, "MAP tree");
-
-    cerr << "OPT construction time: " << total_time << " s.\n";
-    
-    cerr << "lPhi: " << opt_slow.get_lphi() << endl;
-    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
-
 
     return 0;
 }
@@ -643,7 +584,7 @@ int density(vector<string> params){
     vector<vector<double> > MAP_dist = read_data(params[0], true);;
 
 
-    // Loop through the data
+    // Loop through the data and classify!
     // This should be changed to binary tree
     for (int i = 0; i < test_N; i++) {
 
@@ -684,7 +625,7 @@ int bench(vector<string> params){
             + " bench <num_points> <dim> \n"
             + "     num_points -- Number of random points to generate\n"
             + "     dim        -- Total dimension, we only count one though\n "
-            + "Do benchmarking of counting!.\n";
+            + "Do benchmarking!.\n";
 
     if (params.size() != 2) {
         cerr << usage_text << endl;
@@ -845,8 +786,7 @@ void print_usage_and_exit() {
     cerr << "  llopt      -- MAP partitions from LL-OPT" << "\n";
     cerr << "  lsopt      -- MAP partitions from LL-sampled OPT [experimental]" << "\n";
     cerr << "  dfopt      -- MAP partitions from depth-first OPT" << "\n";
-    //cerr << "  disopt     -- MAP partitions from discrepancy-LL-OPT [experimental]" << "\n";
-    cerr << "  copula     -- Perform copula transform with full OPT" << "\n";
+    cerr << "  disopt     -- MAP partitions from discrepancy-LL-OPT [experimental]" << "\n";
     cerr << "\n";
     cerr << "-== Other tools ==-" << '\n';
     cerr << "  hell_dist   -- Compute sample Hellinger distance from a known density" << "\n";

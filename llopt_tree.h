@@ -657,7 +657,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
         region_allocator<map_tree_node> *map_ra = map_region_tree.get_ra();
 
-        opt_region_hash<uint32_t> region_cache(27);
+        opt_region_hash<uint32_t> region_cache(25);
 
         current_region start_region(num_children);
         opt_region     start_working(num_children);

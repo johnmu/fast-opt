@@ -300,6 +300,7 @@ public:
 
             return NULL;
         }
+
         return &store[idx];
     }
 };
@@ -353,6 +354,7 @@ public:
         if (map_table[hash] == NULL) {
             return pair<T,bool>(T(),false);
         } else {
+
             typename map<opt_region, T>::iterator it = map_table[hash]->find(reg);
             if (it == map_table[hash]->end()) {
                 //cerr << "NOTFOUND\n";
@@ -362,6 +364,7 @@ public:
                 return pair<T,bool>(it->second,true);
             }
         }
+
         return pair<T,bool>(T(),false);
     }
 
@@ -373,6 +376,8 @@ public:
         if (map_table[hash] == NULL) {
             map_table[hash] = new map<opt_region, T>();
         }
+
+
         map_table[hash]->insert(pair<opt_region, T>(reg, node));
     }
 
