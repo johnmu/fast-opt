@@ -432,6 +432,7 @@ public:
     
     opt_region_hash(){
         // in this is used, must load
+        map_table = NULL;
     }
 
     opt_region_hash(int table_bits) {

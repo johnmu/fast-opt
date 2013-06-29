@@ -608,7 +608,7 @@ int classify(vector<string> params){
         confusion = true;
     }
     
-    vector<vector<double> > test_data = read_data(params[0],confusion);
+    vector<vector<double> > test_data = read_data(params[0+param_offset],confusion);
 
     int test_N = (int)test_data.size();
     int dim    = (int)test_data[0].size() - param_offset;
