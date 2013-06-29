@@ -459,7 +459,7 @@ int copula(vector<string> params){
         vector<vector<double> > one_data(N,vector<double>(1,0.0));
         
         for(uint32_t j = 0;j<N;j++){
-            one_data[j][0] = data[j][i];
+            one_data[j][0] = data[i][j];
         }
         
         // run full OPT on data
