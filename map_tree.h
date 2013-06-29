@@ -170,19 +170,17 @@ private:
     uint32_t root;
     region_allocator<map_tree_node> ra;
     uint32_t num_points; // total number of data points, used to compute density
-    int num_children; // The maximum dimension
-    
-    void init(uint32_t num_points,int num_children){
+
+    void init(uint32_t num_points){
         pair<uint32_t,map_tree_node*> out = ra.create_node();
         root = out.first;
         this->num_points = num_points;
-        this->num_children = num_children;
     }
 
 public:
 
-    map_tree(uint32_t num_points, int num_children){
-        init(num_points,num_children);
+    map_tree(uint32_t num_points){
+        init(num_points);
     }
 
     region_allocator<map_tree_node>* get_ra(){
@@ -195,7 +193,7 @@ public:
     
     double get_density(const vector<double> &data){
         
-        if(num_children != (int)data.size()){
+        if(ra[root]->get_dim() != (int)data.size()){
             cerr << "Warning: wrong dimension" << '\n';
             return -c::inf;
         }
@@ -214,18 +212,17 @@ public:
         return ra[curr_node]->get_density(num_points);
     }
 
-    uint32_t get_num_points() const{
-        return this->num_points;
+    uint32_t get_num_points(){
+        return num_points;
     }
     
-    int get_num_children() const{
-        return this->num_children;
+    int get_num_children(){
+        return ra[root]->get_dim();
     }
     
-    void save(ostream & out) const{
+    void save(ostream & out){
         out.write((char*)&root,sizeof(root));
         out.write((char*)&num_points,sizeof(num_points));
-        out.write((char*)&num_children,sizeof(num_children));
         
         ra.save2(out);
                 
@@ -234,7 +231,6 @@ public:
     void load(istream & in){
         in.read((char*)&root,sizeof(root));
         in.read((char*)&num_points,sizeof(num_points));
-        in.read((char*)&num_children,sizeof(num_children));
         
         cerr << "Root: " << root << '\n';
         cerr << "num_points: " << num_points << '\n';

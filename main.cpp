@@ -139,9 +139,9 @@ int opt(vector<string> params) {
     mt.print_elapsed_time(cerr, "OPT tree");
 
     mt.reset();
-    map_tree map_region_tree(N,dim);
+    map_tree map_region_tree(data.size());
     opt_region_hash<uint32_t> map_regions(20);
-    opt_slow.construct_MAP_tree(map_region_tree, map_regions, N);
+    opt_slow.construct_MAP_tree(map_region_tree, map_regions, data.size());
     total_time += mt.elapsed_time();
     mt.print_elapsed_time(cerr, "MAP tree");
 
@@ -207,7 +207,7 @@ int llopt(vector<string> params) {
     mu_timer mt;
 
     llopt_tree llopt(dim,stop_ratio,top_stop_ratio,ll_levels,20*dim);
-    map_tree map_region_tree(N,dim);
+    map_tree map_region_tree(data.size());
     opt_region_hash<uint32_t> map_regions(20);
 
     mt.reset();
@@ -215,7 +215,7 @@ int llopt(vector<string> params) {
     mt.print_elapsed_time(cerr, "LLOPT("+ toStr<int>(ll_levels) +") construction");
 
     // write to cout
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),N);
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
 
     // write out the density to file
     ofstream den_file;
@@ -274,14 +274,14 @@ int lsopt(vector<string> params) {
     mu_timer mt;
 
     lsopt_tree lsopt(dim,stop_ratio,top_stop_ratio,lookahead_depth,1000);
-    map_tree map_region_tree(N,dim);
+    map_tree map_region_tree(data.size());
     opt_region_hash<uint32_t> map_regions(20);
 
     mt.reset();
     lsopt.construct_lsopt_tree(data, iterations,convergence_iterations, map_region_tree, map_regions);
     mt.print_elapsed_time(cerr, "LSOPT construction");
 
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),N);
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
 
     
     return 0;
@@ -330,14 +330,14 @@ int dfopt(vector<string> params) {
     mu_timer mt;
 
     dfopt_tree dfopt(dim,top_stop_ratio,stop_ratio,100,levels);
-    map_tree map_region_tree(N,dim);
+    map_tree map_region_tree(data.size());
     opt_region_hash<uint32_t> map_regions(20);
 
     mt.reset();
     dfopt.construct_dfopt_tree(data, map_region_tree, map_regions);
     mt.print_elapsed_time(cerr, "DFOPT construction");
 
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),N);
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
 
     return 0;
 }
@@ -395,14 +395,14 @@ int disopt(vector<string> params) {
     mu_timer mt;
 
     disopt_tree disopt(dim,stop_ratio,top_stop_ratio,ll_levels,20*dim);
-    map_tree map_region_tree(N,dim);
+    map_tree map_region_tree(data.size());
     opt_region_hash<uint32_t> map_regions(20);
 
     mt.reset();
     disopt.construct_disopt_tree(data, map_region_tree, map_regions,prune_tree);
     mt.print_elapsed_time(cerr, "disOPT("+ toStr<int>(ll_levels) +") construction");
 
-    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),N);
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
 
     return 0;
 }
@@ -474,9 +474,9 @@ int copula(vector<string> params){
         mt.print_elapsed_time(cerr, "OPT tree");
 
         mt.reset();
-        map_tree map_region_tree(N,dim);
+        map_tree map_region_tree(data.size());
         opt_region_hash<uint32_t> map_regions(20);
-        opt_slow.construct_MAP_tree(map_region_tree, map_regions, N);
+        opt_slow.construct_MAP_tree(map_region_tree, map_regions, data.size());
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "MAP tree");
 
@@ -560,7 +560,7 @@ int hell_dist(vector<string> params){
     }
 
     // load the joint/copula densities
-    map_tree map_region_tree(1,1);
+    map_tree map_region_tree(1);
     opt_region_hash<uint32_t> map_regions(20);
     
     map_tree** m_map_region_tree;
@@ -798,7 +798,7 @@ int density(vector<string> params){
     }
 
     // load the joint/copula densities
-    map_tree map_region_tree(1,1);
+    map_tree map_region_tree(1);
     opt_region_hash<uint32_t> map_regions(20);
     
     map_tree** m_map_region_tree;
@@ -819,7 +819,7 @@ int density(vector<string> params){
     
     // Check things were loaded sensibly
     cerr << "num_dim: " << num_dim << '\n';
-    cerr << "num points: " << map_region_tree.get_num_points() << '\n';
+    cerr << "num points" << map_region_tree.get_num_points() << '\n';
     map_regions.print_regions();
     
     // Loop through the data
