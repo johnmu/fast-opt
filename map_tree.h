@@ -348,7 +348,7 @@ public:
         return ((end_den-start_den)/(end-start))*(x-start) + start_den;
     }
     
-    void print_cdf(ostream &o) const{
+    void print_cdf(ostream o) const{
         for(int i = 0;i<(int)cdf_data.size();i++){
             o << cdf_data[i].start << ":" << cdf_data[i].den << '\n';
         }
