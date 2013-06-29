@@ -619,7 +619,7 @@ int classify(vector<string> params){
     
     vector<string> marginal_filenames;
     bool copula = false;
-    if(params.size() == 3){
+    if((params.size()-param_offset) == 3){
         copula = true;
         marginal_filenames = split(params[2+param_offset],',');
     }

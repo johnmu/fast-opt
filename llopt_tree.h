@@ -714,6 +714,8 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
             
             // for each good region
             int curr_data_size = wu_it->data.size();
+            
+            // change this to use area stopped as progress indicator
             if(map_depth>max_depth){
                 max_depth = map_depth;
                 cerr << "Depth("<< map_depth <<"):Size("<< curr_data_size <<")\n "; 
