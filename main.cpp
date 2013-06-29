@@ -489,6 +489,8 @@ int copula(vector<string> params){
         // Construct CDF from the regions
         cdf marginal(map_region_tree,map_regions);
         
+        marginal.print_cdf(cerr);
+        
         // Transform the data
         for(uint32_t j = 0;j<N;j++){
             one_data[j][0] = marginal.transform(one_data[j][0]);
@@ -564,9 +566,9 @@ int hell_dist(vector<string> params){
     map_tree map_region_tree(1,1);
     opt_region_hash<uint32_t> map_regions(20);
     
-    map_tree** m_map_region_tree = NULL;
-    opt_region_hash<uint32_t>** m_map_regions = NULL;
-    cdf** marginal = NULL;
+    map_tree** m_map_region_tree;
+    opt_region_hash<uint32_t>** m_map_regions;
+    cdf** marginal;
     
     int num_dim = 0;
     
@@ -604,14 +606,14 @@ int hell_dist(vector<string> params){
 
     
     for(int i = 0;i<num_dim;i++){
-        if(m_map_region_tree != NULL) delete m_map_region_tree[i];
-        if(m_map_regions != NULL) delete m_map_regions[i];
-        if(marginal != NULL) delete marginal[i];
+        delete m_map_region_tree[i];
+        delete m_map_regions[i];
+        delete marginal[i];
     }
     
-    if(m_map_region_tree != NULL) delete [] m_map_region_tree;
-    if(m_map_regions != NULL) delete [] m_map_regions;
-    if(marginal != NULL) delete [] marginal;
+    delete [] m_map_region_tree;
+    delete [] m_map_regions;
+    delete [] marginal;
     
     return 0;
 }
@@ -625,7 +627,7 @@ int classify(vector<string> params){
             + "     test_data             -- Each row one data point\n "
             + "Do classification. Doesn't deal with the case of equal densities yet\n";
     
-    if (params.size() < 2 || params.size() > 3) {
+    if (params.size() < 3) {
         cerr << usage_text << endl;
         return 3;
     }
