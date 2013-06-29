@@ -74,7 +74,7 @@ public:
         this->count = count;
     }
 
-    int get_count() const{
+    int get_count(){
         return count;
     }
 
@@ -82,7 +82,7 @@ public:
         this->area = area;
     }
 
-    int get_area() const{
+    int get_area(){
         return area;
     }
 
@@ -90,7 +90,7 @@ public:
         this->dim = dim;
     }
 
-    int get_dim() const{
+    int get_dim(){
         return dim;
     }
 
@@ -111,7 +111,7 @@ public:
         return children.val[cut];
     }
     
-    bool is_leaf() const{
+    bool is_leaf(){
         return (dim==-1);
     }
     
@@ -182,10 +182,6 @@ private:
 
 public:
 
-    map_tree(){
-        // if this is used must load
-    }
-    
     map_tree(uint32_t num_points, int num_children){
         init(num_points,num_children);
     }
@@ -213,10 +209,20 @@ public:
             int curr_dim = ra[curr_node]->get_dim();
             int curr_cut = curr_reg.determine_cut(curr_dim,data[curr_dim]);
             
+            //cerr << "--" << '\n';
+            //cerr << "curr_node: " << curr_node << '\n';
+            //cerr << "curr_dim: " << curr_dim << '\n';
+            //cerr << "curr_cut: " << curr_cut << '\n';
+            //cerr << "leaf area: " << ra[curr_node]->get_area() << '\n';
+            
             curr_reg.cut(curr_dim,curr_cut);
             curr_node = ra[curr_node]->get_child(curr_cut);
+            //cerr << "next node: " << curr_node << '\n';
         }
-
+        //cerr << "LEAF\n";
+        //cerr << "leaf count: " << ra[curr_node]->get_count() << '\n';
+        //cerr << "leaf area: " << ra[curr_node]->get_area() << '\n';
+        
         return ra[curr_node]->get_density(num_points);
     }
 

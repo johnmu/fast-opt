@@ -561,27 +561,58 @@ int hell_dist(vector<string> params){
     }
 
     // load the joint/copula densities
-    density_store dens(joint_filename,marginal_filename,copula);
+    map_tree map_region_tree(1,1);
+    opt_region_hash<uint32_t> map_regions(20);
+    
+    map_tree** m_map_region_tree = NULL;
+    opt_region_hash<uint32_t>** m_map_regions = NULL;
+    cdf** marginal = NULL;
+    
+    int num_dim = 0;
+    
+    int status = load_densities(joint_filename, marginal_filename,
+        map_region_tree, map_regions, m_map_region_tree, m_map_regions,
+        marginal, copula);
+    
+    if(status != 0){
+        return status;
+    }
+    
+    num_dim = map_region_tree.get_num_children();
+    
     
     double val = 0.0;
-
+    int not_found = 0;
     for(int i = 0;i<true_N;i++){
         double true_den = true_samples[i][dim];
         double map_den  = 0.0;
         
         vector<double> point(true_samples[i].begin(),true_samples[i].end()-1);
-        map_den = dens.compute_density(point);
+        
+        map_den = compute_density(point, &map_region_tree,m_map_region_tree,marginal,copula);
+
         val += sqrt(map_den / true_den); // importance sample
     }
 
-    if (val/(double)(true_N) > 1){
+    if (val/(double)(true_N-not_found) > 1){
         cerr << "Not enough sample points in true distribution\n";
         cerr << "or density does not integrate to 1.\n";
         exit(2);
     }
 
-    cout << sqrt(1-(val/(double)(true_N))) << '\n';
+    cout << sqrt(1-(val/(double)(true_N-not_found))) << '\n';
 
+    
+    for(int i = 0;i<num_dim;i++){
+        if(m_map_region_tree != NULL) delete m_map_region_tree[i];
+        if(m_map_regions != NULL) delete m_map_regions[i];
+        if(marginal != NULL) delete marginal[i];
+    }
+    
+    if(m_map_region_tree != NULL) delete [] m_map_region_tree;
+    if(m_map_regions != NULL) delete [] m_map_regions;
+    if(marginal != NULL) delete [] marginal;
+    
     return 0;
 }
 
@@ -598,39 +629,27 @@ int classify(vector<string> params){
         cerr << usage_text << endl;
         return 3;
     }
-    
-    vector<vector<double> > test_data = read_data(params[0],false);
+
+    int num_class = params.size()-1;
+
+    cerr << "Total classes: " << num_class << '\n';
+
+    vector<vector<double> > test_data = read_data(params[num_class],false);
 
     int test_N = (int)test_data.size();
     int dim    = (int)test_data[0].size();
 
-    cerr << test_N << " data points in " << dim << " dimensions.\n";
+    cerr << test_N << " test data points in " << dim << " dimensions.\n";
 
-    vector<string> joint_filenames = split(params[1],',');
-    
-    vector<string> marginal_filenames;
-    bool copula = false;
-    if(params.size() == 3){
-        copula = true;
-        marginal_filenames = split(params[2],',');
-    }
-    
-    if(joint_filenames.size() != marginal_filenames.size()){
-        cerr << "ERROR: Must if marginals are given, must be same number as copula densities.\n";
-    }
-    
-    int num_class = (int)joint_filenames.size();
-
-    cerr << "Total classes: " << num_class << '\n';
-
-    // load the joint/copula densities
-    
     vector<vector<vector<double> > > class_dist(num_class);
-    
     for(int i = 0;i<num_class;i++){
-        
-        
-        
+        class_dist[i] = read_data(params[i], true);
+
+        if ((2 * (dim)) != ((int) class_dist[i][0].size() - 1)) {
+            cerr << "ERROR: Dimension mismatch!\n";
+            exit(2);
+
+        }
     }
 
 
@@ -761,7 +780,8 @@ int density(vector<string> params){
         cerr << usage_text << endl;
         return 3;
     }
-    
+
+
     vector<vector<double> > test_data = read_data(params[0],false);
 
     int test_N = (int)test_data.size();
@@ -779,18 +799,52 @@ int density(vector<string> params){
     }
 
     // load the joint/copula densities
+    map_tree map_region_tree(1,1);
+    opt_region_hash<uint32_t> map_regions(20);
     
-    density_store dens(joint_filename,marginal_filename,copula);
+    map_tree** m_map_region_tree = NULL;
+    opt_region_hash<uint32_t>** m_map_regions = NULL;
+    cdf** marginal = NULL;
+    
+    int num_dim = 0;
+    
+    int status = load_densities(joint_filename, marginal_filename,
+        map_region_tree, map_regions, m_map_region_tree, m_map_regions,
+        marginal, copula);
+    
+    if(status != 0){
+        return status;
+    }
+    
+    num_dim = map_region_tree.get_num_children();
+    
+    // Check things were loaded sensibly
+    //cerr << "num_dim: " << num_dim << '\n';
+    //cerr << "num points: " << map_region_tree.get_num_points() << '\n';
+    //cerr << "---------\n";
+    //print_MAP_density(cerr, map_regions.get_regions(),map_region_tree.get_ra(),map_region_tree.get_num_points());
     
     // Loop through the data
     for (vector<vector<double> >::iterator it = test_data.begin();
             it != test_data.end(); it++) {
         // for each data point
         
-        double den = dens.compute_density(*it);
-        cout << std::scientific << den << '\n';
+        double den = compute_density(*it, &map_region_tree,m_map_region_tree,marginal,copula);
+        cout << std::scientific
+                << den
+                << '\n';
     }
     
+    for(int i = 0;i<num_dim;i++){
+        if(m_map_region_tree != NULL) delete m_map_region_tree[i];
+        if(m_map_regions != NULL) delete m_map_regions[i];
+        if(marginal != NULL) delete marginal[i];
+    }
+    
+    if(m_map_region_tree != NULL) delete [] m_map_region_tree;
+    if(m_map_regions != NULL) delete [] m_map_regions;
+    if(marginal != NULL) delete [] marginal;
+
     return 0;
 }
 
