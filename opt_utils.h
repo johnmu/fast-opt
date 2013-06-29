@@ -56,7 +56,6 @@ struct child_t{
     void load(istream & in){
         for(int i = 0;i<c::cuts;i++){
             in.read((char*)&(val[i]),sizeof(val[i]));
-            //cerr << "Child[" << i << "]:" << val[i] << '\n';
         }
     }
 };
@@ -234,12 +233,9 @@ public:
         
         in.read((char*)&len,sizeof(len));
         
-        cerr << "in len: " << len << '\n';
-        
         dim_cuts.resize(len,bit_str());
         
         for(uint32_t i = 0;i<len;i++){
-            cerr << "len[i]= " << i << '\n';
             dim_cuts[i].load(in);
         }
     } 
@@ -357,9 +353,6 @@ public:
         in.read((char*)&free_len,sizeof(free_len));
         in.read((char*)&store_len,sizeof(store_len));
         
-        cerr << "free_len: " << free_len << '\n';
-        cerr << "store_len: " << store_len << '\n';
-        
         free_locs.clear();
         for(uint32_t i = 0;i<free_len;i++){
             free_locs.push_back(0);
@@ -389,10 +382,7 @@ public:
         load_common(in);
         uint32_t store_len = (uint32_t)store.size();
         
-        cerr << "store_len2: " << store_len << '\n';
-        
         for(uint32_t i = 0;i<store_len;i++){
-            //cerr << "store[i]: " << i << '\n';
             store[i].load(in);
         }
     }
@@ -556,6 +546,13 @@ public:
     }
     
     void load(istream & in){
+        in.read((char*)&table_bits,sizeof(table_bits));
+        in.read((char*)&table_size,sizeof(table_size));
+        in.read((char*)&mask,sizeof(mask));
+        
+        uint32_t non_null_count = 0;
+        in.read((char*) &non_null_count, sizeof (non_null_count));
+
         // delete the old table first
         for (uint32_t i = 0; i < table_size; i++) {
             if (map_table[i] != NULL) {
@@ -563,21 +560,7 @@ public:
             }
         }
         delete [] map_table;
-        cerr << "delete ok\n";
         
-        in.read((char*)&table_bits,sizeof(table_bits));
-        in.read((char*)&table_size,sizeof(table_size));
-        in.read((char*)&mask,sizeof(mask));
-        
-        cerr << "table_bits: " <<table_bits << '\n';
-        cerr << "table_size: " << table_size << '\n';
-        cerr << "mask: " << mask <<'\n';
-        
-        uint32_t non_null_count = 0;
-        in.read((char*) &non_null_count, sizeof (non_null_count));
-
-        cerr << "non_null_count: " << non_null_count << '\n';
-
         // initialise the table
         map_table = new map<opt_region, T>*[table_size];
         for (uint32_t i = 0; i < table_size; i++) {
@@ -591,8 +574,6 @@ public:
             uint32_t loc = 0;
             in.read((char*) &loc, sizeof (loc));
             
-            cerr << "loc: " << loc << '\n';
-            
             // initialise the location
             map_table[loc] = new map<opt_region, T>();
 
@@ -601,23 +582,16 @@ public:
             uint32_t map_len = 0;
 
             in.read((char*) &map_len, sizeof (map_len));
-            
-            cerr << "map_len: " << map_len << '\n';
 
-            for(uint32_t j = 0;j<map_len;j++){
+            for(uint32_t j = 0;i<map_len;j++){
                 opt_region temp_region;
                 T val;
-                
-                cerr << "map[j]: " << j << '\n';
                 
                 temp_region.load(in);
                 in.read((char*)&(val),sizeof(val));
                 
-                cerr << "val: " << val << '\n';
-                
                 it->insert(pair<opt_region, T>(temp_region, val));
             }
-            cerr << "load map done" << '\n';
 
         }
     }   

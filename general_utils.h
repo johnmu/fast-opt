@@ -338,7 +338,6 @@ public:
     
     void load(istream & in){
         in.read((char*)&data,sizeof(data));
-        cerr << "data: " << data << '\n';
     } 
 
 };

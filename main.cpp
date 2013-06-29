@@ -817,12 +817,8 @@ int density(vector<string> params){
     
     num_dim = map_region_tree.get_num_children();
     
-    // Check things were loaded sensibly
-    cerr << "num_dim: " << num_dim << '\n';
-    cerr << "num points" << map_region_tree.get_num_points() << '\n';
-    map_regions.print_regions();
-    
     // Loop through the data
+    // This should be changed to binary tree
     for (vector<vector<double> >::iterator it = test_data.begin();
             it != test_data.end(); it++) {
         // for each data point
