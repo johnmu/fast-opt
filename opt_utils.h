@@ -317,6 +317,12 @@ public:
     uint32_t table_size;
     uint32_t mask;
 
+    opt_region_hash(){
+        // in this is used, must load
+        map_table = NULL;
+    }
+
+
     opt_region_hash(int table_bits) {
         this->table_bits = table_bits;
         this->table_size = 1u << table_bits;
@@ -330,12 +336,15 @@ public:
 
     ~opt_region_hash() {
        //  iterate through and delete all the nodes
-        for (uint32_t i = 0; i < table_size; i++) {
-            if (map_table[i] != NULL) {
-                delete map_table[i];
+        
+        if(map_table != NULL){
+            for (uint32_t i = 0; i < table_size; i++) {
+                if (map_table[i] != NULL) {
+                    delete map_table[i];
+                }
             }
+            delete [] map_table;
         }
-        delete [] map_table;
     }
 
     uint32_t hash(const opt_region& reg) const {
@@ -409,6 +418,112 @@ public:
 
         return output;
     }
+
+
+    void save(ostream & out) const{
+        out.write((char*)&table_bits,sizeof(table_bits));
+        out.write((char*)&table_size,sizeof(table_size));
+        out.write((char*)&mask,sizeof(mask));
+        
+        // count the number of non-null entries
+        uint32_t non_null_count = 0;
+        for (uint32_t i = 0; i < table_size; i++) {
+            if (map_table[i] != NULL) {
+                non_null_count++;
+            }
+        }
+        
+        out.write((char*)&non_null_count,sizeof(non_null_count));
+        
+        // write out the non-null entries of the hash-table
+        for (uint32_t i = 0; i < table_size; i++) {
+            if (map_table[i] != NULL) {
+                // write out the location
+                out.write((char*)&i,sizeof(i));
+                
+                // write out the Map
+                map<opt_region, T>* it = map_table[i];
+                uint32_t map_len = it->size();
+                
+                out.write((char*)&map_len,sizeof(map_len));
+                
+                for(typename map<opt_region, T>::iterator map_it = it->begin();
+                        map_it != it->end();map_it++){
+                    map_it->first.save(out);
+                    out.write((char*)&(map_it->second),sizeof(map_it->second));
+                }
+            }
+        }
+    }
+    
+    void load(istream & in){
+        // delete the old table first
+        if (map_table != NULL) {
+            for (uint32_t i = 0; i < table_size; i++) {
+                if (map_table[i] != NULL) {
+                    delete map_table[i];
+                }
+            }
+            delete [] map_table;
+        }
+        //cerr << "delete ok\n";
+        
+        in.read((char*)&table_bits,sizeof(table_bits));
+        in.read((char*)&table_size,sizeof(table_size));
+        in.read((char*)&mask,sizeof(mask));
+        
+        //cerr << "table_bits: " <<table_bits << '\n';
+        //cerr << "table_size: " << table_size << '\n';
+        //cerr << "mask: " << mask <<'\n';
+        
+        uint32_t non_null_count = 0;
+        in.read((char*) &non_null_count, sizeof (non_null_count));
+
+        //cerr << "non_null_count: " << non_null_count << '\n';
+
+        // initialise the table
+        map_table = new map<opt_region, T>*[table_size];
+        for (uint32_t i = 0; i < table_size; i++) {
+            map_table[i] = NULL;
+        }
+        
+        // read in the values
+        for (uint32_t i = 0; i < non_null_count; i++) {
+
+            // read in the location
+            uint32_t loc = 0;
+            in.read((char*) &loc, sizeof (loc));
+            
+            //cerr << "loc: " << loc << '\n';
+            
+            // initialise the location
+            map_table[loc] = new map<opt_region, T>();
+
+            // read in the map
+            map<opt_region, T>* it = map_table[loc];
+            uint32_t map_len = 0;
+
+            in.read((char*) &map_len, sizeof (map_len));
+            
+            //cerr << "map_len: " << map_len << '\n';
+
+            for(uint32_t j = 0;j<map_len;j++){
+                opt_region temp_region;
+                T val;
+                
+                //cerr << "map[j]: " << j << '\n';
+                
+                temp_region.load(in);
+                in.read((char*)&(val),sizeof(val));
+                
+                //cerr << "val: " << val << '\n';
+                
+                it->insert(pair<opt_region, T>(temp_region, val));
+            }
+            //cerr << "load map done" << '\n';
+
+        }
+    }   
 
 
 };

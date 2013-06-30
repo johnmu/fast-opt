@@ -94,17 +94,19 @@ int main(int argc, char** argv) {
 
 int opt(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " opt <percent_points> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " opt <percent_points> <data_file> <output_name>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%)\n"
-            + "            data_file -- One sample each row\n"
-            + "MAP partitions output to STDOUT. Log to STDERR \n"
+            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "MAP partitions output to STDOUT and <output_name>.den .Log to STDERR \n"
             + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
             + "greater than 5 use the other methods\n";
 
-    if (params.size() != 2) {
+    if (params.size() != 3) {
         cerr << usage_text << endl;
         return 3;
     }
+    
+    string out_filename = params[2];
 
 
 
@@ -151,6 +153,14 @@ int opt(vector<string> params) {
     cerr << "lPhi: " << opt_slow.get_lphi() << endl;
     print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
 
+    // write out the density to file
+    ofstream den_file;
+    init_file_out(den_file,out_filename+".den",1);
+    
+    map_region_tree.save(den_file);
+    map_regions.save(den_file);
+    
+    den_file.close();
 
     return 0;
 }
@@ -164,8 +174,8 @@ int llopt(vector<string> params) {
             + "       percent_points -- Ratio of total region data to stop at for each look-ahead (0.01 = 1%)\n"
             + "   top_percent_points -- Ratio of total data to stop at (0.01 = 1% or 2 = 2 points)\n"
             + "               levels -- Maximum levels for each look-ahead\n "
-            + "            data_file -- One sample each row\n"
-            + "MAP partitions output to STDOUT. Log to STDERR \n"
+            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "MAP partitions output to STDOUT and <output_name>.den .Log to STDERR \n"
             + "Run limited look-ahead OPT. Good for moderate dimensions (6-15)\n";
 
     if (params.size() < 4 || params.size() > 5) {
@@ -278,19 +288,21 @@ int lsopt(vector<string> params) {
 int dfopt(vector<string> params) {
 
     string usage_text = "Usage: " + c::PROG_NAME + " dfopt <top_percent_points>" 
-            + " <percent_points> <levels> <data_file>\n"
+            + " <percent_points> <levels> <data_file> <output_name>\n"
             + "     top_percent_points -- Points to stop at (0.01 = 1%, 1 = 1point)\n"
             + "     percent_points     -- Points in each level to stop at (0.01 = 1%, 1 = 1point))\n"
             + "     levels             -- look ahead levels\n"
-            + "     data_file          -- One sample per row\n"
-            + "MAP partitions output to STDOUT. Log to STDERR\n "
+            + "     data_file          -- One sample per row (Restricted to [0,1] cube)\n"
+            + "MAP partitions output to STDOUT and <output_name>.den .Log to STDERR \n"
             + "Run depth-first-OPT, very slow but technically can do any number of dimensions\n "
             + "if you wait several years. Run in a similar fashion to limited look-ahead. \n";
 
-    if (params.size() != 4) {
+    if (params.size() != 5) {
         cerr << usage_text << endl;
         return 3;
     }
+    
+    string out_filename = params[4];
 
     vector<vector<double> > data = read_data(params[3],false);
 
@@ -327,6 +339,15 @@ int dfopt(vector<string> params) {
 
     print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
 
+    // write out the density to file
+    ofstream den_file;
+    init_file_out(den_file,out_filename+".den",1);
+    
+    map_region_tree.save(den_file);
+    map_regions.save(den_file);
+    
+    den_file.close();
+    
     return 0;
 }
 
@@ -472,7 +493,7 @@ int hell_dist(vector<string> params){
 
 int classify(vector<string> params){
     string usage_text = "Usage: " + c::PROG_NAME
-            + " classify <learned_dist_0> ... <learned_dist_n-1> <test_data> \n"
+            + " classify [-c] <learned_dist_0> ... <learned_dist_n-1> <test_data> \n"
             + "     learned_dist_0...n-1 -- MAP partitions from each class\n"
             + "     test_data            -- Each row one data point\n "
             + "Do classification. Doesn't deal with the case of equal densities yet\n";
@@ -481,12 +502,38 @@ int classify(vector<string> params){
         cerr << usage_text << endl;
         return 3;
     }
+    
+    int param_offset = 0;
+    bool confusion = false;
+    if(params[0] == "-c"){
+        param_offset = 1;
+        confusion = true;
+    }
+    
+    vector<vector<double> > test_data = read_data(params[0+param_offset],confusion);
 
     int num_class = params.size()-1;
 
     cerr << "Total classes: " << num_class << '\n';
 
     vector<vector<double> > test_data = read_data(params[num_class],false);
+
+    vector<string> joint_filenames = split(params[1+param_offset],',');
+    
+    vector<string> marginal_filenames;
+    bool copula = false;
+    if((params.size()-param_offset) == 3){
+        copula = true;
+        marginal_filenames = split(params[2+param_offset],',');
+    }
+    
+    if(copula && joint_filenames.size() != marginal_filenames.size()){
+        cerr << "ERROR: Must if marginals are given, must be same number as copula densities.\n";
+        return 1;
+    }
+    
+    int num_class = (int)joint_filenames.size();
+>>>>>>> copula
 
     int test_N = (int)test_data.size();
     int dim    = (int)test_data[0].size();
@@ -784,15 +831,15 @@ void print_usage_and_exit() {
     cerr << "-== Density Estimation ==-" << '\n';
     cerr << "  opt        -- MAP partitions from full OPT" << "\n";
     cerr << "  llopt      -- MAP partitions from LL-OPT" << "\n";
-    cerr << "  lsopt      -- MAP partitions from LL-sampled OPT [experimental]" << "\n";
+    //cerr << "  lsopt      -- MAP partitions from LL-sampled OPT [experimental]" << "\n";
     cerr << "  dfopt      -- MAP partitions from depth-first OPT" << "\n";
     cerr << "  disopt     -- MAP partitions from discrepancy-LL-OPT [experimental]" << "\n";
     cerr << "\n";
     cerr << "-== Other tools ==-" << '\n';
     cerr << "  hell_dist   -- Compute sample Hellinger distance from a known density" << "\n";
-    cerr << "  classify    -- Do classification with MAP partitions [experimental]" << "\n";
-    cerr << "  density     -- Get the density at particular points [experimental]" << "\n";
-    cerr << "  bench       -- Benchmark counting speed [temporary]" << "\n";
+    cerr << "  classify    -- Do classification with MAP partitions" << "\n";
+    cerr << "  density     -- Get the density at particular points" << "\n";
+    //cerr << "  bench       -- Benchmark counting speed [temporary]" << "\n";
     exit(2);
 }
 

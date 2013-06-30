@@ -672,6 +672,8 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
         llpile[0].map_nodes.push_back(map_region_tree.get_full_tree());
 
         int map_depth = 0;
+        double total_area = 0.0;
+
 
         // Now create the MAP tree!
         // Do a breadth first search on the MAP tree
@@ -699,6 +701,9 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                     || wu_it->working_reg.full()) {
 
                 //cerr << "mini-STOP count: " << ra[wu_it->node_idx]->count << '\n';
+                
+                total_area += exp(wu_it->working_reg.get_area()*c::l2);
+                cerr << "Depth("<< map_depth <<"):Area("<< 100*total_area <<"%)\n"; 
 
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
                         ra[wu_it->node_idx]->count, map_depth);
@@ -745,7 +750,8 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
             if (post_rho>-c::l2) {
                 // STOP
 
-                //cerr << "STOP count: " << ra[wu_it->node_idx]->count << '\n';
+                total_area += exp(wu_it->working_reg.get_area() * c::l2);
+                cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n"; 
 
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
                         ra[wu_it->node_idx]->count, map_depth);

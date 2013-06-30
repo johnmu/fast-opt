@@ -1,5 +1,6 @@
 CC = g++
-CFLAGS = -O2 -m64 -msse2 -lm -Wall -pthread
+
+CFLAGS = -g -O2 -m64 -msse2 -lm -Wall -pthread
 #CFLAGS = -g -m64 -msse2 -lm -Wall -pthread
 
 install: opt-fast
