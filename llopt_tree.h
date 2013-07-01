@@ -260,20 +260,6 @@ public:
             int child_1_count = ra[child_id[0]]->count;
             int child_2_count = ra[child_id[1]]->count;
 
-            
-            if (child_1_count < 0 && child_2_count < 0) {
-                cerr << "neg count!!! " << i << ',' << depth << '\n';
-                exit(2);
-            }
-
-
-            //if(calling_loc == 3){
-            //    cerr << i << ":" << child_1_count << ',' << child_2_count << '\n';
-            //    cerr << "lphi: " << ra[child_id[0]]->get_lphi2(depth + 1) << ","
-            //            << ra[child_id[1]]->get_lphi2(depth + 1) << '\n';
-            //    cerr << "gt: " << gt.compute_lD2(ra[curr_node]->count, child_1_count, child_2_count)<<'\n';
-            //}
-
             if(child_1_count < 0){
                 child_1_count = -child_1_count;
             }
@@ -379,7 +365,7 @@ public:
                 // make sure we at least cut once
                 if(depth != 0) backup = true;
             } else {
-                if ((depth == 0&&pile[depth].dim !=start_dimension)
+                if ((depth == 0 && pile[depth].dim != start_dimension)
                         || pile[depth].dim > num_children - 1){
 
                     //cerr << "CUTALL BACKUP\n";

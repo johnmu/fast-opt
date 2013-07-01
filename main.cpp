@@ -617,7 +617,7 @@ int classify(vector<string> params) {
 
     vector<double> prior;
     {
-        vector<string> prior_str = split(params[0 + param_offset],',');
+        vector<string> prior_str = split(params[1 + param_offset],',');
         
         double prior_sum = 0;
         for(int i = 0;i<(int)prior_str.size();i++){
@@ -632,7 +632,7 @@ int classify(vector<string> params) {
         }
     }
 
-    vector<vector<double> > test_data = read_data(params[1 + param_offset], confusion);
+    vector<vector<double> > test_data = read_data(params[0 + param_offset], confusion);
 
     int test_N = (int) test_data.size();
     int dim = (int) test_data[0].size() - param_offset;
