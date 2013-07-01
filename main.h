@@ -47,6 +47,7 @@
 #include "lsopt_tree.h"
 #include "dfopt.h"
 #include "map_tree.h"
+#include "density_store.h"
 
 inline vector<vector<double> > read_data(string filename, bool end_line) {
     int dim = 0;
@@ -122,15 +123,19 @@ inline vector<vector<double> > read_data(string filename, bool end_line) {
     return data;
 }
 
+
+
 int llopt(vector<string> params);
 int lsopt(vector<string> params);
 int sopt(vector<string> params);
 int opt(vector<string> params);
 int dfopt(vector<string> params);
 int disopt(vector<string> params);
+int copula(vector<string> params);
 int hell_dist(vector<string> params);
 int classify(vector<string> params);
 int density(vector<string> params);
+int density_old(vector<string> params);
 int bench(vector<string> params);
 
 void print_usage_and_exit();

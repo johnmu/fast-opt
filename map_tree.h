@@ -48,16 +48,15 @@ class map_tree_node
 private:
     int count;
     int area;
-
     int dim;
     child_t children;
 
     static const int num_children = 2;
 
     void init(){
-        dim = -1;
+        dim = -1; // this means it is a leaf
         count = -1;
-        area = 1;  // this means it is a leaf
+        area = 0; // real_area = 2^(-area)  
     }
 
 public:
@@ -71,21 +70,19 @@ public:
         init();
     }
 
-
     void set_count(int count){
         this->count = count;
     }
 
-    int get_count(){
+    int get_count() const{
         return count;
     }
-
 
     void set_area(int area){
         this->area = area;
     }
 
-    int get_area(){
+    int get_area() const{
         return area;
     }
 
@@ -93,14 +90,13 @@ public:
         this->dim = dim;
     }
 
-    int get_dim(){
+    int get_dim() const{
         return dim;
     }
 
     double get_area2(){
         return exp(area*c::l2);
     }
-
 
     // N is total number of points
     double get_density(int N){
@@ -115,10 +111,29 @@ public:
         return children.val[cut];
     }
     
-    bool is_leaf(){
+    bool is_leaf() const{
         return (dim==-1);
     }
-
+    
+    void save(ostream & out) const{
+        out.write((char*)&count,sizeof(count));
+        out.write((char*)&area,sizeof(area));
+        out.write((char*)&dim,sizeof(dim));
+        children.save(out);
+    }
+    
+    void load(istream & in){
+        in.read((char*)&count,sizeof(count));
+        in.read((char*)&area,sizeof(area));
+        in.read((char*)&dim,sizeof(dim));
+        
+        //cerr << "count: " << count << '\n'; 
+        //cerr << "area: " << area << '\n';
+        //cerr << "dim: " << dim << '\n';
+        
+        children.load(in);
+    }
+    
 };
 
 
@@ -130,16 +145,17 @@ inline void print_MAP_density(ostream &o,vector<pair<opt_region, uint32_t> > vec
     int    total_count   = 0;
 
     for(int i = 0;i<(int)vec.size();i++){
+        
+         double area = exp(vec[i].first.get_area()*c::l2);
+        
         vec[i].first.print_region_limits(o);
         o << scientific << (*ra)[vec[i].second]->get_density(N);
+        o << ' ' << (*ra)[vec[i].second]->get_count();
         o << '\n';
-
-        double area = exp(vec[i].first.get_area()*c::l2);
 
         total_area    += area;
         total_density += (*ra)[vec[i].second]->get_density(N) * area;
         total_count   += (*ra)[vec[i].second]->get_count();
-
     }
 
     cerr << "Regions: " << vec.size() <<   ", Total area: " << total_area
@@ -154,21 +170,25 @@ class map_tree
 private:
     uint32_t root;
     region_allocator<map_tree_node> ra;
-    int num_points;
-
-    void init(int num_points){
+    uint32_t num_points; // total number of data points, used to compute density
+    int num_children; // The maximum dimension
+    
+    void init(uint32_t num_points,int num_children){
         pair<uint32_t,map_tree_node*> out = ra.create_node();
         root = out.first;
         this->num_points = num_points;
+        this->num_children = num_children;
     }
 
 public:
 
-    map_tree(int num_points){
-        
-        init(num_points);
+    map_tree(){
+        // if this is used must load
     }
-
+    
+    map_tree(uint32_t num_points, int num_children){
+        init(num_points,num_children);
+    }
 
     region_allocator<map_tree_node>* get_ra(){
         return &ra;
@@ -180,30 +200,161 @@ public:
     
     double get_density(const vector<double> &data){
         
-        if(ra[root]->get_dim() != (int)data.size()){
-            cerr << "Warning: wrong dimension" << '\n';
+        if(num_children != (int)data.size()){
+            cerr << "Warning: wrong dimension(" << num_children << ")" << '\n';
             return -c::inf;
         }
         
         uint32_t curr_node = root;
         
-        current_region curr_reg(data.size());
+        current_region curr_reg(num_children);
         
         while(!ra[curr_node]->is_leaf()){
             int curr_dim = ra[curr_node]->get_dim();
             int curr_cut = curr_reg.determine_cut(curr_dim,data[curr_dim]);
+            
             curr_reg.cut(curr_dim,curr_cut);
             curr_node = ra[curr_node]->get_child(curr_cut);
         }
-        
+
         return ra[curr_node]->get_density(num_points);
-        
     }
 
+    uint32_t get_num_points() const{
+        return this->num_points;
+    }
+    
+    int get_num_children() const{
+        return this->num_children;
+    }
+    
+    void save(ostream & out) const{
+        out.write((char*)&root,sizeof(root));
+        out.write((char*)&num_points,sizeof(num_points));
+        out.write((char*)&num_children,sizeof(num_children));
+        
+        ra.save2(out);
+                
+    }
+    
+    void load(istream & in){
+        in.read((char*)&root,sizeof(root));
+        in.read((char*)&num_points,sizeof(num_points));
+        in.read((char*)&num_children,sizeof(num_children));
+        
+        //cerr << "Root: " << root << '\n';
+        //cerr << "num_points: " << num_points << '\n';
+        
+        ra.load2(in);
+        
+        
+    }
+};
+
+
+// one-dimensional CDF constructed from OPT regions
+
+struct cdf_t{
+    double end;
+    double den;
+    
+    cdf_t(){
+        end = 1.0;
+        den = 1.0;
+    }
+    
+    cdf_t(const double &end,const double &den){
+        this->end = end;
+        this->den = den;
+    }
+    
+    bool operator<(const cdf_t &a) const{
+        return (end < a.end);
+    }
+    
 };
 
 
 
+class cdf{
+private:
+    vector<cdf_t> cdf_data;
+    
+public:
+    
+    // should add some sanity checks
+    cdf(map_tree &map_region_tree, opt_region_hash<uint32_t> &map_regions){
+        
+        uint32_t N = map_region_tree.get_num_points();
+        region_allocator<map_tree_node>* ra = map_region_tree.get_ra();
+        
+        // extract regions as (start, density) assume last one goes to 1
+        vector<pair<opt_region, uint32_t> > regs = map_regions.get_regions();
+
+        for (int i = 0; i < (int) regs.size(); i++) {
+            // get the start location (assume only 1-D)
+   
+            pair<double, double> lims = regs[i].first.get_limits(0);
+            double end = lims.second;
+            
+            // get the density
+            double den = (*ra)[regs[i].second]->get_density(N);
+
+            cdf_data.push_back(cdf_t(end,den));
+        }
+        
+        // sort by end location
+        sort(cdf_data.begin(),cdf_data.end());
+        
+        // sum up the densities
+        int N_reg = (int)regs.size();
+        double cum_sum = 0.0;
+        for (int i = 0; i < N_reg; i++){
+            
+            double dist = 0;
+            if(i == 0){
+                dist = cdf_data[i].end;
+            }else{
+                dist = cdf_data[i].end - cdf_data[i-1].end;
+            }
+
+            cum_sum += cdf_data[i].den * dist;
+            
+            // fix rounding errors
+            if(cum_sum>1)cum_sum = 1.0;
+            
+            cdf_data[i].den = cum_sum;
+        }
+        
+    }
+    
+    double transform(double x) const{
+        cdf_t temp;
+        temp.end = x;
+        temp.den = 0.0;
+        
+        vector<cdf_t>::const_iterator it = lower_bound(cdf_data.begin(),cdf_data.end(),temp);
+        
+        double start = 0.0;
+        double start_den = 0.0;
+        double end = it->end;
+        double end_den = it->den;
+        if(it != cdf_data.begin()){
+            vector<cdf_t>::const_iterator it_prev = it - 1;
+            start = it_prev->end;
+            start_den = it_prev->den;
+        }
+        
+        // interpolate to find the transformed value
+        return ((x-start)/(end-start))*(end_den-start_den) + start_den;
+    }
+    
+    void print_cdf(ostream &o) const{
+        for(int i = 0;i<(int)cdf_data.size();i++){
+            o << cdf_data[i].end << ":" << cdf_data[i].den << '\n';
+        }
+    }
+};
 
 
 #endif	/* MAP_TREE_H */

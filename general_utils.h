@@ -241,14 +241,10 @@ static const char LogTable256[256] =
         LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7)
     };
 
-
-
 class bit_str{
 public:
     uint32_t data;
     static const int num_bits = sizeof(uint64_t)*8;
-
-
 
     bit_str(){
         data = 1u;
@@ -335,9 +331,17 @@ public:
         }
 
     }
+    
+    void save(ostream & out) const{
+        out.write((char*)&data,sizeof(data));
+    }
+    
+    void load(istream & in){
+        in.read((char*)&data,sizeof(data));
+        //cerr << "data: " << data << '\n';
+    } 
 
 };
-
 
 
 // Source: http://mlawire.blogspot.com/2009/07/c-whitespace-trimming-functions.html
