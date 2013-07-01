@@ -43,8 +43,6 @@ int main(int argc, char** argv) {
     cerr << "http://www.stanford.edu/group/wonglab" << "\n";
     cerr << "\n";
 
-
-
     string mode = "";
     string temp = "";
     int error_num = 0;
@@ -61,7 +59,6 @@ int main(int argc, char** argv) {
         params.push_back(temp);
     }
 
-
     if (mode == "opt") {
         error_num = opt(params);
     } else if (mode == "llopt") {
@@ -72,12 +69,16 @@ int main(int argc, char** argv) {
         error_num = dfopt(params);
     } else if (mode == "disopt") {
         error_num = disopt(params);
+    } else if (mode == "copula") {
+        error_num = copula(params);
     } else if (mode == "hell_dist") {
         error_num = hell_dist(params);
     } else if (mode == "classify") {
         error_num = classify(params);
     } else if (mode == "density") {
         error_num = density(params);
+    } else if (mode == "density_old") {
+        error_num = density_old(params);
     } else if (mode == "bench") {
         error_num = bench(params);
     } else {
@@ -108,8 +109,6 @@ int opt(vector<string> params) {
     
     string out_filename = params[2];
 
-
-
     vector<vector<double> > data = read_data(params[1],false);
 
     int dim = (int)data[0].size();
@@ -134,6 +133,7 @@ int opt(vector<string> params) {
     
     mu_timer mt;
 
+
     opt_tree opt_slow(dim,stop_points,1000);
 
     mt.reset();
@@ -142,16 +142,16 @@ int opt(vector<string> params) {
     mt.print_elapsed_time(cerr, "OPT tree");
 
     mt.reset();
-    map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(24);
-    opt_slow.construct_MAP_tree(map_region_tree, map_regions, data.size());
+    map_tree map_region_tree(N,dim);
+    opt_region_hash<uint32_t> map_regions(20);
+    opt_slow.construct_MAP_tree(map_region_tree, map_regions, N);
     total_time += mt.elapsed_time();
     mt.print_elapsed_time(cerr, "MAP tree");
 
     cerr << "OPT construction time: " << total_time << " s.\n";
     
     cerr << "lPhi: " << opt_slow.get_lphi() << endl;
-    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),data.size());
 
     // write out the density to file
     ofstream den_file;
@@ -169,7 +169,7 @@ int opt(vector<string> params) {
 int llopt(vector<string> params) {
 
 
-    string usage_text = "Usage: " + c::PROG_NAME + " llopt [-np] <percent_points> <levels> <top_percent_points> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " llopt [-np] <percent_points> <levels> <top_percent_points> <data_file> <output_name>\n"
             + "       -np            -- Don't prune the tree, a lot faster but more memory usage\n"
             + "       percent_points -- Ratio of total region data to stop at for each look-ahead (0.01 = 1%)\n"
             + "   top_percent_points -- Ratio of total data to stop at (0.01 = 1% or 2 = 2 points)\n"
@@ -178,14 +178,14 @@ int llopt(vector<string> params) {
             + "MAP partitions output to STDOUT and <output_name>.den .Log to STDERR \n"
             + "Run limited look-ahead OPT. Good for moderate dimensions (6-15)\n";
 
-    if (params.size() < 4 || params.size() > 5) {
+    if (params.size() < 5 || params.size() > 6) {
         cerr << usage_text << endl;
         return 3;
     }
 
     bool prune_tree = true;
     int params_offset = 0;
-    if (params.size() == 5) {
+    if (params.size() == 6) {
         if (params[0] == "-np") {
             prune_tree = false;
             params_offset = 1;
@@ -207,6 +207,8 @@ int llopt(vector<string> params) {
     int ll_levels = strTo<int>(params[params_offset + 1]);
     double stop_ratio = strTo<double>(params[params_offset + 0]);
     double top_stop_ratio = strTo<double>(params[params_offset + 2]);
+    
+    string out_filename = params[params_offset + 4];
 
     cerr << "Each small OPT stopping at " << ll_levels << " levels.\n";
     cerr << "Each level stopping at " << stop_ratio*100 << "% of points.\n";
@@ -216,15 +218,25 @@ int llopt(vector<string> params) {
     mu_timer mt;
 
     llopt_tree llopt(dim,stop_ratio,top_stop_ratio,ll_levels,20*dim);
-    map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(24);
+    map_tree map_region_tree(N,dim);
+    opt_region_hash<uint32_t> map_regions(20);
 
     mt.reset();
     llopt.construct_llopt_tree(&data, map_region_tree, map_regions,prune_tree);
     mt.print_elapsed_time(cerr, "LLOPT("+ toStr<int>(ll_levels) +") construction");
 
-    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
+    // write to cout
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),N);
 
+    // write out the density to file
+    ofstream den_file;
+    init_file_out(den_file,out_filename+".den",1);
+    
+    map_region_tree.save(den_file);
+    map_regions.save(den_file);
+    
+    den_file.close();
+    
     return 0;
 }
 
@@ -238,7 +250,7 @@ int lsopt(vector<string> params) {
             + "     top_percent_points -- Ratio of total data to stop at (0.01 = 1%)\n"
             + "             iterations -- Maximum number of iterations for each look-ahead\n "
             + " convergence_iterations -- Number of iterations the same before convergence\n "
-            + "              data_file -- One sample each row\n"
+            + "              data_file -- One sample each row (Restricted to [0,1] cube)\n"
             + "MAP partitions output to STDOUT. Log to STDERR \n"
             + "Run limited look-ahead sampled-OPT. Good for higher dimensions (>10).\n"
             + "iterations = [50-1000], convergence_iterations=[20-100]";
@@ -273,15 +285,16 @@ int lsopt(vector<string> params) {
     mu_timer mt;
 
     lsopt_tree lsopt(dim,stop_ratio,top_stop_ratio,lookahead_depth,1000);
-    map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(24);
+    map_tree map_region_tree(N,dim);
+    opt_region_hash<uint32_t> map_regions(20);
 
     mt.reset();
     lsopt.construct_lsopt_tree(data, iterations,convergence_iterations, map_region_tree, map_regions);
     mt.print_elapsed_time(cerr, "LSOPT construction");
 
-    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),N);
 
+    
     return 0;
 }
 
@@ -330,14 +343,14 @@ int dfopt(vector<string> params) {
     mu_timer mt;
 
     dfopt_tree dfopt(dim,top_stop_ratio,stop_ratio,100,levels);
-    map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(24);
+    map_tree map_region_tree(N,dim);
+    opt_region_hash<uint32_t> map_regions(20);
 
     mt.reset();
     dfopt.construct_dfopt_tree(data, map_region_tree, map_regions);
     mt.print_elapsed_time(cerr, "DFOPT construction");
 
-    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),N);
 
     // write out the density to file
     ofstream den_file;
@@ -362,7 +375,7 @@ int disopt(vector<string> params) {
             + "       percent_points -- Ratio of total region data to stop at for each look-ahead (0.01 = 1%)\n"
             + "   top_percent_points -- Ratio of total data to stop at (0.01 = 1% or 2 = 2 points)\n"
             + "               levels -- Maximum levels for each look-ahead\n "
-            + "            data_file -- One sample each row\n"
+            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
             + "MAP partitions output to STDOUT. Log to STDERR \n"
             + "Run discrepancy limited look-ahead OPT. Good for moderate dimensions (6-15)\n";
 
@@ -404,27 +417,150 @@ int disopt(vector<string> params) {
     mu_timer mt;
 
     disopt_tree disopt(dim,stop_ratio,top_stop_ratio,ll_levels,20*dim);
-    map_tree map_region_tree(data.size());
-    opt_region_hash<uint32_t> map_regions(24);
+    map_tree map_region_tree(N,dim);
+    opt_region_hash<uint32_t> map_regions(20);
 
     mt.reset();
     disopt.construct_disopt_tree(data, map_region_tree, map_regions,prune_tree);
     mt.print_elapsed_time(cerr, "disOPT("+ toStr<int>(ll_levels) +") construction");
 
-    print_MAP_density(cout, map_regions.print_density(),map_region_tree.get_ra(),data.size());
+    print_MAP_density(cout, map_regions.get_regions(),map_region_tree.get_ra(),N);
 
+    return 0;
+}
+
+
+int copula(vector<string> params){
+    string usage_text = "Usage: " + c::PROG_NAME + " copula <percent_points> <data_file> <output_name>\n"
+            + "       percent_points -- Data count to stop at (0.01 = 1% or 2 = 2 points)\n"
+            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "Transformed data to <output_name>.copula.txt\n"
+            + "Marginal densities to <output_name>.marginal.den\n"
+            + "Log to STDERR \n"
+            + "Do copula transform by estimating marginal densities with full OPT \n";
+
+    if (params.size() != 3) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    string data_file = params[1];
+    string out_filename = params[2];
+    
+    vector<vector<double> > data = read_data(data_file,false);
+
+    int dim = (int)data[0].size();
+    uint32_t N   = (uint32_t)data.size();
+
+    cerr << "Running copula via Full-OPT" << '\n';
+    cerr << N << " points in " << dim << " dimensions.\n";
+
+    double stop_ratio = strTo<double>(params[0]);
+    int stop_points = 0;
+    
+    if(stop_ratio<1){
+        stop_points = (int)(N*stop_ratio);
+    }else{
+        stop_points = (int)stop_ratio;
+    }
+    if(stop_points < 1) stop_points = 1;
+
+    cerr << "Stopping at " << stop_points << " points.\n";
+
+    // create file to save all the densities
+    
+    ofstream den_file;
+    init_file_out(den_file,out_filename+".marginal.den",dim);
+    
+    
+    for (int i = 0; i < dim; i++) {
+        
+        cerr << "Computing marginal for dim: " << i+1 << '\n';
+        // Extract one dimension of data
+        
+        vector<vector<double> > one_data(N,vector<double>(1,0.0));
+        
+        for(uint32_t j = 0;j<N;j++){
+            one_data[j][0] = data[j][i];
+        }
+
+        
+        // run full OPT on data
+
+        double total_time = 0.0;
+        mu_timer mt;
+        opt_tree opt_slow(1, stop_points, 1000);
+
+        mt.reset();
+        opt_slow.construct_full_tree(one_data);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "OPT tree");
+
+        mt.reset();
+        map_tree map_region_tree(N,1);
+        opt_region_hash<uint32_t> map_regions(20);
+        opt_slow.construct_MAP_tree(map_region_tree, map_regions, N);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "MAP tree");
+
+        cerr << "Total construction time: " << total_time << " s.\n";
+        cerr << "lPhi: " << opt_slow.get_lphi() << endl;
+        //print_MAP_density(cout, map_regions.get_regions(), map_region_tree.get_ra(), data.size());
+
+        // Construct CDF from the regions
+        cdf marginal(map_region_tree,map_regions);
+        
+        // Transform the data
+        for(uint32_t j = 0;j<N;j++){
+            one_data[j][0] = marginal.transform(one_data[j][0]);
+        }
+        
+        // Replace the data that was read in
+        
+        for(uint32_t j = 0;j<N;j++){
+            data[j][i] = one_data[j][0];
+        }
+        
+        // Write out the marginal into the den file
+        map_region_tree.save(den_file);
+        map_regions.save(den_file);
+        
+    }
+    
+    den_file.close();
+    
+    // Write out the transformed data
+    ofstream out_file;
+    {
+        string temp = out_filename + ".copula.txt";
+        out_file.open(temp.c_str(), ios::out);
+    }
+    
+    out_file << std::scientific;
+    for(uint32_t i = 0;i<N;i++){
+        out_file << data[i][0];
+        for(int j = 1;j<dim;j++){
+            out_file << ' ' << data[i][j];
+        }
+        out_file << '\n';
+    }
+    
+    out_file.close();
+    
+    
     return 0;
 }
 
 
 
 int hell_dist(vector<string> params){
-    string usage_text = "Usage: " + c::PROG_NAME + " hell_dist <true_samples> <MAP_partitions> \n"
-            + "     true_samples   -- Each row one data point followed by true density\n"
-            + "     MAP_partitions -- Learned MAP partitions\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " hell_dist <true_samples> <joint/copula_den> [marginal_den] \n"
+            + "     true_samples     -- Each row one data point followed by true density\n"
+            + "     joint/copula_den -- Joint or Copula density, Copula needs marginals\n"
+            + "     marginal_den     -- Marginal densities, if given then copula is used\n"
             + "Compute sampled Hellinger distance\n";
 
-    if (params.size() != 2) {
+    if (params.size() < 2 || params.size() > 3) {
         cerr << usage_text << endl;
         return 3;
     }
@@ -436,56 +572,36 @@ int hell_dist(vector<string> params){
 
     cerr << true_N << " samples in " << dim << " dimensions.\n";
 
-    vector<vector<double> > map_partitions = read_data(params[1],true);
-
-    int N_part = (int)map_partitions.size();
-    if((2*(dim)) != ((int)map_partitions[0].size()-1)){
-        cerr << "ERROR: Dimension mismatch!\n";
-        exit(2);
-
+    string joint_filename = params[1];
+    
+    string marginal_filename = "";
+    bool copula = false;
+    if(params.size() == 3){
+        copula = true;
+        marginal_filename = params[2];
     }
 
-
+    // load the joint/copula densities
+    density_store dens(joint_filename,marginal_filename,copula);
+    
     double val = 0.0;
-    int not_found = 0;
+
     for(int i = 0;i<true_N;i++){
         double true_den = true_samples[i][dim];
         double map_den  = 0.0;
-        bool found = false;
-        for(int j = 0;!found&&j<N_part;j++){
-            found = true;
-            for(int k = 0;found&&k<dim;k++){
-
-                double low  = map_partitions[j][2*k];
-                double high = map_partitions[j][(2*k)+1];
-
-                if(true_samples[i][k] <= low || true_samples[i][k] > high){
-                    found = false;
-                }
-            }
-
-            if(found){
-                map_den = map_partitions[j][2*dim];
-            }
-        }
-
-        if(found){
-                val += sqrt(map_den/true_den);
-
-                //cerr << val << "," << map_den << "," << true_den << '\n';
-        }else{
-            cerr << "Sample not found: " << i  << ":" << true_den << '\n';
-            not_found++;
-        }
+        
+        vector<double> point(true_samples[i].begin(),true_samples[i].end()-1);
+        map_den = dens.compute_density(point);
+        val += sqrt(map_den / true_den); // importance sample
     }
 
-    if (val/(double)(true_N-not_found) > 1){
+    if (val/(double)(true_N) > 1){
         cerr << "Not enough sample points in true distribution\n";
         cerr << "or density does not integrate to 1.\n";
         exit(2);
     }
 
-    cout << sqrt(1-(val/(double)(true_N-not_found))) << '\n';
+    cout << sqrt(1-(val/(double)(true_N))) << '\n';
 
     return 0;
 }
@@ -493,12 +609,15 @@ int hell_dist(vector<string> params){
 
 int classify(vector<string> params){
     string usage_text = "Usage: " + c::PROG_NAME
-            + " classify [-c] <learned_dist_0> ... <learned_dist_n-1> <test_data> \n"
-            + "     learned_dist_0...n-1 -- MAP partitions from each class\n"
-            + "     test_data            -- Each row one data point\n "
-            + "Do classification. Doesn't deal with the case of equal densities yet\n";
-
-    if (params.size() < 3) {
+            + " classify [-c] <test_data> <learned_dist_0,...,learned_dist_n-1> [marginal_dist_0,...,marginal_dist_n-1] \n"
+            + "                       -c  -- Classes given in test data, confusion matrix will be printed [optional]"
+            + "     learned_dist_0...n-1  -- MAP partitions from each class (or copula partition)\n"
+            + "     marginal_dist_0...n-1 -- Marginals generated by copula transform\n"
+            + "     test_data             -- Each row one data point\n "
+            + "Do classification. If densities equal, random one is selected\n"
+            + "Prediction output to STDOUT, Confusion matrix to STDERR\n";
+    
+    if (params.size() < 2 || params.size() > 4) {
         cerr << usage_text << endl;
         return 3;
     }
@@ -512,11 +631,10 @@ int classify(vector<string> params){
     
     vector<vector<double> > test_data = read_data(params[0+param_offset],confusion);
 
-    int num_class = params.size()-1;
+    int test_N = (int)test_data.size();
+    int dim    = (int)test_data[0].size() - param_offset;
 
-    cerr << "Total classes: " << num_class << '\n';
-
-    vector<vector<double> > test_data = read_data(params[num_class],false);
+    cerr << test_N << " data points in " << dim << " dimensions.\n";
 
     vector<string> joint_filenames = split(params[1+param_offset],',');
     
@@ -533,64 +651,83 @@ int classify(vector<string> params){
     }
     
     int num_class = (int)joint_filenames.size();
->>>>>>> copula
 
-    int test_N = (int)test_data.size();
-    int dim    = (int)test_data[0].size();
-
-    cerr << test_N << " test data points in " << dim << " dimensions.\n";
-
-    vector<vector<vector<double> > > class_dist(num_class);
-    for(int i = 0;i<num_class;i++){
-        class_dist[i] = read_data(params[i], true);
-
-        if ((2 * (dim)) != ((int) class_dist[i][0].size() - 1)) {
-            cerr << "ERROR: Dimension mismatch!\n";
-            exit(2);
-
+    cerr << "Total classes: " << num_class << '\n';
+    
+    if(confusion){
+        // check the classes are right
+        for(int i = 0;i<test_N;i++){
+            double class_val = test_data[i].back();
+            int class_val_i = (int)class_val;
+            if(fabs(class_val-(double)class_val_i) > 0.0001){
+                cerr << "ERROR: Classes given are not integer\n";
+                return 1;
+            }
+            
+            if(class_val_i > num_class-1){
+                cerr << "ERROR: Classes given outside range [0," << (num_class-1) << "]\n";
+                return 1;
+            }
         }
     }
 
+    // load the joint/copula densities
+    
+    vector<density_store> class_dist(num_class);
 
+    for (int i = 0; i < num_class; i++) {
+        if (copula) {
+            class_dist[i].load_files(joint_filenames[i], marginal_filenames[i], copula);
+        } else {
+            class_dist[i].load_files(joint_filenames[i], "", copula);
+        }
+
+    }
+
+
+    MT_random rand_gen(0);
 
     // Loop through the data and classify!
     // This should be changed to binary tree
+    vector<int> result;
     for(int i = 0;i<test_N;i++){
 
         vector<double> class_density(num_class,0.0);
         int max_class = -1;
         double max_den = -c::inf;
+        
+        vector<double> point;
+        if(confusion){
+            point = vector<double>(test_data[i].begin(),test_data[i].end()-1);
+        }else{
+            point = test_data[i];
+        }
 
         for(int c = 0;c < num_class; c++) {
             double map_den = 0.0;
-            bool found = false;
-            for (int j = 0; !found && j < (int)class_dist[c].size(); j++) {
-                found = true;
-                for (int k = 0; found && k < dim; k++) {
 
-                    double low = class_dist[c][j][2 * k];
-                    double high = class_dist[c][j][(2 * k) + 1];
+            map_den = class_dist[c].compute_density(point);
 
-                    if (test_data[i][k] <= low || test_data[i][k] > high) {
-                        found = false;
-                    }
-                }
+            class_density[c] = map_den;
 
-                if (found) {
-                    map_den = class_dist[c][j][2 * dim];
-                }
+            if (map_den > max_den) {
+                max_class = c;
+                max_den = map_den;
             }
-
-            if (!found) {
-                cerr << "Sample not found: class:" << c << ", idx:" << i << '\n';
-            }else{
-                class_density[c] = map_den;
-
-                if(map_den > max_den){
-                    max_class = c;
-                    max_den = map_den;
-                }
+            
+        }
+        
+        // check for equality
+        vector<int> equal_class;
+        for(int c = 0;c < num_class; c++) {
+            if(class_density[c] == max_den){
+                equal_class.push_back(c);
             }
+        }
+        
+        if(equal_class.size() > 1){
+            // choose random one
+            max_class = equal_class[rand_gen.genrand_int_range(0,equal_class.size()-1)];
         }
 
         // Print it out
@@ -599,8 +736,41 @@ int classify(vector<string> params){
             cout << '\t' << class_density[c] ;
         }
         cout << '\n';
-
-
+        
+        result.push_back(max_class);
+    }
+    
+    if(confusion){
+        // generate confusion matrix
+        vector<vector<int> > conf_mat(num_class,vector<int>(num_class,0));
+        int num_correct = 0;
+        for(int i = 0;i<test_N;i++){
+            int correct = (int)test_data[i].back();
+            int predict = result[i];
+            
+            if(correct == predict){
+                num_correct++;
+            }
+            
+            conf_mat[correct][predict]++;
+        }
+        
+        // output classification rate
+        cerr << "Classification Rate: " << ((double)num_correct/(double)test_N) << '\n';
+        
+        // output confusion matrix
+        cerr << " ,";
+        for(int i = 0;i<num_class;i++){
+            cerr << i << ',';
+        }
+        cerr << '\n';
+        for(int i = 0;i<num_class;i++){
+            cerr << i << ',';
+            for(int j = 0;j<num_class;j++){
+                cerr << conf_mat[i][j] << ',';
+            }
+            cerr << '\n';
+        }
     }
 
     return 0;
@@ -608,12 +778,12 @@ int classify(vector<string> params){
 
 
 
-int density(vector<string> params){
+int density_old(vector<string> params){
     string usage_text = "Usage: " + c::PROG_NAME
-            + " classify <MAP_partitions> <sample_data> \n"
+            + " density_old <MAP_partitions> <sample_data> \n"
             + "     MAP_partitions -- MAP partitions of a distribution\n"
             + "     sample_data    -- Each row one data point\n "
-            + "Do classification.\n";
+            + "Get the density at locations.\n";
 
     if (params.size() != 2) {
         cerr << usage_text << endl;
@@ -631,7 +801,7 @@ int density(vector<string> params){
     vector<vector<double> > MAP_dist = read_data(params[0], true);;
 
 
-    // Loop through the data and classify!
+    // Loop through the data
     // This should be changed to binary tree
     for (int i = 0; i < test_N; i++) {
 
@@ -666,13 +836,58 @@ int density(vector<string> params){
     return 0;
 }
 
+int density(vector<string> params){
+    string usage_text = "Usage: " + c::PROG_NAME
+            + " density <sample_data> <joint_den/copula_den> [marginal_den]  \n"
+            + "     sample_data    -- Each row one data point\n "
+            + "     joint_den      -- Joint density (of copula) from OPT\n "
+            + "     marginal_den   -- Marginal densities from OPT, for copula [Optional]\n "
+            + "Gets the density at each sample point. If copula density is given\n"
+            + "then a copula transform is performed with the marginals\n";
+
+    if (params.size() < 2 || params.size() > 3) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+    
+    vector<vector<double> > test_data = read_data(params[0],false);
+
+    int test_N = (int)test_data.size();
+    int dim    = (int)test_data[0].size();
+
+    cerr << test_N << " data points in " << dim << " dimensions.\n";
+
+    string joint_filename = params[1];
+    
+    string marginal_filename = "";
+    bool copula = false;
+    if(params.size() == 3){
+        copula = true;
+        marginal_filename = params[2];
+    }
+
+    // load the joint/copula densities
+    
+    density_store dens(joint_filename,marginal_filename,copula);
+    
+    // Loop through the data
+    for (vector<vector<double> >::iterator it = test_data.begin();
+            it != test_data.end(); it++) {
+        // for each data point
+        
+        double den = dens.compute_density(*it);
+        cout << std::scientific << den << '\n';
+    }
+    
+    return 0;
+}
 
 int bench(vector<string> params){
     string usage_text = "Usage: " + c::PROG_NAME
             + " bench <num_points> <dim> \n"
             + "     num_points -- Number of random points to generate\n"
             + "     dim        -- Total dimension, we only count one though\n "
-            + "Do benchmarking!.\n";
+            + "Do benchmarking of counting!.\n";
 
     if (params.size() != 2) {
         cerr << usage_text << endl;
@@ -833,7 +1048,8 @@ void print_usage_and_exit() {
     cerr << "  llopt      -- MAP partitions from LL-OPT" << "\n";
     //cerr << "  lsopt      -- MAP partitions from LL-sampled OPT [experimental]" << "\n";
     cerr << "  dfopt      -- MAP partitions from depth-first OPT" << "\n";
-    cerr << "  disopt     -- MAP partitions from discrepancy-LL-OPT [experimental]" << "\n";
+    //cerr << "  disopt     -- MAP partitions from discrepancy-LL-OPT [experimental]" << "\n";
+    cerr << "  copula     -- Perform copula transform with full OPT" << "\n";
     cerr << "\n";
     cerr << "-== Other tools ==-" << '\n';
     cerr << "  hell_dist   -- Compute sample Hellinger distance from a known density" << "\n";

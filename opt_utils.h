@@ -38,12 +38,25 @@
 
 #include "general_utils.h"
 
+
 struct child_t{
     uint32_t val[c::cuts];
-
     child_t(){
         for(int i = 0;i<c::cuts;i++){
             val[i] = c::ra_null_val;
+        }
+    }
+    
+    void save(ostream & out) const{
+        for(int i = 0;i<c::cuts;i++){
+            out.write((char*)&(val[i]),sizeof(val[i]));
+        }
+    }
+    
+    void load(istream & in){
+        for(int i = 0;i<c::cuts;i++){
+            in.read((char*)&(val[i]),sizeof(val[i]));
+            //cerr << "Child[" << i << "]:" << val[i] << '\n';
         }
     }
 };
@@ -57,7 +70,6 @@ struct pile_t{
     int dim;
     int cut;
 };
-
 
 
 //template <typename T>
@@ -122,19 +134,8 @@ public:
     }
 
     bool operator<(const opt_region& b) const{
-        //cerr << "Compare: ";
-        //this->print_region();
-        //cerr << " to ";
-        //b.print_region();
-        //cerr << "\n";
 
         bool out = dim_cuts < b.dim_cuts;
-
-        //if(out){
-        //    cerr << "ALL-LESS\n";
-        //}else{
-        //    cerr << "ALL-NOTLESS\n";
-        //}
 
         return out;
     }
@@ -162,20 +163,28 @@ public:
     void print_region_limits(ostream &o) const{
         for(int i = 0;i<(int)dim_cuts.size();i++){
 
-            double middle = 0.5;
-            double length = 0.5;
-
-            for (int j = 0;j<(int)dim_cuts[i].size();j++){
-                length = length/2.0;
-                if (dim_cuts[i][j] == 0){
-                    middle = middle - length;
-                }else{
-                    middle = middle + length;
-                }
-            }
-            o << scientific << (middle - length) << ' ' << (middle + length) << ' ';
+            pair<double, double> lims = get_limits(i);
+            o << scientific << lims.first << ' ' << lims.second << ' ';
         }
 
+    }
+
+    // get the limits of the d-th dimension
+
+    pair<double, double> get_limits(int d) const{
+        double middle = 0.5;
+        double length = 0.5;
+
+        for (int j = 0; j < (int) dim_cuts[d].size(); j++) {
+            length = length / 2.0;
+            if (dim_cuts[d][j] == 0) {
+                middle = middle - length;
+            } else {
+                middle = middle + length;
+            }
+        }
+        
+        return pair<double, double>(middle - length,middle + length);
     }
 
     int get_area(){
@@ -208,6 +217,32 @@ public:
     int num_children() const{
         return (int)dim_cuts.size();
     }
+    
+    
+    void save(ostream & out) const{
+        uint32_t len = dim_cuts.size();
+        
+        out.write((char*)&len,sizeof(len));
+        
+        for(uint32_t i = 0;i<len;i++){
+            dim_cuts[i].save(out);
+        }
+    }
+    
+    void load(istream & in){
+        uint32_t len = 0;
+        
+        in.read((char*)&len,sizeof(len));
+        
+        //cerr << "in len: " << len << '\n';
+        
+        dim_cuts.resize(len,bit_str());
+        
+        for(uint32_t i = 0;i<len;i++){
+            //cerr << "len[i]= " << i << '\n';
+            dim_cuts[i].load(in);
+        }
+    } 
 
 };
 
@@ -221,7 +256,6 @@ public:
 
     pair<uint32_t,T*> create_node(int num_children){
         pair<uint32_t,T*> output;
-
 
         if (free_locs.size() == 0) {
 
@@ -300,9 +334,88 @@ public:
 
             return NULL;
         }
-
         return &store[idx];
     }
+    
+    // common save and load operations (these should be private)
+    void save_common(ostream & out) const{
+        uint32_t free_len = (uint32_t)free_locs.size();
+        uint32_t store_len = (uint32_t)store.size();
+        
+        out.write((char*)&free_len,sizeof(free_len));
+        out.write((char*)&store_len,sizeof(store_len));
+        
+        for(uint32_t i = 0;i<free_len;i++){
+            out.write((char*)&free_locs[i],sizeof(uint32_t));
+        }
+    }
+    
+    void load_common(istream & in){
+        uint32_t free_len = 0;
+        uint32_t store_len = 0;
+        
+        in.read((char*)&free_len,sizeof(free_len));
+        in.read((char*)&store_len,sizeof(store_len));
+        
+        //cerr << "free_len: " << free_len << '\n';
+        //cerr << "store_len: " << store_len << '\n';
+        
+        free_locs.clear();
+        for(uint32_t i = 0;i<free_len;i++){
+            free_locs.push_back(0);
+        }
+        
+        for(uint32_t i = 0;i<free_len;i++){
+            in.read((char*)&free_locs[i],sizeof(uint32_t));
+        }
+        
+        store.clear();
+        for(uint32_t i = 0;i<store_len;i++){
+            store.push_back(T());
+        }
+    }
+    
+    // save and load for custom save/load
+    void save2(ostream & out) const{
+        save_common(out);
+        uint32_t store_len = (uint32_t)store.size();
+        
+        for(uint32_t i = 0;i<store_len;i++){
+            store[i].save(out);
+        }
+    }
+    
+    void load2(istream & in){
+        load_common(in);
+        uint32_t store_len = (uint32_t)store.size();
+        
+        //cerr << "store_len2: " << store_len << '\n';
+        
+        for(uint32_t i = 0;i<store_len;i++){
+            //cerr << "store[i]: " << i << '\n';
+            store[i].load(in);
+        }
+    }
+    
+    // default save/load
+    void save(ostream & out) const{
+        save_common(out);
+        uint32_t store_len = (uint32_t)store.size();
+        
+        for(uint32_t i = 0;i<store_len;i++){
+            out.write((char*)&store[i],sizeof(T));
+        }
+    }
+    
+    void load(istream & in){
+        load_common(in);
+        uint32_t store_len = (uint32_t)store.size();
+        
+        for(uint32_t i = 0;i<store_len;i++){
+            in.read((char*)&store[i],sizeof(T));
+        }
+    }
+    
 };
 
 
@@ -316,12 +429,11 @@ public:
     int table_bits;
     uint32_t table_size;
     uint32_t mask;
-
+    
     opt_region_hash(){
         // in this is used, must load
         map_table = NULL;
     }
-
 
     opt_region_hash(int table_bits) {
         this->table_bits = table_bits;
@@ -363,7 +475,6 @@ public:
         if (map_table[hash] == NULL) {
             return pair<T,bool>(T(),false);
         } else {
-
             typename map<opt_region, T>::iterator it = map_table[hash]->find(reg);
             if (it == map_table[hash]->end()) {
                 //cerr << "NOTFOUND\n";
@@ -373,7 +484,6 @@ public:
                 return pair<T,bool>(it->second,true);
             }
         }
-
         return pair<T,bool>(T(),false);
     }
 
@@ -385,8 +495,6 @@ public:
         if (map_table[hash] == NULL) {
             map_table[hash] = new map<opt_region, T>();
         }
-
-
         map_table[hash]->insert(pair<opt_region, T>(reg, node));
     }
 
@@ -403,7 +511,7 @@ public:
         }
     }
 
-    vector<pair<opt_region, T> > print_density() {
+    vector<pair<opt_region, T> > get_regions() {
 
         vector<pair<opt_region, T> > output;
 
@@ -418,7 +526,6 @@ public:
 
         return output;
     }
-
 
     void save(ostream & out) const{
         out.write((char*)&table_bits,sizeof(table_bits));
@@ -524,7 +631,6 @@ public:
 
         }
     }   
-
 
 };
 
@@ -667,7 +773,6 @@ public:
     }
 
 };
-
 
 
 
