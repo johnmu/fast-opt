@@ -99,8 +99,24 @@ public:
     }
 
     // N is total number of points
-    double get_density(int N){
-        return exp(log(count/(double)N) - (area*c::l2));
+    double get_density(int N,double pseudo_count, int num_regions){
+        
+        if(count<0){
+            cerr<< "get_density:neg_count\n";
+            exit(1);
+        }
+        
+        return ((count+pseudo_count)/(double)(N+(num_regions*pseudo_count)))*exp(-(area*c::l2));
+    }
+    
+    double get_prob(int N,double pseudo_count, int num_regions){
+        
+        if(count<0){
+            cerr<< "get_density:neg_count\n";
+            exit(1);
+        }
+        
+        return ((count+pseudo_count)/((double)N+(num_regions*pseudo_count)));
     }
 
     void set_child(int cut,uint32_t node){
@@ -141,7 +157,7 @@ public:
 inline void print_MAP_density(ostream &o,vector<pair<opt_region, uint32_t> > vec,region_allocator<map_tree_node> *ra, int N){
 
     double total_area = 0.0;
-    double total_density = 0.0;
+    double total_prob = 0.0;
     int    total_count   = 0;
 
     for(int i = 0;i<(int)vec.size();i++){
@@ -149,17 +165,17 @@ inline void print_MAP_density(ostream &o,vector<pair<opt_region, uint32_t> > vec
          double area = exp(vec[i].first.get_area()*c::l2);
         
         vec[i].first.print_region_limits(o);
-        o << scientific << (*ra)[vec[i].second]->get_density(N);
+        o << scientific << (*ra)[vec[i].second]->get_density(N,0,0);
         o << ' ' << (*ra)[vec[i].second]->get_count();
         o << '\n';
 
         total_area    += area;
-        total_density += (*ra)[vec[i].second]->get_density(N) * area;
+        total_prob += (*ra)[vec[i].second]->get_prob(N,0,0);
         total_count   += (*ra)[vec[i].second]->get_count();
     }
 
     cerr << "Regions: " << vec.size() <<   ", Total area: " << total_area
-            << ", Total density: " << total_density
+            << ", Total density: " << total_prob
             << ", Total count: " << total_count << '\n';
 }
 
@@ -198,7 +214,7 @@ public:
         return root;
     }
     
-    double get_density(const vector<double> &data){
+    double get_density(const vector<double> &data,double pseudo_count,int num_regions){
         
         if(num_children != (int)data.size()){
             cerr << "Warning: wrong dimension(" << num_children << ")" << '\n';
@@ -217,7 +233,7 @@ public:
             curr_node = ra[curr_node]->get_child(curr_cut);
         }
 
-        return ra[curr_node]->get_density(num_points);
+        return ra[curr_node]->get_density(num_points,pseudo_count,num_regions);
     }
 
     uint32_t get_num_points() const{
@@ -298,7 +314,7 @@ public:
             double end = lims.second;
             
             // get the density
-            double den = (*ra)[regs[i].second]->get_density(N);
+            double den = (*ra)[regs[i].second]->get_density(N,0,0);
 
             cdf_data.push_back(cdf_t(end,den));
         }

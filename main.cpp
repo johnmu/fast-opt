@@ -578,7 +578,7 @@ int hell_dist(vector<string> params) {
         double map_den = 0.0;
 
         vector<double> point(true_samples[i].begin(), true_samples[i].end() - 1);
-        map_den = dens.compute_density(point);
+        map_den = dens.compute_density(point,0);
         val += sqrt(map_den / true_den); // importance sample
     }
 
@@ -692,7 +692,6 @@ int classify(vector<string> params) {
 
     }
 
-
     MT_random rand_gen(0);
 
     // Loop through the data and classify!
@@ -715,7 +714,7 @@ int classify(vector<string> params) {
             double map_den = 0.0;
 
             // bayes rule
-            map_den = prior[c] * class_dist[c].compute_density(point);
+            map_den = prior[c] * class_dist[c].compute_density(point,0.5);
 
             class_density[c] = map_den;
 
@@ -723,7 +722,6 @@ int classify(vector<string> params) {
                 max_class = c;
                 max_den = map_den;
             }
-
         }
 
         // check for equality
@@ -736,6 +734,7 @@ int classify(vector<string> params) {
 
         if (equal_class.size() > 1) {
             // choose random one
+            // this should be based on the prior
             max_class = equal_class[rand_gen.genrand_int_range(0, equal_class.size() - 1)];
         }
 
@@ -883,7 +882,7 @@ int density(vector<string> params) {
             it != test_data.end(); it++) {
         // for each data point
 
-        double den = dens.compute_density(*it);
+        double den = dens.compute_density(*it,0);
         cout << std::scientific << den << '\n';
     }
 

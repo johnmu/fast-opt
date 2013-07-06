@@ -254,9 +254,6 @@ public:
             }
             */
             
-            
-            
-
             int child_1_count = ra[child_id[0]]->count;
             int child_2_count = ra[child_id[1]]->count;
 
@@ -439,16 +436,10 @@ public:
 
                 } else {
 
-                    //cerr << "found node(" << (*ra)[new_node.first]->count << "): " << curr_dim << "," << curr_cut << '\n';
-
-                    //ra[curr_node]->set_child(curr_dim, curr_cut, new_node.first);
-
                     pile[depth].node = new_node.first;
                     //cerr << "fUNCUT: " << curr_dim  << '\n';
 
                 }
-                
-
 
             }
 
@@ -574,9 +565,6 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
         }
 
-
-
-
         double max_post_prob = -c::inf;
 
         for (int i = 0; i < num_children; i++) {
@@ -584,27 +572,14 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                     , ra[child_idx_0[i]]->count, ra[child_idx_1[i]]->count);
             post_prob += ra[child_idx_0[i]]->get_lphi2(map_depth + 1);
             post_prob += ra[child_idx_1[i]]->get_lphi2(map_depth + 1);
-            //#ifdef DEBUG_MAP2
-            //cerr << "gt: " << gt.compute_lD2(ra[wit->node_idx]->count
-            //        , ra[child_idx_0[i]]->count, ra[child_idx_1[i]]->count) <<'\n';
 
-            //cerr << "lphi_3_0: " <<  ra[child_idx_0[i]]->get_lphi3(map_depth + 1) << '\n';
-            //cerr << "lphi_3_1: " <<  ra[child_idx_1[i]]->get_lphi3(map_depth + 1) << '\n';
-
-            //cerr << "post_prob[" << ra[child_idx_0[i]]->count << "|" << ra[child_idx_1[i]]->count << "](" << i << ") = " << post_prob << '\n';
-            //#endif
             if (post_prob > max_post_prob) {
                 map_dim = i;
                 max_post_prob = post_prob;
             }
         }
 
-        //#ifdef DEBUG_MAP2
-        //cerr << map_dim << ',';
-        //#endif
-
         return map_dim;
-
     }
 
     void construct_llopt_tree(vector<vector<double> > *all_data,
@@ -659,6 +634,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
         int map_depth = 0;
         double total_area = 0.0;
+        int prev_area_level = 0;
 
         // Now create the MAP tree!
         // Do a breadth first search on the MAP tree
@@ -686,10 +662,12 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                     || wu_it->working_reg.full()) {
 
                 //cerr << "mini-STOP count: " << ra[wu_it->node_idx]->count << '\n';
-                
-                total_area += exp(wu_it->working_reg.get_area()*c::l2);
-                cerr << "Depth("<< map_depth <<"):Area("<< 100*total_area <<"%)\n"; 
 
+                total_area += exp(wu_it->working_reg.get_area() * c::l2);
+                if (floor(total_area * 20) >= prev_area_level) {
+                    cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
+                    prev_area_level++;
+                }
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
                         ra[wu_it->node_idx]->count, map_depth);
 
@@ -698,7 +676,6 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 count++;
 
                 continue;
-
             }
             
             // for each good region
@@ -723,9 +700,6 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
             compute_lphi(ra,wu_it->working_reg, region_cache,
                     wu_it->node_idx, map_depth, gt, 3,num_children);
 
-            //cerr << "lphi: " << ra[wu_it->node_idx]->get_lphi2(map_depth) << "\n";
-
-
             // compute the posterior pho and decide if we stop
             double post_rho = -c::l2;
             post_rho += map_depth * c::l2 * ra[wu_it->node_idx]->count; // phi_0
@@ -736,7 +710,10 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 // STOP
 
                 total_area += exp(wu_it->working_reg.get_area() * c::l2);
-                cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n"; 
+                if (floor(total_area * 20) >= prev_area_level) {
+                    cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
+                    prev_area_level++;
+                }
 
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
                         ra[wu_it->node_idx]->count, map_depth);

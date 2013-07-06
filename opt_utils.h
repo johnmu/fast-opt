@@ -526,6 +526,16 @@ public:
 
         return output;
     }
+    
+    int get_num_regions(){
+        int num_regions = 0;
+        for (uint32_t i = 0; i < table_size; i++) {
+            if (map_table[i] != NULL) {
+                num_regions++;
+            }
+        }
+        return num_regions;
+    }
 
     void save(ostream & out) const{
         out.write((char*)&table_bits,sizeof(table_bits));

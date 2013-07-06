@@ -70,12 +70,15 @@ private:
     cdf** marginal;
 
     int num_dim;
+    int num_regions;
+    vector<int> m_num_regions;
 
     void init() {
         m_map_region_tree = NULL;
         m_map_regions = NULL;
         marginal = NULL;
         num_dim = 0;
+        num_regions = 0;
         copula = false;
     }
 
@@ -96,6 +99,8 @@ private:
             map_regions.load(den_file);
 
             den_file.close();
+            
+            num_regions = map_regions.get_num_regions();
         }
 
         // load the marginal densities
@@ -122,11 +127,15 @@ private:
 
                 m_map_region_tree[i]->load(den_file);
                 m_map_regions[i]->load(den_file);
+                
+                m_num_regions.push_back(m_map_regions[i]->get_num_regions());
             }
 
             den_file.close();
 
         }
+        
+        
 
         // create the CDFs
         if (copula) {
@@ -188,38 +197,56 @@ public:
         return 0;
     }
 
-    double compute_density(const vector<double> &point) {
+    double compute_density(const vector<double> &point, double pseduo_count) {
 
         if (num_dim != (int) point.size()) {
             cerr << "Error: Compute density dimension mismatch\n";
             return -c::inf;
         }
 
-        double log_density = 0;
-        // product of the marginal densities
-        if (copula) {
-            for (int i = 0; i < num_dim; i++) {
-                vector<double> single_point;
-                single_point.push_back(point[i]);
+        int rep = 1;
+        double total_density = 0.0;
 
-                double curr_density = log(m_map_region_tree[i]->get_density(single_point));
-                log_density += curr_density;
+        for (int x = 0; x < rep; x++) {
+            
+            vector<double> pet_point = point;
+            
+            if(x>0){
+                for (int i = 0; i < num_dim; i++) {
+                    pet_point[i] += (0.2*(rand()/(double)RAND_MAX))-0.1;
+                    pet_point[i] += (0.2*(rand()/(double)RAND_MAX))-0.1;
+                }
             }
+            
+            double log_density = 0;
+            // product of the marginal densities
+            if (copula) {
+                for (int i = 0; i < num_dim; i++) {
+                    vector<double> single_point;
+                    single_point.push_back(pet_point[i]);
+
+                    double curr_density = m_map_region_tree[i]->get_density(single_point,pseduo_count,m_num_regions[i]);
+
+                    log_density += log(curr_density);
+                }
+            }
+
+            // copula transform the data point
+            vector<double> trans_data = pet_point;
+            if (copula) {
+                for (int i = 0; i < num_dim; i++) {
+                    trans_data[i] = marginal[i]->transform(trans_data[i]);
+                }
+            }
+
+            double joint_density = map_region_tree.get_density(trans_data,pseduo_count,num_regions);
+
+            log_density += log(joint_density);
+
+            total_density += exp(log_density);
         }
 
-        // copula transform the data point
-        vector<double> trans_data = point;
-        if (copula) {
-            for (int i = 0; i < num_dim; i++) {
-                trans_data[i] = marginal[i]->transform(trans_data[i]);
-            }
-        }
-
-        double joint_density = log(map_region_tree.get_density(trans_data));
-
-        log_density += joint_density;
-
-        return exp(log_density);
+        return total_density;
     }
 
     ~density_store() {
