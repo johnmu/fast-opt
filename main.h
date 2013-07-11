@@ -135,6 +135,8 @@ int copula(vector<string> params);
 int hell_dist(vector<string> params);
 int classify(vector<string> params);
 int density(vector<string> params);
+int print_partitions(vector<string> params);
+
 int density_old(vector<string> params);
 int bench(vector<string> params);
 

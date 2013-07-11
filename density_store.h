@@ -60,8 +60,9 @@ void init_file_in(ifstream &den_file, string file_name, int &num_den) {
 
 class density_store {
 private:
-    bool copula;
-
+    bool marginal_loaded;
+    bool joint_loaded; // if joint not loaded, treat as naieve bayes
+    
     map_tree map_region_tree;
     opt_region_hash<uint32_t> map_regions;
 
@@ -79,13 +80,25 @@ private:
         marginal = NULL;
         num_dim = 0;
         num_regions = 0;
-        copula = false;
+        marginal_loaded = false;
+        joint_loaded = false;
+    }
+    
+    int load_densities(string filename) {
+        ifstream den_file;
+        init_file_in(den_file, filename, num_dim);
+        den_file.close();
+        
+        if(num_dim == 1){
+            return load_densities(filename, "");
+        }else{
+            return load_densities("",filename);
+        }
     }
 
     int load_densities(string joint_filename, string marginal_filename) {
 
-        { // block
-            int num_dim = 0;
+        if(joint_filename.length() > 0){ // block
             ifstream den_file;
 
             init_file_in(den_file, joint_filename, num_dim);
@@ -101,18 +114,20 @@ private:
             den_file.close();
             
             num_regions = map_regions.get_num_regions();
+            joint_loaded = true;
+        }else{
+            joint_loaded = false;
         }
 
         // load the marginal densities
-        int num_dim = 0;
-        if (copula) {
+        if (marginal_filename.length() > 0) {
             cerr << "Loading Marginals...\n";
 
             ifstream den_file;
 
             init_file_in(den_file, marginal_filename, num_dim);
 
-            if (num_dim != map_region_tree.get_num_children()) {
+            if (joint_loaded && num_dim != map_region_tree.get_num_children()) {
                 cerr << "marginal densities num not consistent with joint\n";
                 return 1;
             }
@@ -132,13 +147,14 @@ private:
             }
 
             den_file.close();
-
+            
+            marginal_loaded = true;
+        }else{
+            marginal_loaded = false;
         }
-        
-        
 
         // create the CDFs
-        if (copula) {
+        if (marginal_loaded && joint_loaded) {
             marginal = new cdf*[num_dim];
             for (int i = 0; i < num_dim; i++) {
                 marginal[i] = new cdf(*(m_map_region_tree[i]), *(m_map_regions[i]));
@@ -165,35 +181,52 @@ public:
     density_store() {
         init();
     }
-
-    density_store(string joint_filename, string marginal_filename, bool copula) {
-        init();
-        this->copula = copula;
-
-        int status = load_densities(joint_filename, marginal_filename);
+    
+    density_store(string filename) {
+        // need to automagically determine if it is joint or marginal
+        
+        int status = load_files(filename);
 
         if (status != 0) {
-            cerr << "ERROR: Failed loading of file: " << joint_filename << '\n';
+            cerr << "ERROR: with initialization.\n";
         }
-
-        num_dim = map_region_tree.get_num_children();
-
-
     }
 
-    int load_files(string joint_filename, string marginal_filename, bool copula) {
-        destroy();
-        init();
-        this->copula = copula;
-
-        int status = load_densities(joint_filename, marginal_filename);
+    density_store(string joint_filename, string marginal_filename) {
+        int status = load_files(joint_filename, marginal_filename);
 
         if (status != 0) {
-            cerr << "ERROR: Failed loading of file: " << joint_filename << '\n';
+            cerr << "ERROR: with initialization.\n";
+        }
+    }
+    
+    int load_files(string filename) {
+        // need to automagically determine if it is joint or marginal
+        destroy();
+        init();
+        
+        int status = load_densities(filename);
+
+        if (status != 0) {
+            cerr << "ERROR: Failed loading of file: " << filename << '\n';
             return status;
         }
 
-        num_dim = map_region_tree.get_num_children();
+        return 0;
+    }
+
+    int load_files(string joint_filename, string marginal_filename) {
+        destroy();
+        init();
+        
+        int status = load_densities(joint_filename, marginal_filename);
+
+        if (status != 0) {
+            cerr << "ERROR: Failed loading of file: " << joint_filename
+                    << "," << marginal_filename << '\n';
+            return status;
+        }
+
         return 0;
     }
 
@@ -226,7 +259,7 @@ public:
             
             double log_density = 0;
             // product of the marginal densities
-            if (copula) {
+            if (marginal_loaded) {
                 for (int i = 0; i < num_dim; i++) {
                     vector<double> single_point;
                     single_point.push_back(pet_point[i]);
@@ -238,21 +271,35 @@ public:
             }
 
             // copula transform the data point
-            vector<double> trans_data = pet_point;
-            if (copula) {
-                for (int i = 0; i < num_dim; i++) {
-                    trans_data[i] = marginal[i]->transform(trans_data[i]);
+            if (joint_loaded) { // otherwise assume joint is uniform
+                vector<double> trans_data = pet_point;
+                if (marginal_loaded) {
+                    for (int i = 0; i < num_dim; i++) {
+                        trans_data[i] = marginal[i]->transform(trans_data[i]);
+                    }
                 }
+
+                double joint_density = map_region_tree.get_density(trans_data, pseduo_count, num_regions);
+
+                log_density += log(joint_density);
             }
-
-            double joint_density = map_region_tree.get_density(trans_data,pseduo_count,num_regions);
-
-            log_density += log(joint_density);
 
             total_density += exp(log_density)*exp(-dist);
         }
 
         return total_density/rep;
+    }
+    
+    void print_density(ostream &o){
+        if(joint_loaded){
+            // print joint
+            
+        }
+        
+        if(marginal_loaded){
+            // print marginal
+        }
+        
     }
 
     ~density_store() {
