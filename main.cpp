@@ -76,6 +76,8 @@ int main(int argc, char** argv) {
         error_num = classify(params);
     } else if (mode == "density") {
         error_num = density(params);
+    } else if (mode == "print") {
+        error_num = print_partitions(params);
     } else if (mode == "density_old") {
         error_num = density_old(params);
     } else if (mode == "bench") {
@@ -146,7 +148,6 @@ int opt(vector<string> params) {
     cerr << "OPT construction time: " << total_time << " s.\n";
 
     cerr << "lPhi: " << opt_slow.get_lphi() << endl;
-    print_MAP_density(cout, map_regions.get_regions(), map_region_tree.get_ra(), data.size());
 
     // write out the density to file
     ofstream den_file;
@@ -218,9 +219,6 @@ int llopt(vector<string> params) {
     mt.reset();
     llopt.construct_llopt_tree(&data, map_region_tree, map_regions, prune_tree);
     mt.print_elapsed_time(cerr, "LLOPT(" + toStr<int>(ll_levels) + ") construction");
-
-    // write to cout
-    print_MAP_density(cout, map_regions.get_regions(), map_region_tree.get_ra(), N);
 
     // write out the density to file
     ofstream den_file;
@@ -342,8 +340,6 @@ int dfopt(vector<string> params) {
     mt.reset();
     dfopt.construct_dfopt_tree(data, map_region_tree, map_regions);
     mt.print_elapsed_time(cerr, "DFOPT construction");
-
-    print_MAP_density(cout, map_regions.get_regions(), map_region_tree.get_ra(), N);
 
     // write out the density to file
     ofstream den_file;
@@ -926,6 +922,11 @@ int print_partitions(vector<string> params) {
     // load the joint/copula densities
     density_store dens(params[0]);
 
+    if(!output_file){
+        dens.print_density(cout);
+    }else{
+        dens.print_density(out_prefix);
+    }
 
     return 0;
 }
@@ -1102,6 +1103,7 @@ void print_usage_and_exit() {
     cerr << "  hell_dist   -- Compute sample Hellinger distance from a known density" << "\n";
     cerr << "  classify    -- Do classification with MAP partitions" << "\n";
     cerr << "  density     -- Get the density at particular points" << "\n";
+    cerr << "  print       -- Print partitions from a .den file" << "\n";
     //cerr << "  bench       -- Benchmark counting speed [temporary]" << "\n";
     exit(2);
 }
