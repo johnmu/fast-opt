@@ -211,11 +211,17 @@ public:
             
             vector<double> pet_point = point;
             
+            double dist = 0.0;
+            
             if(x>0){
                 for (int i = 0; i < num_dim; i++) {
-                    pet_point[i] += (0.2*(rand()/(double)RAND_MAX))-0.1;
-                    pet_point[i] += (0.2*(rand()/(double)RAND_MAX))-0.1;
+                    pet_point[i] += (0.1*(rand()/(double)RAND_MAX))-0.05;
+                    
+                    double val = (pet_point[i]- point[i]);
+                    dist += val*val;
                 }
+                
+                dist /= num_dim;
             }
             
             double log_density = 0;
@@ -243,10 +249,10 @@ public:
 
             log_density += log(joint_density);
 
-            total_density += exp(log_density);
+            total_density += exp(log_density)*exp(-dist);
         }
 
-        return total_density;
+        return total_density/rep;
     }
 
     ~density_store() {
