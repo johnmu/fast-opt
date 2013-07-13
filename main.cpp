@@ -902,8 +902,8 @@ int density(vector<string> params) {
 int print_partitions(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
             + " print <density_file> [output_prefix]  \n"
-            + "     density_file    -- The .den file, can have multiple densities\n "
-            + "     output_prefix   -- output_prefix.txt, one per density otherwise to STDOUT\n "
+            + "     density_file    -- The .den file, can have multiple densities\n"
+            + "     output_prefix   -- output_prefix.txt, one per density otherwise to STDOUT\n"
             + "Outputs the partitions in standard format\n"
             + "start_0 end_0 ... start_n-1 end_n-1 density count\n";
 

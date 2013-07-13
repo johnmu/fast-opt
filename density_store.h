@@ -184,7 +184,7 @@ public:
 
     density_store(string filename) {
         // need to automagically determine if it is joint or marginal
-
+        init();
         int status = load_files(filename);
 
         if (status != 0) {
@@ -193,6 +193,7 @@ public:
     }
 
     density_store(string joint_filename, string marginal_filename) {
+        init();
         int status = load_files(joint_filename, marginal_filename);
 
         if (status != 0) {
