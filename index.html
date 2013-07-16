@@ -1,73 +1,110 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Opt-fast by johnmu</title>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="opt-fast : Package for fast computation of the Optional Polya Tree" />
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="javascripts/scale.fix.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>opt-fast</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1 class="header">Opt-fast</h1>
-        <p class="header">Package for fast computation of the optional polya tree</p>
 
-        <ul>
-          <li class="download"><a class="buttons" href="https://github.com/johnmu/opt-fast/zipball/master">Download ZIP</a></li>
-          <li class="download"><a class="buttons" href="https://github.com/johnmu/opt-fast/tarball/master">Download TAR</a></li>
-          <li><a class="buttons github" href="https://github.com/johnmu/opt-fast">View On GitHub</a></li>
-        </ul>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/johnmu/opt-fast">View on GitHub</a>
 
-        <p class="header">This project is maintained by <a class="header name" href="https://github.com/johnmu">johnmu</a></p>
+          <h1 id="project_title">opt-fast</h1>
+          <h2 id="project_tagline">Package for fast computation of the Optional Polya Tree</h2>
 
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/johnmu/opt-fast/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/johnmu/opt-fast/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
 
-      </header>
-      <section>
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h2>
+<a name="overview" class="anchor" href="#overview"><span class="octicon octicon-link"></span></a>Overview</h2>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>opt-fast implements multivariate density estimation via the Optional Polya Tree (OPT) (Wong and Ma, 2010). Continuous and discrete variables are supported. However, categorical variables are not yet supported. There are also options for performing a copula transform via OPT and also multi-class classification. </p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+<p>Based on the MiniBooNE dataset (<a href="http://archive.ics.uci.edu/ml/datasets/MiniBooNE+particle+identification">UCI link</a>), a 50 dimensional particle identification problem. The data set was split into 12000/130064 samples used for testing and the remaining for training. opt-fast can achieve a classification rate of 85.71% compared to ~84% using SVM. See examples below for details. </p>
+
+<p>Please cite:</p>
+
+<p>For the Optional Polya Tree</p>
+
+<pre><code>Wing Hung Wong and Li Ma (2010), Optional Polya Tree and Bayesian Inference. 
+Annals of Statistics, 38:1433-1459.
 </code></pre>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>For the opt-fast package</p>
+
+<pre><code>Publication in draft
+</code></pre>
+
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Only Linux and Mac OS X supported. No additional libraries required.</p>
+
+<p>To install type</p>
+
+<pre><code>make
+</code></pre>
+
+<p>Then copy the binary <code>opt-fast</code> to the directory of your choice.</p>
+
+<h2>
+<a name="examples" class="anchor" href="#examples"><span class="octicon octicon-link"></span></a>Examples</h2>
 
 <h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<a name="density-estimation-example" class="anchor" href="#density-estimation-example"><span class="octicon octicon-link"></span></a>Density Estimation Example</h3>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<p>Download the following small dataset randomly generated from a 2-D normal distribution. [File link]
+The true density at a large number of points is also included.</p>
 
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+<p><strong>Estimate without copula transform</strong></p>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<p><strong>Estimate with copula transform</strong></p>
 
 <h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+<a name="classification-example" class="anchor" href="#classification-example"><span class="octicon octicon-link"></span></a>Classification Example</h3>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<h3>
+<a name="real-data-example" class="anchor" href="#real-data-example"><span class="octicon octicon-link"></span></a>Real Data Example</h3>
+
+<h2>
+<a name="future-updatesissues" class="anchor" href="#future-updatesissues"><span class="octicon octicon-link"></span></a>Future Updates/Issues</h2>
+
+<ul>
+<li>Matlab and/or R package</li>
+<li>More speed</li>
+<li>Use parameter parsing library</li>
+</ul><h2>
+<a name="contact" class="anchor" href="#contact"><span class="octicon octicon-link"></span></a>Contact</h2>
+
+<p>Please report any bugs to <a href="http://www.umnhoj.com">John Mu</a></p>
       </section>
-      <footer>
-        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">opt-fast maintained by <a href="https://github.com/johnmu">johnmu</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-		          <script type="text/javascript">
+
+              <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
           </script>
@@ -77,6 +114,7 @@ $ git checkout gh-pages
             pageTracker._trackPageview();
             } catch(err) {}
           </script>
+
 
   </body>
 </html>
