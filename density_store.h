@@ -85,11 +85,12 @@ private:
     }
 
     int load_densities(string filename) {
+        int num_den = 0;
         ifstream den_file;
-        init_file_in(den_file, filename, num_dim);
+        init_file_in(den_file, filename, num_den);
         den_file.close();
 
-        if (num_dim == 1) {
+        if (num_den == 1) {
             return load_densities(filename, "");
         } else {
             return load_densities("", filename);
@@ -100,10 +101,10 @@ private:
 
         if (joint_filename.length() > 0) { // block
             ifstream den_file;
+            int num_den = 0;
+            init_file_in(den_file, joint_filename, num_den);
 
-            init_file_in(den_file, joint_filename, num_dim);
-
-            if (num_dim != 1) {
+            if (num_den != 1) {
                 cerr << "More than one density in joint file\n";
                 return 1;
             }
@@ -112,7 +113,8 @@ private:
             map_regions.load(den_file);
 
             den_file.close();
-
+            
+            num_dim = map_region_tree.get_num_children();
             num_regions = map_regions.get_num_regions();
             joint_loaded = true;
         } else {
@@ -124,9 +126,10 @@ private:
             cerr << "Loading Marginals...\n";
 
             ifstream den_file;
-
-            init_file_in(den_file, marginal_filename, num_dim);
-
+            int num_den = 0;
+            init_file_in(den_file, marginal_filename, num_den);
+            num_dim = num_den;
+            
             if (joint_loaded && num_dim != map_region_tree.get_num_children()) {
                 cerr << "marginal densities num not consistent with joint\n";
                 return 1;
