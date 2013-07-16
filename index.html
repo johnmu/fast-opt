@@ -36,7 +36,9 @@
 
 <p>opt-fast implements multivariate density estimation via the Optional Polya Tree (OPT) (Wong and Ma, 2010). Continuous and discrete variables are supported. However, categorical variables are not yet supported. There are also options for performing a copula transform via OPT and also multi-class classification. </p>
 
-<p>Based on the MiniBooNE dataset (<a href="http://archive.ics.uci.edu/ml/datasets/MiniBooNE+particle+identification">UCI link</a>), a 50 dimensional particle identification problem. The data set was split into 12000/130064 samples used for testing and the remaining for training. opt-fast can achieve a classification rate of 85.71% compared to ~84% using SVM. See examples below for details. </p>
+<p>Based on the MiniBooNE dataset (<a href="http://archive.ics.uci.edu/ml/datasets/MiniBooNE+particle+identification">UCI link</a>), a 50 dimensional particle identification problem. The data set was split into 12000/130064 samples used for testing and the remaining for training. opt-fast achieves a classification rate of 85.71% compared to 84.52% using gaussian SVM. See examples below for details. </p>
+
+<p>On a standard workstation with 16 GB of memory, opt-fast can support up to several millions of samples and up to around 50 dimensions. </p>
 
 <p>Please cite:</p>
 
@@ -73,6 +75,22 @@ Annals of Statistics, 38:1433-1459.
 The true density at a large number of points is also included.</p>
 
 <p><strong>Estimate without copula transform</strong></p>
+Estimate the density with LLOPT
+<pre><code>opt-fast llopt -np 0.001 3 2 dim3_2norm_50000.txt dim3_2norm_50000
+</code></pre>
+These parameters are ok for low dimensional cases. For high dimensional cases I recommend only looking ahead 2 levels. 
+
+Now, compute the density at the original data points. Of course, you would normally use new data here. 
+<pre><code>opt-fast density dim3_2norm_50000.txt dim3_2norm_50000.den > density.txt
+</code></pre>
+
+We can also compute the hellinger distance if we have samples from the true density with the true density at those points. One
+million such points are included.
+
+<pre><code>opt-fast hell_dist density_dim3_2norm_100000.txt dim3_2norm_50000.den
+</code></pre>
+
+The hellinger distance should be . 
 
 <p><strong>Estimate with copula transform</strong></p>
 
