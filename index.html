@@ -36,7 +36,7 @@
 
 <p>opt-fast implements multivariate density estimation via the Optional Polya Tree (OPT) (Wong and Ma, 2010). Continuous and discrete variables are supported. However, categorical variables are not yet supported. There are also options for performing a copula transform via OPT and also multi-class classification. </p>
 
-<p>Based on the MiniBooNE dataset (<a href="http://archive.ics.uci.edu/ml/datasets/MiniBooNE+particle+identification">UCI link</a>), a 50 dimensional particle identification problem. The data set was split into 12000/130064 samples used for testing and the remaining for training. opt-fast achieves a classification rate of 85.71% compared to 84.52% using gaussian SVM. <a href="http://www.stanford.edu/group/wonglab/opt-fast/minibone.zip">Download data</a>. </p>
+<p>Based on the MiniBooNE dataset (<a href="http://archive.ics.uci.edu/ml/datasets/MiniBooNE+particle+identification">UCI link</a>), a 50 dimensional particle identification problem. The data set was split into 12000/130064 samples used for testing and the remaining for training. opt-fast achieves a classification rate of 85.71% compared to 84.52% using gaussian SVM. <a href="http://www.stanford.edu/group/wonglab/opt_comp/minibone.zip">Download data</a>. </p>
 
 <p>On a standard workstation with 16 GB of memory, opt-fast can support up to several millions of samples and up to around 50 dimensions. </p>
 
@@ -71,7 +71,7 @@ Annals of Statistics, 38:1433-1459.
 <h3>
 <a name="density-estimation-example" class="anchor" href="#density-estimation-example"><span class="octicon octicon-link"></span></a>Density Estimation Example</h3>
 
-<p>Download the following small dataset randomly generated from a 2-D normal distribution. <a href="http://www.stanford.edu/group/wonglab/opt-fast/density.zip">Download data</a>. 
+<p>Download the following small dataset randomly generated from a 2-D normal distribution. <a href="http://www.stanford.edu/group/wonglab/opt_comp/density.zip">Download data</a>. 
 The true density at a large number of points is also included.</p>
 
 <p><strong>Estimate without copula transform</strong></p>
@@ -119,7 +119,7 @@ We can also compute the hellinger distance.</p>
 <h3>
 <a name="classification-example" class="anchor" href="#classification-example"><span class="octicon octicon-link"></span></a>Classification Example</h3>
 
-<p>I will only show the example with copula transform since the example without is similar. <a href="http://www.stanford.edu/group/wonglab/opt-fast/classify.zip">Download data</a>.</p>
+<p>I will only show the example with copula transform since the example without is similar. <a href="http://www.stanford.edu/group/wonglab/opt_comp/classify.zip">Download data</a>.</p>
 
 <p>Perform a copula transform</p>
 <pre><code>opt-fast copula 2 train_0.txt train_0
