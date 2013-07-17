@@ -1,6 +1,6 @@
 /*
  *  general_utils.h
- *  opt-fast
+ *  fast-opt
  *
  *  john.mu@ieee.org
  *

@@ -1,6 +1,6 @@
 /*
  *  data_store.h
- *  opt-fast
+ *  fast-opt
  *
  *  john.mu@ieee.org
  *

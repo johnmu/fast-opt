@@ -1,6 +1,6 @@
 /*
  *  gamma_table.h
- *  opt-fast
+ *  fast-opt
  *
  *  john.mu@ieee.org
  *

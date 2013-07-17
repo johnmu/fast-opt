@@ -1,6 +1,6 @@
 /*
  *  lsopt_tree.h
- *  opt-fast
+ *  fast-opt
  *
  *  john.mu@ieee.org
  *
