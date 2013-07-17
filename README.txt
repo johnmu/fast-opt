@@ -4,7 +4,7 @@ Includes options for performing copula transform and classification.
 
 Installation
 Type "make".
-This will create a binary called "opt-fast"
+This will create a binary called "fast-opt"
 
 
 For help contact: http://www.stanford.edu/~johnmu/
