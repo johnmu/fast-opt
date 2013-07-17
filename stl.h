@@ -1,6 +1,6 @@
 /*
  *  stl.h
- *  opt-fast
+ *  fast-opt
  *
  *  john.mu@ieee.org
  *
@@ -80,8 +80,13 @@ namespace c{
     static const double lpi = log(3.141592653589793238462643383279502884);
     static const double inf = INFINITY;
     static const uint32_t ra_null_val = 4294967295u;
+<<<<<<< HEAD
     static const string PROG_NAME = "opt-fast";
     static const string BUILD = "0.6-r66";
+=======
+    static const string PROG_NAME = "fast-opt";
+    static const string BUILD = "0.6-r65";
+>>>>>>> master
     static const int MAX_COORD_DEPTH = 30;
     
     static const int magic = 1741324111; // for files created by this program

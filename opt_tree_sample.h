@@ -1,6 +1,6 @@
 /*
  *  opt_tree_sample.h
- *  opt-fast
+ *  fast-opt
  *
  *  john.mu@ieee.org
  *
