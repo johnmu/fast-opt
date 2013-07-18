@@ -159,12 +159,6 @@ public:
         }
 
         if(sum > 0) lphi += log(sum);
-
-
-        //cerr << "lphi: " << lphi << '\n';
-
-        //if(isnan(lphi)) cerr <<"nan sum:" << sum << "," << max_val << '\n';
-        //if(isinf(lphi)) cerr <<"inf sum:" << sum << "," << max_val << '\n';
     }
 
     double get_lphi(){
@@ -298,7 +292,8 @@ public:
             // check if current node is leaf or at end
             if(curr_node->is_leaf()
                     || curr_node->get_count() <= count_lim
-                    || depth >= max_depth){
+                    || depth >= max_depth
+                    || working_reg.full()){
                 // back up
                 back_up = true;
                 curr_node->set_uniform(depth);

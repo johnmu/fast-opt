@@ -85,7 +85,11 @@ namespace c{
     static const string BUILD = "0.6-r66";
 =======
     static const string PROG_NAME = "fast-opt";
+<<<<<<< HEAD
     static const string BUILD = "0.6-r65";
+>>>>>>> master
+=======
+    static const string BUILD = "0.6-r67";
 >>>>>>> master
     static const int MAX_COORD_DEPTH = 30;
     
