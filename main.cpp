@@ -554,7 +554,7 @@ int hell_dist(vector<string> params) {
             + "     marginal_den     -- Marginal densities, if given then copula is used\n"
             + "Compute sampled Hellinger distance via importance sampling. "
             + "The true samples must be sampled from the true distribution.\n"
-            + "Computed as H(f,g) = sqrt()";
+            + "Computed as H(f,g) = sqrt(1 - \\int{sqrt(f(x)g(x))dx})";
 
     if (params.size() < 2 || params.size() > 3) {
         cerr << usage_text << endl;
