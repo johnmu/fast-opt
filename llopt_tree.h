@@ -229,30 +229,6 @@ public:
             uint32_t child_id[2];
             child_id[0] = get_child(working_reg, region_cache,i,0);
             child_id[1] = get_child(working_reg, region_cache,i,1);
-
-            // check for null
-            /*
-            for (int f = 0; f < c::cuts; f++) {
-                if (child_id[f] == c::ra_null_val) {
-                    cerr << "(" << calling_loc << ")fully NULL child!!! " << f << "|" << i << ',' << depth << "|"
-                            << child_id[0] << "," << child_id[1] << '\n';
-                    cerr << "curr_count: " << ra[curr_node]->count << '\n';
-                    for (int j = 0; j < num_children; j++) {
-                        cerr << "child(" << j << "): "
-                                << get_child(working_reg, region_cache, j, 0) << ","
-                                << get_child(working_reg, region_cache, j, 1) << "\n";
-                    }
-
-                    cerr << "reg: ";
-                    working_reg.print_region(cerr);
-                    cerr << '\n';
-
-                    exit(2);
-
-                }
-
-            }
-            */
             
             int child_1_count = ra[child_id[0]]->count;
             int child_2_count = ra[child_id[1]]->count;
@@ -270,8 +246,6 @@ public:
             val += ra[child_id[0]]->get_lphi2(depth + 1);
             val += ra[child_id[1]]->get_lphi2(depth + 1);
             val += gt.compute_lD2(ra[curr_node]->count, child_1_count, child_2_count);
-
-            //if(calling_loc == 3) cerr << "val: " << val << '\n';
 
             lphi_list.push_back(val);
 
@@ -445,28 +419,10 @@ public:
 
             if (backup) {
 
-                //cerr << "BACKUP\n";
-                //pthread_mutex_lock(locker);
-                // estimate phi
-
-                //int curr_count = curr_node.count;
-                //int curr_depth = (depth + top_depth);
-
-                //cerr << "curr_count: " << curr_count << '\n';
-
-
-                //pthread_mutex_unlock(locker);
-
-                //cerr << "BEFORE depth: " << depth << '\n';
 
                 depth--;
                 pile.pop_back();
                 if (depth < 0) continue;
-
-                //cerr << "BEFORE dim:cut --- " << pile[depth].dim << ":" << pile[depth].cut << '\n';
-                //working_reg.print_region();
-                //cerr << '\n';
-                //cerr << "AFTER depth: " << depth << '\n';
 
                 curr_reg.uncut(pile[depth].dim, pile[depth].cut);
                 working_reg.uncut(pile[depth].dim);
@@ -499,17 +455,12 @@ public:
         int count_lim = (int)floor(w.data.size()*count_ratio);
         if(count_lim < top_count_lim) count_lim = top_count_lim;
 
-        //pthread_t* t_group = new pthread_t[num_children]; // just do 3 threads for now :)
-        //pthread_mutex_t* locker = new pthread_mutex_t();
-        //pthread_mutex_init(locker, NULL);
-
         ll_mouse_params_t* params = new ll_mouse_params_t[num_children];
 
         for (int d = 0; d < num_children; d++) {
             params[d].count_lim = count_lim;
             params[d].top_count_lim = top_count_lim;
             params[d].gt = &gt;
-            //params[d].locker = locker;
             params[d].max_depth = max_depth;
             params[d].top_max_depth = top_max_depth;
             params[d].num_children = num_children;
@@ -524,24 +475,12 @@ public:
         }
 
         for (int d = 0; d < num_children; d++) {
-            // Start threads
 
             small_opt_thread((void*) &(params[d]));
             
-            //pthread_create(&(t_group[d]), NULL, small_opt_thread, (void*) &(params[d]));
-        // no threading for now
-        //}
-
-
-        // wait for threads
-        //for (int d = 0; d < num_children; d++) {
-            //void* output;
-            //pthread_join(t_group[d], &output);
         }
-        
-        //delete locker;
+       
         delete [] params;
-        //delete [] t_group;
     }
 
 int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gamma_table &gt,
@@ -808,7 +747,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
             // remove all the nodes not consistent with current good regions
 
-            if(prune_tree && ((curr_data_size > 5000 && ra.free_locs.size() < 1000000) || (curr_data_size > 10000))) {
+            if(prune_tree && ((curr_data_size > 5000 && ra.free_locs.size() < 500000) || (curr_data_size > 10000))) {
                 int64_t num_removed = 0;
                 int64_t total_nodes = 0;
 

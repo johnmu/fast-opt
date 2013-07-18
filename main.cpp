@@ -93,11 +93,12 @@ int main(int argc, char** argv) {
 int opt(vector<string> params) {
 
     string usage_text = "Usage: " + c::PROG_NAME + " opt <percent_points> <data_file> <output_name>\n"
-            + "       percent_points -- Ratio of total data to stop at (0.01 = 1%)\n"
+            + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
-            + "MAP partitions output to STDOUT and <output_name>.den .Log to STDERR \n"
+            + "          output_name -- Result output to <output_name>.den\n"
+            + "Log output to STDERR \n"
             + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
-            + "greater than 5 use the other methods\n";
+            + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n";
 
     if (params.size() != 3) {
         cerr << usage_text << endl;
@@ -147,7 +148,7 @@ int opt(vector<string> params) {
 
     cerr << "OPT construction time: " << total_time << " s.\n";
 
-    cerr << "lPhi: " << opt_slow.get_lphi() << endl;
+    cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
 
     // write out the density to file
     ofstream den_file;
@@ -165,13 +166,16 @@ int llopt(vector<string> params) {
 
 
     string usage_text = "Usage: " + c::PROG_NAME + " llopt [-np] <percent_points> <levels> <top_percent_points> <data_file> <output_name>\n"
-            + "       -np            -- Don't prune the tree, a lot faster but more memory usage\n"
+            + "                  -np -- Don't prune the tree, a lot faster but more memory usage\n"
             + "       percent_points -- Ratio of total region data to stop at for each look-ahead (0.01 = 1%)\n"
             + "   top_percent_points -- Ratio of total data to stop at (0.01 = 1% or 2 = 2 points)\n"
             + "               levels -- Maximum levels for each look-ahead\n "
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
-            + "MAP partitions output to STDOUT and <output_name>.den .Log to STDERR \n"
-            + "Run limited look-ahead OPT. Good for moderate dimensions (6-15)\n";
+            + "          output_name -- MAP partitions output to <output_name>.den\n"
+            + "Log output to STDERR \n"
+            + "Run limited look-ahead OPT. Good for moderate dimensions (5-50).\n"
+            + "For higher numbers of dimensions (20-50) use levels = 2.\n"
+            + "Memory usage and running time scales exponentially with look-ahead levels.\n";
 
     if (params.size() < 5 || params.size() > 6) {
         cerr << usage_text << endl;
@@ -190,7 +194,6 @@ int llopt(vector<string> params) {
         }
     }
 
-
     vector<vector<double> > data = read_data(params[params_offset + 3], false);
 
     int dim = (int) data[0].size();
@@ -207,8 +210,12 @@ int llopt(vector<string> params) {
 
     cerr << "Each small OPT stopping at " << ll_levels << " levels.\n";
     cerr << "Each level stopping at " << stop_ratio * 100 << "% of points.\n";
-    cerr << "Total stopping at " << top_stop_ratio * 100 << "% of points.\n";
-
+    
+    if(top_stop_ratio >= 1){
+        cerr << "Total stopping at " << top_stop_ratio << " points.\n";
+    }else{
+        cerr << "Total stopping at " << top_stop_ratio * 100 << "% of points.\n";
+    }
 
     mu_timer mt;
 
@@ -232,6 +239,7 @@ int llopt(vector<string> params) {
     return 0;
 }
 
+// not used for now... need to convert to new format
 int lsopt(vector<string> params) {
 
 
@@ -291,15 +299,17 @@ int lsopt(vector<string> params) {
 
 int dfopt(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " dfopt <top_percent_points>"
-            + " <percent_points> <levels> <data_file> <output_name>\n"
-            + "     top_percent_points -- Points to stop at (0.01 = 1%, 1 = 1point)\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " dfopt <percent_points>"
+            + " <levels> <top_percent_points> <data_file> <output_name>\n"
             + "     percent_points     -- Points in each level to stop at (0.01 = 1%, 1 = 1point))\n"
             + "     levels             -- look ahead levels\n"
+            + "     top_percent_points -- Points to stop at (0.01 = 1%, 1 = 1point)\n"
             + "     data_file          -- One sample per row (Restricted to [0,1] cube)\n"
+            + "     output_name        -- One sample per row (Restricted to [0,1] cube)\n"
             + "MAP partitions output to STDOUT and <output_name>.den .Log to STDERR \n"
             + "Run depth-first-OPT, very slow but technically can do any number of dimensions\n "
-            + "if you wait several years. Run in a similar fashion to limited look-ahead. \n";
+            + "if you wait several years. Run in a similar fashion to limited look-ahead. \n"
+            + "Not recommended for any dataset, unless computer has limited memory. \n";
 
     if (params.size() != 5) {
         cerr << usage_text << endl;
@@ -316,19 +326,19 @@ int dfopt(vector<string> params) {
     cerr << "Running depth-first-OPT" << '\n';
     cerr << N << " points in " << dim << " dimensions.\n";
 
-    double top_stop_ratio = strTo<double>(params[0]);
+    double top_stop_ratio = strTo<double>(params[2]);
     if (top_stop_ratio < 1) {
         cerr << "Stopping at " << top_stop_ratio * 100.0 << "% points.\n";
     } else {
         cerr << "Stopping at " << (int) top_stop_ratio << " points.\n";
     }
-    double stop_ratio = strTo<double>(params[1]);
+    double stop_ratio = strTo<double>(params[0]);
     if (stop_ratio < 1) {
         cerr << "Each level stopping at " << stop_ratio * 100.0 << "% points.\n";
     } else {
         cerr << "Each level stopping at " << (int) stop_ratio << " points.\n";
     }
-    int levels = strTo<int>(params[2]);
+    int levels = strTo<int>(params[1]);
     cerr << "Look-ahead " << levels << " levels.\n";
 
     mu_timer mt;
@@ -353,6 +363,7 @@ int dfopt(vector<string> params) {
     return 0;
 }
 
+// this wasn't really a good idea anyways
 int disopt(vector<string> params) {
 
 
@@ -479,17 +490,17 @@ int copula(vector<string> params) {
         mt.reset();
         opt_slow.construct_full_tree(one_data);
         total_time += mt.elapsed_time();
-        mt.print_elapsed_time(cerr, "OPT tree");
+        //mt.print_elapsed_time(cerr, "OPT tree");
 
         mt.reset();
         map_tree map_region_tree(N, 1);
         opt_region_hash<uint32_t> map_regions(20);
         opt_slow.construct_MAP_tree(map_region_tree, map_regions, N);
         total_time += mt.elapsed_time();
-        mt.print_elapsed_time(cerr, "MAP tree");
+        //mt.print_elapsed_time(cerr, "MAP tree");
 
         cerr << "Total construction time: " << total_time << " s.\n";
-        cerr << "lPhi: " << opt_slow.get_lphi() << endl;
+        cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
         //print_MAP_density(cout, map_regions.get_regions(), map_region_tree.get_ra(), data.size());
 
         // Construct CDF from the regions
@@ -538,10 +549,12 @@ int copula(vector<string> params) {
 
 int hell_dist(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME + " hell_dist <true_samples> <joint/copula_den> [marginal_den] \n"
-            + "     true_samples     -- Each row one data point followed by true density\n"
+            + "     true_samples     -- Each row one data point, last column is true density (Restricted to [0,1] cube)\n"
             + "     joint/copula_den -- Joint or Copula density, Copula needs marginals, use - for uniform\n"
             + "     marginal_den     -- Marginal densities, if given then copula is used\n"
-            + "Compute sampled Hellinger distance\n";
+            + "Compute sampled Hellinger distance via importance sampling. "
+            + "The true samples must be sampled from the true distribution.\n"
+            + "Computed as H(f,g) = sqrt()";
 
     if (params.size() < 2 || params.size() > 3) {
         cerr << usage_text << endl;
@@ -596,10 +609,11 @@ int hell_dist(vector<string> params) {
 int classify(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
             + " classify [-c] <test_data> <prior_0,...,prior_n-1> <learned_dist_0,...,learned_dist_n-1> [marginal_dist_0,...,marginal_dist_n-1] \n"
-            + "                       -c  -- Classes given in test data, confusion matrix will be printed [optional]"
-            + "     learned_dist_0...n-1  -- MAP partitions from each class (or copula partition), use - for uniform\n"
-            + "     marginal_dist_0...n-1 -- Marginals generated by copula transform\n"
-            + "     test_data             -- Each row one data point\n "
+            + "                       -c -- Classes given in test data, confusion matrix will be printed [optional]"
+            + "                test_data -- Each row one data point, last column can be class (Restricted to [0,1] cube)\n "
+            + "            prior_0...n-1 -- The class prior, automatically normalized\n"
+            + "     learned_dist_0...n-1 -- MAP partitions from each class (or copula partition), use - for uniform\n"
+            + "    marginal_dist_0...n-1 -- Marginals generated by copula transform\n"
             + "Do classification. If densities equal, random one is selected\n"
             + "Prediction output to STDOUT, Confusion matrix to STDERR\n";
 
@@ -739,7 +753,7 @@ int classify(vector<string> params) {
 
         if (equal_class.size() > 1) {
             // choose random one
-            // this should be based on the prior
+            // this should be based on the prior [FIXME]
             max_class = equal_class[rand_gen.genrand_int_range(0, equal_class.size() - 1)];
         }
 
@@ -789,11 +803,12 @@ int classify(vector<string> params) {
     return 0;
 }
 
+// the old way of getting density from the partition... has some numerical issues
 int density_old(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
             + " density_old <MAP_partitions> <sample_data> \n"
             + "     MAP_partitions -- MAP partitions of a distribution\n"
-            + "     sample_data    -- Each row one data point\n "
+            + "        sample_data -- Each row one data point (Restricted to [0,1] cube)\n "
             + "Get the density at locations.\n";
 
     if (params.size() != 2) {
@@ -851,10 +866,10 @@ int density_old(vector<string> params) {
 int density(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
             + " density <sample_data> <joint_den/copula_den> [marginal_den]  \n"
-            + "     sample_data    -- Each row one data point\n "
-            + "     joint_den      -- Joint density (of copula) from OPT\n "
-            + "     marginal_den   -- Marginal densities from OPT, for copula [Optional]\n "
-            + "Gets the density at each sample point. If copula density is given\n"
+            + "      sample_data -- Each row one data point (Restricted to [0,1] cube)\n "
+            + "        joint_den -- Joint density (of copula) from OPT, use - for uniform\n "
+            + "     marginal_den -- Marginal densities from OPT, for copula [Optional]\n "
+            + "Gets the density at each sample point. If marginal density is given\n"
             + "then a copula transform is performed with the marginals\n";
 
     if (params.size() < 2 || params.size() > 3) {
@@ -901,9 +916,9 @@ int density(vector<string> params) {
 
 int print_partitions(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
-            + " print <density_file> [output_prefix]  \n"
-            + "     density_file    -- The .den file, can have multiple densities\n"
-            + "     output_prefix   -- output_prefix.txt, one per density otherwise to STDOUT\n"
+            + " print <density_file> [output_prefix]\n"
+            + "      density_file -- The .den file, can have multiple densities\n"
+            + "     output_prefix -- output_prefix.txt, one per density otherwise to STDOUT\n"
             + "Outputs the partitions in standard format\n"
             + "start_0 end_0 ... start_n-1 end_n-1 density count\n";
 
@@ -922,6 +937,7 @@ int print_partitions(vector<string> params) {
     // load the joint/copula densities
     density_store dens(params[0]);
 
+    // print the densities
     if(!output_file){
         dens.print_density(cout);
     }else{
@@ -931,6 +947,7 @@ int print_partitions(vector<string> params) {
     return 0;
 }
 
+// urgh, this benchmarking code can be improved
 int bench(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
             + " bench <num_points> <dim> \n"
