@@ -825,14 +825,10 @@ int density_old(vector<string> params) {
     cerr << test_N << " data points in " << dim << " dimensions.\n";
 
     vector<vector<double> > MAP_dist = read_data(params[0], true);
-    ;
-
 
     // Loop through the data
     // This should be changed to binary tree
     for (int i = 0; i < test_N; i++) {
-
-
         double map_den = 0.0;
         bool found = false;
         for (int j = 0; !found && j < (int) MAP_dist.size(); j++) {
@@ -1117,10 +1113,10 @@ void print_usage_and_exit() {
     cerr << "  copula     -- Perform copula transform with full OPT" << "\n";
     cerr << "\n";
     cerr << "-== Other tools ==-" << '\n';
-    cerr << "  hell_dist   -- Compute sample Hellinger distance from a known density" << "\n";
-    cerr << "  classify    -- Do classification with MAP partitions" << "\n";
-    cerr << "  density     -- Get the density at particular points" << "\n";
-    cerr << "  print       -- Print partitions from a .den file" << "\n";
+    cerr << "  hell_dist  -- Compute sample Hellinger distance from a known density" << "\n";
+    cerr << "  classify   -- Do classification with MAP partitions" << "\n";
+    cerr << "  density    -- Get the density at particular points" << "\n";
+    cerr << "  print      -- Print partitions from a .den file" << "\n";
     //cerr << "  bench       -- Benchmark counting speed [temporary]" << "\n";
     exit(2);
 }
