@@ -4,11 +4,11 @@
   <head>
     <meta charset='utf-8' />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="opt-fast : Package for fast computation of the Optional Polya Tree" />
+    <meta name="description" content="fast-opt : Package for fast computation of the Optional Polya Tree" />
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
-    <title>opt-fast</title>
+    <title>fast-opt</title>
   </head>
 
   <body>
@@ -16,14 +16,14 @@
     <!-- HEADER -->
     <div id="header_wrap" class="outer">
         <header class="inner">
-          <a id="forkme_banner" href="https://github.com/johnmu/opt-fast">View on GitHub</a>
+          <a id="forkme_banner" href="https://github.com/johnmu/fast-opt">View on GitHub</a>
 
-          <h1 id="project_title">opt-fast</h1>
+          <h1 id="project_title">fast-opt</h1>
           <h2 id="project_tagline">Package for fast computation of the Optional Polya Tree</h2>
 
             <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/johnmu/opt-fast/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/johnmu/opt-fast/tarball/master">Download this project as a tar.gz file</a>
+              <a class="zip_download_link" href="https://github.com/johnmu/fast-opt/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/johnmu/fast-opt/tarball/master">Download this project as a tar.gz file</a>
             </section>
         </header>
     </div>
@@ -34,11 +34,11 @@
         <h2>
 <a name="overview" class="anchor" href="#overview"><span class="octicon octicon-link"></span></a>Overview</h2>
 
-<p>opt-fast implements multivariate density estimation via the Optional Polya Tree (OPT) (Wong and Ma, 2010). Continuous and discrete variables are supported. However, categorical variables are not yet supported. There are also options for performing a copula transform via OPT and also multi-class classification. </p>
+<p>fast-opt implements multivariate density estimation via the Optional Polya Tree (OPT) (Wong and Ma, 2010). Continuous and discrete variables are supported. However, categorical variables are not yet supported. There are also options for performing a copula transform via OPT and also multi-class classification. </p>
 
-<p>Based on the MiniBooNE dataset (<a href="http://archive.ics.uci.edu/ml/datasets/MiniBooNE+particle+identification">UCI link</a>), a 50 dimensional particle identification problem. The data set was split into 12000/130064 samples used for testing and the remaining for training. opt-fast achieves a classification rate of 85.71% compared to 84.52% using gaussian SVM. <a href="http://www.stanford.edu/group/wonglab/opt_comp/minibone.zip">Download data</a>. </p>
+<p>Based on the MiniBooNE dataset (<a href="http://archive.ics.uci.edu/ml/datasets/MiniBooNE+particle+identification">UCI link</a>), a 50 dimensional particle identification problem. The data set was split into 12000/130064 samples used for testing and the remaining for training. fast-opt achieves a classification rate of 85.71% compared to 84.52% using gaussian SVM. <a href="http://www.stanford.edu/group/wonglab/opt_comp/minibone.zip">Download data</a>. </p>
 
-<p>On a standard workstation with 16 GB of memory, opt-fast can support up to several millions of samples and up to around 50 dimensions. </p>
+<p>On a standard workstation with 16 GB of memory, fast-opt can support up to several millions of samples and up to around 50 dimensions. </p>
 
 <p>Please cite:</p>
 
@@ -48,7 +48,7 @@
 Annals of Statistics, 38:1433-1459.
 </code></pre>
 
-<p>For the opt-fast package</p>
+<p>For the fast-opt package</p>
 
 <pre><code>Publication in draft
 </code></pre>
@@ -63,7 +63,7 @@ Annals of Statistics, 38:1433-1459.
 <pre><code>make
 </code></pre>
 
-<p>Then copy the binary <code>opt-fast</code> to the directory of your choice.</p>
+<p>Then copy the binary <code>fast-opt</code> to the directory of your choice.</p>
 
 <h2>
 <a name="examples" class="anchor" href="#examples"><span class="octicon octicon-link"></span></a>Examples</h2>
@@ -78,7 +78,7 @@ The true density at a large number of points is also included.</p>
 <p>
 Estimate the density with LLOPT
 </p>
-<pre><code>opt-fast llopt -np 0.001 3 2 dim3_2norm_50000.txt dim3_2norm
+<pre><code>fast-opt llopt -np 0.001 3 2 dim3_2norm_50000.txt dim3_2norm
 </code></pre>
 <p>
 These parameters are ok for low dimensional cases. For high dimensional cases I recommend only looking ahead 2 levels. 
@@ -86,13 +86,13 @@ These parameters are ok for low dimensional cases. For high dimensional cases I 
 <p>
 Now, compute the density at the original data points. Of course, you would normally use new data here. 
 </p>
-<pre><code>opt-fast density dim3_2norm_50000.txt dim3_2norm.den > density.txt
+<pre><code>fast-opt density dim3_2norm_50000.txt dim3_2norm.den > density.txt
 </code></pre>
 <p>
 We can also compute the hellinger distance if we have samples from the true density with the true density at those points. One
 million such points are included.
 </p>
-<pre><code>opt-fast hell_dist density_dim3_2norm_100000.txt dim3_2norm.den
+<pre><code>fast-opt hell_dist density_dim3_2norm_100000.txt dim3_2norm.den
 </code></pre>
 <p>
 The hellinger distance should be 0.0671282. 
@@ -100,19 +100,19 @@ The hellinger distance should be 0.0671282.
 
 <p><strong>Estimate with copula transform</strong></p>
 <p>Perform a copula transform</p>
-<pre><code>opt-fast copula 2 dim3_2norm_50000.txt dim3_2norm
+<pre><code>fast-opt copula 2 dim3_2norm_50000.txt dim3_2norm
 </code></pre>
 
 <p>Estimate the density of the copula transformed data with LLOPT</p>
-<pre><code>opt-fast llopt -np 0.001 3 2 dim3_2norm.copula.txt dim3_2norm.copula
+<pre><code>fast-opt llopt -np 0.001 3 2 dim3_2norm.copula.txt dim3_2norm.copula
 </code></pre>
 
 <p>Now, compute the density at the original data points. Of course, you would normally use new data here. </p>
-<pre><code>opt-fast density dim3_2norm_50000.txt dim3_2norm.copula.den dim3_2norm.marginal.den > density2.txt
+<pre><code>fast-opt density dim3_2norm_50000.txt dim3_2norm.copula.den dim3_2norm.marginal.den > density2.txt
 </code></pre>
 
 We can also compute the hellinger distance.</p>
-<pre><code>opt-fast hell_dist density_dim3_2norm_100000.txt dim3_2norm.copula.den dim3_2norm.marginal.den
+<pre><code>fast-opt hell_dist density_dim3_2norm_100000.txt dim3_2norm.copula.den dim3_2norm.marginal.den
 </code></pre>
 <p>The hellinger distance should be 0.029494. Clearly a copula transform improves the estimate since the marginals are independent. </p>
 
@@ -122,17 +122,17 @@ We can also compute the hellinger distance.</p>
 <p>I will only show the example with copula transform since the example without is similar. <a href="http://www.stanford.edu/group/wonglab/opt_comp/classify.zip">Download data</a>.</p>
 
 <p>Perform a copula transform</p>
-<pre><code>opt-fast copula 2 train_0.txt train_0
-opt-fast copula 2 train_1.txt train_1
+<pre><code>fast-opt copula 2 train_0.txt train_0
+fast-opt copula 2 train_1.txt train_1
 </code></pre>
 
 <p>Estimate the density of the copula transformed data with LLOPT</p>
-<pre><code>opt-fast llopt -np 0.001 3 2 train_0.copula.txt train_0.copula
-opt-fast llopt -np 0.001 3 2 train_1.copula.txt train_1.copula
+<pre><code>fast-opt llopt -np 0.001 3 2 train_0.copula.txt train_0.copula
+fast-opt llopt -np 0.001 3 2 train_1.copula.txt train_1.copula
 </code></pre>
 
 <p>Perform classification with the test data</p>
-<pre><code>opt-fast classify -c test.txt 1,1 train_0.copula.den,train_1.copula.den train_0.marginal.den,train_1.marginal.den > classify.out</code></pre>
+<pre><code>fast-opt classify -c test.txt 1,1 train_0.copula.den,train_1.copula.den train_0.marginal.den,train_1.marginal.den > classify.out</code></pre>
 <p>The classification rate you should get is 0.6832. This is similar to SVM, which is 0.687100. However, LLOPT is much faster. </p>
 
 <h2>
@@ -153,7 +153,7 @@ opt-fast llopt -np 0.001 3 2 train_1.copula.txt train_1.copula
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">opt-fast maintained by <a href="https://github.com/johnmu">johnmu</a></p>
+        <p class="copyright">fast-opt maintained by <a href="https://github.com/johnmu">johnmu</a></p>
         <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
