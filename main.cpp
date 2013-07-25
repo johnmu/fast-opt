@@ -554,7 +554,7 @@ int hell_dist(vector<string> params) {
             + "     marginal_den     -- Marginal densities, if given then copula is used\n"
             + "Compute sampled Hellinger distance via importance sampling. "
             + "The true samples must be sampled from the true distribution.\n"
-            + "Computed as H(f,g) = sqrt(1 - \\int{sqrt(f(x)g(x))dx})";
+            + "Computed as H(f,g) = \\sqrt(1 - \\int{\\sqrt(f(x)g(x))dx})";
 
     if (params.size() < 2 || params.size() > 3) {
         cerr << usage_text << endl;
@@ -906,6 +906,28 @@ int density(vector<string> params) {
         cout << std::scientific << den << '\n';
     }
 
+    return 0;
+}
+
+
+int fun(vector<string> params){
+    string usage_text = "Usage: " + c::PROG_NAME
+            + " fun <num_ends> <data>\n"
+            + "      data -- data\n"
+            + "blah blah blah\n"
+            + "blah blah blah\n";
+    
+    if (params.size() != 2) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+    
+    vector<vector<double> > data = read_data(params[1], false);
+    
+    int num_ends = strTo<int>(params[0]);
+    
+    
+    
     return 0;
 }
 

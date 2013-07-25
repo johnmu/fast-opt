@@ -103,15 +103,15 @@ public:
 
     void compute_lphi(int depth, gamma_table& gt){
         
-        //cerr << "lphi depth:" << depth << '\n';
-        //cerr << "count: " << count << '\n';
-        
         vector<double> lphi_list;
+        lphi_list.reserve(num_children);
+        
+        // Base measure
         double max_val = (count * depth*c::l2) - c::l2;
         lphi_list.push_back (max_val);
 
-        //cerr << "max_val: " << max_val << '\n';
-        
+        // The random constants
+        // lambda, D([1/2,1/2]) and 1/2
         double ld = -log(num_children) - c::lpi - c::l2;
 
         for(int i = 0;i<num_children;i++){
@@ -142,8 +142,6 @@ public:
             val += children[i][1]->get_lphi();
             val += gt.compute_lD2(count,child_1_count,child_2_count);
 
-            //cerr << "val: " << val << '\n';
-            
             lphi_list.push_back(val);
 
             if(val > max_val){
@@ -398,7 +396,6 @@ public:
                 cerr << "found node: " << curr_dim << "," << curr_cut << '\n';
 #endif
                 curr_node->set_child(curr_dim, curr_cut, new_node.first);
-                //cerr << "fUNCUT: " << curr_dim  << '\n';
                 working_reg.uncut(curr_dim);
             }
         }
@@ -407,8 +404,7 @@ public:
                 << ", Zero nodes:" << num_zero_nodes
                 << ", Non-Zero nodes:" << (num_nodes-num_zero_nodes) <<'\n';
 
-        // print the regions
-        //region_cache.print_regions();
+
     }
 
 
@@ -417,8 +413,8 @@ public:
     // N is number of data points
     void construct_MAP_tree(map_tree &map_region_tree,opt_region_hash<uint32_t> &map_regions,int N){
 
-        // Check tree and region is empty
-
+        // Check if tree and region is empty
+        
         // copy the root over
 
         // the second part is actually not used :/
@@ -474,7 +470,8 @@ public:
             int map_dim = -1;
 
             // work out whether we stop at this node
-            if (curr_node->is_leaf()|| curr_node->get_count() <= count_lim || depth >= max_depth) {
+            if (curr_node->is_leaf()|| curr_node->get_count() <= count_lim 
+                    || depth >= max_depth) {
                 // we are already at a uniform node
 
                 // add to regions
@@ -485,7 +482,10 @@ public:
 #endif
             } else if(curr_dim == -1){
                 double post_rho = -c::l2;
+                
+                // base measure
                 post_rho += depth * c::l2 * curr_node->get_count(); // phi_0
+                
                 post_rho -= curr_node->get_lphi();
 #ifdef DEBUG_MAP
                 cerr << "get_lphi = " << curr_node->get_lphi() << '\n';
