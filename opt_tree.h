@@ -49,9 +49,15 @@ class tree_node
 private:
     int count; // number of points in this region, this is also the dimension
                 // to cut it is MAP tree.
+    
+    // this tree is designed so that it is a DAG
+    // It is possible for branches to merge if the partitions are the same
+    // pointer -> dimensions -> cuts (always 2 cuts for now)
     tree_node*** children;
 
+    // essentially the number of dimensions
     int num_children;
+    
     double lphi;  // this is also the density if MAP tree
 
     void init(){
@@ -601,6 +607,9 @@ public:
     // search through tree to get the lphi of a particular region
     // unless we reach a leaf.. then return -inf
     double get_reg_lphi(){
+        // start from root and work way down one dimension at a time
+        // it doesn't matter what order cause the multi-tree is already a DAG
+        
         
     }
 

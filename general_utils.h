@@ -255,7 +255,6 @@ public:
     }
 
     int size() const {
-
         int r; // r will be lg(v)
         register unsigned int t, tt; // temporaries
 
@@ -267,11 +266,9 @@ public:
         }
 
         return r;
-
     }
 
     bool push_back(int i){
-
         int s = size();
 
         if(s == 31){
@@ -291,7 +288,6 @@ public:
 
     void pop_back(){
         int s = size();
-
 
         if(s > 0){
             data = data & ((((uint32_t)1)<<s)-1);
@@ -324,12 +320,9 @@ public:
         }else if(a_size == self_size){
             return a.data == data;
         }else{
-
             uint32_t mask = (1u << self_size)-1;
-
             return ((data & mask) == (a.data & mask));
         }
-
     }
     
     void save(ostream & out) const{
@@ -338,7 +331,6 @@ public:
     
     void load(istream & in){
         in.read((char*)&data,sizeof(data));
-        //cerr << "data: " << data << '\n';
     } 
 
 };

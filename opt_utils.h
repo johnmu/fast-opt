@@ -72,7 +72,7 @@ struct pile_t{
 };
 
 
-//template <typename T>
+// stores the cuts that have been made
 class opt_region{
 public:
     vector< bit_str > dim_cuts; // vector vector bool is SLOW
@@ -663,7 +663,7 @@ inline int choose_dim(const vector<double> &d, MT_random &rand_gen) {
 
 
 
-
+// stores the boundaries of a region 
 class current_region{
 private:
     vector<double> lim_pile; // center of the region
