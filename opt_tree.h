@@ -438,7 +438,6 @@ public:
         pile[0].dim  = -1;
         pile[0].cut  = -1;
 
-        //current_region curr_reg(num_children);
         opt_region working_reg(num_children);
 
         bool done = false;
@@ -492,7 +491,6 @@ public:
                 cerr << "post_rho = " << post_rho << '\n';
 #endif
                 if(post_rho>-c::l2){
-
                     // add to regions
                     add_region = true;
                     back_up = true;
@@ -600,6 +598,11 @@ public:
         }
     }
 
+    // search through tree to get the lphi of a particular region
+    // unless we reach a leaf.. then return -inf
+    double get_reg_lphi(){
+        
+    }
 
     int get_num_children(){
         return num_children;

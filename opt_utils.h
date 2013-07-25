@@ -89,14 +89,6 @@ public:
         init(num_children);
     }
 
-
-    //opt_region(vector<pile_t<T> > &dim_pile, int num_children){
-    //    init(num_children);
-    //    for (int i = 0;i<(int) dim_pile.size();i++){
-    //        dim_cuts[dim_pile[i].dim].push_back(dim_pile[i].cut);
-    //    }
-    //}
-
     ~opt_region(){
 
     }
