@@ -333,11 +333,8 @@ public:
                 depth--;
                 pile.pop_back();
                 if(depth < 0) continue;
-
-                //lvolume = lvolume + c::l2;
-
+                
                 curr_reg.uncut(pile[depth].dim,pile[depth].cut);
-                //cerr << depth << " bUNCUT: " << curr_dim << '\n';
                 working_reg.uncut(pile[depth].dim);
 
                 continue;
@@ -376,7 +373,10 @@ public:
 
                 int curr_count = pile[depth].data.size();
 
-                if (!is_diff || curr_count <= count_lim || depth >= max_depth){
+                // must match the backup criteria
+                // kind of un-elegant that we need this...
+                if (!is_diff || curr_count <= count_lim 
+                        || depth >= max_depth || working_reg.full()){
                     new_node.first = new tree_node();
                 }else {
                     new_node.first = new tree_node(num_children);
@@ -606,10 +606,51 @@ public:
 
     // search through tree to get the lphi of a particular region
     // unless we reach a leaf.. then return -inf
-    double get_reg_lphi(){
+    // can only be used after the tree has been completed
+    double get_reg_lphi(opt_region &reg){
         // start from root and work way down one dimension at a time
         // it doesn't matter what order cause the multi-tree is already a DAG
         
+        if(reg.num_children() != num_children){
+            cerr << "Error: get_lphi: dimension mismatch\n";
+            return -c::inf;
+        }
+        
+        tree_node* curr_node = root;
+        bool done = false;
+
+        // check if we reached the end
+        if (curr_node == NULL) {
+            done = true;
+        }
+
+        int num_cuts = 0;
+        bool reach_end_cut = false;
+        bool reach_end_dim = false;
+        for (int d = 0; !done && d < num_children; d++) {
+            // for each dimension
+            reach_end_cut = false;
+            num_cuts = reg[d].size();
+            for (int i = 0;!done && i<num_cuts;i++){
+                int cut = (int)reg[d][i];
+                curr_node = curr_node->get_child(0,cut);
+                if(curr_node->is_leaf()){
+                    done = true;
+                }
+                if(i == num_cuts-1){
+                    reach_end_cut = true;
+                }
+            }
+            if(d == num_children -1){
+                reach_end_dim = true;
+            }
+        }
+        
+        if(reach_end_dim && reach_end_cut){
+            return curr_node->get_lphi();
+        }else{
+            return -c::inf;
+        }
         
     }
 

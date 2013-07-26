@@ -131,6 +131,10 @@ public:
 
         return out;
     }
+    
+    bit_str & operator[](const int a){
+        return dim_cuts[a];
+    }
 
 
     void print_region() const{
