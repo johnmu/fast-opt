@@ -60,6 +60,8 @@ int main(int argc, char** argv) {
 
     if (mode == "opt") {
         error_num = opt(params);
+    } else if (mode == "opt_comp") {
+        error_num = opt_comp(params);
     } else if (mode == "llopt") {
         error_num = llopt(params);
     } else if (mode == "lsopt") {
@@ -910,6 +912,117 @@ int density(vector<string> params) {
 }
 
 
+int opt_comp(vector<string> params) {
+
+    string usage_text = "Usage: " + c::PROG_NAME + " opt_comp <percent_points> <data_file_1> <data_file_2> <output_name>\n"
+            + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
+            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "          output_name -- Result output to <output_name>.den\n"
+            + "Log output to STDERR \n"
+            + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
+            + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n"
+            + "Recommend always stopping at 2 points.\n";
+
+    if (params.size() != 4) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    string out_filename = params[23];
+
+    vector<vector<double> > data_1 = read_data(params[1], false);
+    vector<vector<double> > data_2 = read_data(params[2], false);
+
+    int dim = (int) data_1[0].size();
+    
+    if(dim != (int)data_2[0].size()){
+        cerr << "Error: dimension mismatch between data\n";
+    }
+    
+    int N[2] = {data_1.size(),data_2.size()};
+
+    cerr << "Running Two Sample Comparison Full-OPT" << '\n';
+    cerr << "Data_1: " << N[0] << " points in " << dim << " dimensions.\n";
+    cerr << "Data_2: " << N[1] << " points in " << dim << " dimensions.\n";
+
+    double stop_ratio = strTo<double>(params[0]);
+    int stop_points = 0;
+
+    if (stop_ratio < 1) {
+        stop_points = (int) (min(N[0],N[1]) * stop_ratio);
+    } else {
+        stop_points = (int) stop_ratio;
+    }
+    if (stop_points < 1) stop_points = 1;
+
+    cerr << "Stopping at " << stop_points << " points.\n";
+
+    double total_time = 0.0;
+
+    mu_timer mt;
+
+    {
+        cerr << "Constructing OPT from data_2\n";
+        opt_tree opt_slow(dim, stop_points, 1000);
+        mt.reset();
+        opt_slow.construct_full_tree(data_2);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "data_2 OPT tree");
+
+        cerr << "Comparing to data_1\n";
+        opt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
+        mt.reset();
+        opt_slow_comp.construct_full_tree(data_1);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "data_1 comp OPT tree");
+
+        cerr << "comp Log Phi: " << opt_slow_comp.get_lphi() << endl;
+        
+        mt.reset();
+        map_tree map_region_tree(N[0], dim);
+        opt_region_hash<uint32_t> map_regions(20);
+        opt_slow_comp.construct_MAP_tree(map_region_tree, map_regions, N[0]);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "comp MAP tree");
+
+        print_MAP_density(cerr, map_regions.get_regions(),
+                    map_region_tree.get_ra(), map_region_tree.get_num_points());
+        
+    }
+
+    {
+        cerr << "Constructing OPT from data_1\n";
+        opt_tree opt_slow(dim, stop_points, 1000);
+        mt.reset();
+        opt_slow.construct_full_tree(data_1);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "data_1 OPT tree");
+
+        cerr << "Comparing to data_2\n";
+        opt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
+        mt.reset();
+        opt_slow_comp.construct_full_tree(data_2);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "data_2 comp OPT tree");
+
+        cerr << "comp Log Phi: " << opt_slow_comp.get_lphi() << endl;
+        
+        mt.reset();
+        map_tree map_region_tree(N[1], dim);
+        opt_region_hash<uint32_t> map_regions(20);
+        opt_slow_comp.construct_MAP_tree(map_region_tree, map_regions, N[1]);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "comp MAP tree");
+
+        print_MAP_density(cerr, map_regions.get_regions(),
+                    map_region_tree.get_ra(), map_region_tree.get_num_points());
+    }
+
+
+    return 0;
+}
+
+
 int fun(vector<string> params){
     string usage_text = "Usage: " + c::PROG_NAME
             + " fun <num_ends> <data>\n"
@@ -924,12 +1037,14 @@ int fun(vector<string> params){
     
     vector<vector<double> > data = read_data(params[1], false);
     
-    int num_ends = strTo<int>(params[0]);
+    //int num_ends = strTo<int>(params[0]);
     
     
     
     return 0;
 }
+
+
 
 
 int print_partitions(vector<string> params) {

@@ -107,13 +107,19 @@ public:
         lphi = count * depth * c::l2;
     }
 
-    void compute_lphi(int depth, gamma_table& gt){
+    void compute_lphi(int depth, gamma_table& gt, double lphi0){
         
         vector<double> lphi_list;
-        lphi_list.reserve(num_children);
+        lphi_list.reserve(num_children+1);
         
         // Base measure
-        double max_val = (count * depth*c::l2) - c::l2;
+        double max_val = 0.0;
+        if (lphi0 == -c::inf) {
+            max_val = (count * depth * c::l2) - c::l2;
+        }else{
+            max_val = lphi0;
+        }
+        
         lphi_list.push_back (max_val);
 
         // The random constants
@@ -123,7 +129,7 @@ public:
         for(int i = 0;i<num_children;i++){
             // check for null
             if(children[i][0] == NULL || children[i][1] == NULL){
-                cerr << "NULL child!!! " << i << ',' << depth << '\n';
+                cerr << "lphi NULL child!!! " << i << ',' << depth << '\n';
                 exit(2);
             }
 
@@ -210,22 +216,29 @@ private:
 
     int count_lim;
     int max_depth;
+    
+    opt_tree* base_measure;
 
-    void init(int num_children, int count_lim, int max_depth){
+    void init(int num_children, int count_lim, int max_depth,opt_tree* base_measure){
         this->num_children = num_children;
         root = new tree_node(num_children);
         this->count_lim = count_lim;
         this->max_depth = max_depth;
+        this->base_measure = base_measure;
     }
 
 public:
 
+    opt_tree(int num_children, int count_lim, int max_depth,opt_tree* base_measure){
+        init(num_children,count_lim,max_depth,base_measure);
+    }
+    
     opt_tree(int num_children, int count_lim, int max_depth){
-        init(num_children,count_lim,max_depth);
+        init(num_children,count_lim,max_depth,NULL);
     }
 
     opt_tree(int num_children){
-        init(num_children,5,1000);
+        init(num_children,5,1000,NULL);
     }
 
     ~opt_tree(){
@@ -321,7 +334,16 @@ public:
                 }else{
                     // reached end of node!! back up
                     back_up = true;
-                    curr_node->compute_lphi(depth,gt);
+                    
+                    double lphi0 = -c::inf;
+                    if(!(base_measure == NULL)){
+                        lphi0 = base_measure->get_reg_lphi(working_reg);
+                        if(lphi0 == -c::inf){
+                            lphi0 = 0;
+                        }
+                    }
+                    
+                    curr_node->compute_lphi(depth,gt,lphi0);
 #ifdef DEBUG
                     cerr << "BACKUP CHILD\n";
 #endif
@@ -476,7 +498,7 @@ public:
 
             // work out whether we stop at this node
             if (curr_node->is_leaf()|| curr_node->get_count() <= count_lim 
-                    || depth >= max_depth) {
+                    || depth >= max_depth || working_reg.full()) {
                 // we are already at a uniform node
 
                 // add to regions
@@ -489,7 +511,14 @@ public:
                 double post_rho = -c::l2;
                 
                 // base measure
-                post_rho += depth * c::l2 * curr_node->get_count(); // phi_0
+                if(base_measure == NULL){
+                    post_rho += depth * c::l2 * curr_node->get_count(); // phi_0
+                }else{
+                    double lphi0 = base_measure->get_reg_lphi(working_reg);
+                    if(!lphi0 == -c::inf){
+                        post_rho += lphi0;
+                    }
+                }
                 
                 post_rho -= curr_node->get_lphi();
 #ifdef DEBUG_MAP
