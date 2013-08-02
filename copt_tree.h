@@ -1,5 +1,5 @@
 /*
- *  opt_tree.h
+ *  copt_tree.h
  *  fast-opt
  *
  *  john.mu@ieee.org
@@ -8,7 +8,7 @@
 
 /* The MIT License
 
-   Copyright (c) 2012 John C. Mu.
+   Copyright (c) 2013 John C. Mu.
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
@@ -32,8 +32,8 @@
  */
 
 
-#ifndef OPT_TREE_H
-#define	OPT_TREE_H
+#ifndef COPT_TREE_H
+#define	COPT_TREE_H
 
 //#define DEBUG
 //#define DEBUG_MAP
@@ -44,7 +44,7 @@
 #include "map_tree.h"
 
 
-class tree_node
+class ctree_node
 {
 private:
     int count; // number of points in this region, this is also the dimension
@@ -53,7 +53,7 @@ private:
     // this tree is designed so that it is a DAG
     // It is possible for branches to merge if the partitions are the same
     // pointer -> dimensions -> cuts (always 2 cuts for now)
-    tree_node*** children;
+    ctree_node*** children;
 
     // essentially the number of dimensions
     int num_children;
@@ -66,20 +66,20 @@ private:
     }
 
 public:
-    tree_node(){
+    ctree_node(){
         children = NULL;
         num_children = 0;
 
         init();
     }
 
-    tree_node(int num_children){
+    ctree_node(int num_children){
         this->num_children = num_children;
 
-        children = new tree_node**[num_children];
+        children = new ctree_node**[num_children];
 
         for(int i = 0;i<num_children;i++){
-            children[i] = new tree_node*[c::cuts];
+            children[i] = new ctree_node*[c::cuts];
             for(int j = 0;j<c::cuts;j++){
                 children[i][j] = NULL;
             }
@@ -88,7 +88,7 @@ public:
         init();
     }
 
-    ~tree_node(){
+    ~ctree_node(){
 
         if(children == NULL) return;
 
@@ -206,11 +206,11 @@ public:
         return count;
     }
 
-    void set_child(int dim,int cut,tree_node* node){
+    void set_child(int dim,int cut,ctree_node* node){
         if(children != NULL)children[dim][cut] = node;
     }
 
-    tree_node* get_child(int dim,int cut){
+    ctree_node* get_child(int dim,int cut){
         if(children == NULL) return NULL;
         return children[dim][cut];
     }
@@ -219,20 +219,20 @@ public:
 
 
 
-class opt_tree
+class copt_tree
 {
 private:
-    tree_node* root;
+    ctree_node* root;
     int num_children;
 
     int count_lim;
     int max_depth;
     
-    opt_tree* base_measure;
+    copt_tree* base_measure;
 
-    void init(int num_children, int count_lim, int max_depth,opt_tree* base_measure){
+    void init(int num_children, int count_lim, int max_depth,copt_tree* base_measure){
         this->num_children = num_children;
-        root = new tree_node(num_children);
+        root = new ctree_node(num_children);
         this->count_lim = count_lim;
         this->max_depth = max_depth;
         this->base_measure = base_measure;
@@ -240,19 +240,19 @@ private:
 
 public:
 
-    opt_tree(int num_children, int count_lim, int max_depth,opt_tree* base_measure){
+    copt_tree(int num_children, int count_lim, int max_depth,opt_tree* cbase_measure){
         init(num_children,count_lim,max_depth,base_measure);
     }
     
-    opt_tree(int num_children, int count_lim, int max_depth){
+    copt_tree(int num_children, int count_lim, int max_depth){
         init(num_children,count_lim,max_depth,NULL);
     }
 
-    opt_tree(int num_children){
+    copt_tree(int num_children){
         init(num_children,5,1000,NULL);
     }
 
-    ~opt_tree(){
+    ~copt_tree(){
         delete root;
     }
 
@@ -265,8 +265,8 @@ public:
         gamma_table gt(N);
         root->set_count(N);
 
-        vector<pile_t<tree_node*,uint32_t > > pile;
-        pile.push_back(pile_t<tree_node*,uint32_t >());
+        vector<pile_t<ctree_node*,uint32_t > > pile;
+        pile.push_back(pile_t<ctree_node*,uint32_t >());
         
         pile[0].data = vector<uint32_t>(N,0);
         
@@ -281,7 +281,7 @@ public:
         current_region curr_reg(num_children);
         opt_region working_reg(num_children);
 
-        opt_region_hash<tree_node*> region_cache(27);
+        opt_region_hash<ctree_node*> region_cache(27);
 
         int depth = 0;
         
@@ -311,7 +311,7 @@ public:
 
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
-            tree_node* curr_node = pile[depth].node;
+            ctree_node* curr_node = pile[depth].node;
 
             // work out what to count
 
@@ -409,14 +409,14 @@ public:
 #ifdef DEBUG
             cerr << "working_hash: " << working_hash << '\n';
 #endif
-            pair<tree_node*,bool> new_node = region_cache.find(working_reg,working_hash);
+            pair<ctree_node*,bool> new_node = region_cache.find(working_reg,working_hash);
 
             if (!new_node.second) {
 
 #ifdef DEBUG
                 cerr << "Add node: " << curr_dim << "," << curr_cut << '\n';
 #endif
-                pile.push_back(pile_t<tree_node*,uint32_t >());
+                pile.push_back(pile_t<ctree_node*,uint32_t >());
                 depth++;
 
                 bool is_diff = cut_region_one(all_data,pile[depth - 1].data,pile[depth].data,
@@ -433,9 +433,9 @@ public:
                 // kind of un-elegant that we need this...
                 if (!is_diff || curr_count <= count_lim 
                         || depth >= max_depth || working_reg.full()){
-                    new_node.first = new tree_node();
+                    new_node.first = new ctree_node();
                 }else {
-                    new_node.first = new tree_node(num_children);
+                    new_node.first = new ctree_node(num_children);
                 }
 
                 new_node.first->set_count(curr_count);
@@ -492,8 +492,8 @@ public:
         int depth = 0;
         gamma_table gt(N);
 
-        vector<pile_t<tree_node*,char > > pile;
-        pile.push_back(pile_t<tree_node*,char >());
+        vector<pile_t<ctree_node*,char > > pile;
+        pile.push_back(pile_t<ctree_node*,char >());
 
         pile[0].data = vector<char>();
         pile[0].node = root;
@@ -514,7 +514,7 @@ public:
 
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
-            tree_node* curr_node = pile[depth].node;
+            ctree_node* curr_node = pile[depth].node;
 
             uint32_t curr_map_node = map_pile[depth].node;
 
@@ -569,8 +569,8 @@ public:
                     // choose a dimension
 
                     map_dim = 0;
-                    tree_node* child_0 = curr_node->get_child(0,0);
-                    tree_node* child_1 = curr_node->get_child(0,1);
+                    ctree_node* child_0 = curr_node->get_child(0,0);
+                    ctree_node* child_1 = curr_node->get_child(0,1);
 
                     double max_post_prob = gt.compute_lD2(curr_node->get_count()
                         ,child_0->get_count(),child_1->get_count());
@@ -661,7 +661,7 @@ public:
 
             working_reg.cut(curr_dim, curr_cut);
 
-            pile.push_back(pile_t<tree_node*,char >());
+            pile.push_back(pile_t<ctree_node*,char >());
 
             pile[depth].dim  = -1;
             pile[depth].cut  = -1;
@@ -681,7 +681,7 @@ public:
             return -c::inf;
         }
         
-        tree_node* curr_node = root;
+        ctree_node* curr_node = root;
         bool done = false;
 
         // check if we reached the end
@@ -733,7 +733,7 @@ public:
         return num_children;
     }
 
-    tree_node* get_full_tree(){
+    ctree_node* get_full_tree(){
         return root;
     }
 

@@ -928,7 +928,7 @@ int opt_comp(vector<string> params) {
         return 3;
     }
 
-    string out_filename = params[23];
+    string out_filename = params[3];
 
     vector<vector<double> > data_1 = read_data(params[1], false);
     vector<vector<double> > data_2 = read_data(params[2], false);
@@ -968,7 +968,20 @@ int opt_comp(vector<string> params) {
         opt_slow.construct_full_tree(data_2);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "data_2 OPT tree");
+        
+        double orig_lphi = opt_slow.get_lphi();
+        cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
 
+        mt.reset();
+        map_tree map_region_tree(N[0], dim);
+        opt_region_hash<uint32_t> map_regions(20);
+        opt_slow.construct_MAP_tree(map_region_tree, map_regions, N[0]);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "MAP tree");
+        
+        //print_MAP_density(cerr, map_regions.get_regions(),
+        //            map_region_tree.get_ra(), map_region_tree.get_num_points());
+        
         cerr << "Comparing to data_1\n";
         opt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
         mt.reset();
@@ -976,17 +989,21 @@ int opt_comp(vector<string> params) {
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "data_1 comp OPT tree");
 
+        double comp_lphi = opt_slow_comp.get_lphi();
         cerr << "comp Log Phi: " << opt_slow_comp.get_lphi() << endl;
         
+        double lphi_ratio = orig_lphi-comp_lphi;
+        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
+        
         mt.reset();
-        map_tree map_region_tree(N[0], dim);
-        opt_region_hash<uint32_t> map_regions(20);
-        opt_slow_comp.construct_MAP_tree(map_region_tree, map_regions, N[0]);
+        map_tree comp_map_region_tree(N[0], dim);
+        opt_region_hash<uint32_t> comp_map_regions(20);
+        opt_slow_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, N[0]);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "comp MAP tree");
 
-        print_MAP_density(cerr, map_regions.get_regions(),
-                    map_region_tree.get_ra(), map_region_tree.get_num_points());
+        //print_MAP_density(cerr, comp_map_regions.get_regions(),
+        //            comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
         
     }
 
@@ -997,6 +1014,9 @@ int opt_comp(vector<string> params) {
         opt_slow.construct_full_tree(data_1);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "data_1 OPT tree");
+        
+        double orig_lphi = opt_slow.get_lphi();
+        cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
 
         cerr << "Comparing to data_2\n";
         opt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
@@ -1005,7 +1025,11 @@ int opt_comp(vector<string> params) {
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "data_2 comp OPT tree");
 
+        double comp_lphi = opt_slow_comp.get_lphi();
         cerr << "comp Log Phi: " << opt_slow_comp.get_lphi() << endl;
+        
+        double lphi_ratio = orig_lphi-comp_lphi;
+        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
         
         mt.reset();
         map_tree map_region_tree(N[1], dim);
@@ -1014,8 +1038,8 @@ int opt_comp(vector<string> params) {
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "comp MAP tree");
 
-        print_MAP_density(cerr, map_regions.get_regions(),
-                    map_region_tree.get_ra(), map_region_tree.get_num_points());
+        //print_MAP_density(cerr, map_regions.get_regions(),
+        //            map_region_tree.get_ra(), map_region_tree.get_num_points());
     }
 
 

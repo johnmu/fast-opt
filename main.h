@@ -42,6 +42,7 @@
 #include "stl.h"
 #include "general_utils.h"
 #include "opt_tree.h"
+#include "copt_tree.h"
 #include "llopt_tree.h"
 #include "disopt_tree.h"
 #include "lsopt_tree.h"
