@@ -71,6 +71,13 @@ struct pile_t{
     int cut;
 };
 
+template <typename T,typename U>
+struct cpile_t{
+    vector<U> data[2];
+    T node;
+    int dim;
+    int cut;
+};
 
 // stores the cuts that have been made
 class opt_region{

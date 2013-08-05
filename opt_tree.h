@@ -58,7 +58,7 @@ private:
     // essentially the number of dimensions
     int num_children;
     
-    double lphi;  // this is also the density if MAP tree
+    float lphi;  // this is also the density if MAP tree
 
     void init(){
         count = -1;
