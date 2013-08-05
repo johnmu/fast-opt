@@ -360,7 +360,7 @@ public:
 
                 bool is_diff_sep[2] = {true, true};
                 for (int k = 0; k < 2; k++) {
-                    if(pile[depth].data[k].size() > 0){
+                    if(pile[depth-1].data[k].size() > 0){
                         is_diff_sep[k] = cut_region_one(all_data[k], pile[depth - 1].data[k], pile[depth].data[k],
                             curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
                     }else{
