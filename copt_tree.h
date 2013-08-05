@@ -289,15 +289,12 @@ public:
 
             int curr_count[2];
             curr_node->get_count(curr_count);
-            int min_count = min(curr_count[0],curr_count[1]);
-            
             // work out what to count
 
             bool back_up = false;
-
             // check if current node is leaf or at end
             if(curr_node->is_leaf()
-                    || min_count <= count_lim
+                    || (curr_count[0]+curr_count[1]) <= count_lim
                     || depth >= max_depth
                     || working_reg.full()){
                 // back up
@@ -321,6 +318,13 @@ public:
                     double lP0 = -c::inf;
                     if(!(base_measure == NULL)){
                         lP0 = base_measure->get_reg_lphi(working_reg);
+                        if(lP0 == -c::inf){
+                            cerr << "region not found:";
+                            working_reg.print_region();
+                            cerr << "\n";
+                            working_reg.print_region_limits();
+                            cerr << "\n";
+                        }
                     }
                     
                     curr_node->compute_lP(depth,gt,lP0);
@@ -356,8 +360,12 @@ public:
 
                 bool is_diff_sep[2] = {true, true};
                 for (int k = 0; k < 2; k++) {
-                    is_diff_sep[k] = cut_region_one(all_data[k], pile[depth - 1].data[k], pile[depth].data[k],
+                    if(pile[depth].data[k].size() > 0){
+                        is_diff_sep[k] = cut_region_one(all_data[k], pile[depth - 1].data[k], pile[depth].data[k],
                             curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
+                    }else{
+                        is_diff_sep[k] = false;
+                    }
                 }
                 
                 bool is_diff = is_diff_sep[0]||is_diff_sep[1];
@@ -370,12 +378,10 @@ public:
                 int curr_count[2];
                 curr_count[0] = pile[depth].data[0].size();
                 curr_count[1] = pile[depth].data[1].size();
-                
-                int min_count = min(curr_count[0],curr_count[1]);
-                
+               
                 // must match the backup criteria
                 // kind of un-elegant that we need this...
-                if (!is_diff || min_count <= count_lim 
+                if (!is_diff || (curr_count[0]+curr_count[1]) <= count_lim 
                         || depth >= max_depth || working_reg.full()){
                     new_node.first = new ctree_node();
                     num_zero_nodes++;
@@ -468,9 +474,8 @@ public:
             // work out whether we stop at this node
             int curr_count[2];
             curr_node->get_count(curr_count);
-            int min_count = min(curr_count[0],curr_count[1]);
             
-            if (curr_node->is_leaf()|| min_count <= count_lim 
+            if (curr_node->is_leaf()|| (curr_count[0]+curr_count[1]) <= count_lim 
                     || depth >= max_depth || working_reg.full()) {
                 // we are already at a uniform node
 

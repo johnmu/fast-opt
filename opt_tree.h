@@ -688,9 +688,6 @@ public:
         if (curr_node == NULL) {
             done = true;
         }
-
-        //reg.print_region();
-        //cerr << '\n';
         
         int num_cuts = 0;
         bool reach_end_cut = true;
@@ -702,12 +699,12 @@ public:
             if(num_cuts == 0){
                 reach_end_cut = true;
             }
+            
             for (int i = 0;!done && i<num_cuts;i++){
                 int cut = (int)reg[d][i];
-                curr_node = curr_node->get_child(0,cut);
+                curr_node = curr_node->get_child(d,cut);
                 if(curr_node->is_leaf()){
                     done = true;
-                    //cerr << "is leaf\n";
                 }
                 if(i == num_cuts-1){
                     reach_end_cut = true;

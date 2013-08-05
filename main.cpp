@@ -1165,7 +1165,7 @@ int copt_scan(vector<string> params) {
             + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n"
             + "Recommend always stopping at 2 points.\n";
 
-    if (params.size() != 4) {
+    if (params.size() != 3) {
         cerr << usage_text << endl;
         return 3;
     }
@@ -1197,7 +1197,7 @@ int copt_scan(vector<string> params) {
     mu_timer mt;
     
     // loop to split the dataset
-    int window_size = 2000;
+    int window_size = 1000;
     
     if(N<window_size){
         cerr << "N too small\n";
@@ -1213,12 +1213,12 @@ int copt_scan(vector<string> params) {
         split_data[0].reserve(window_size/2 + 1);
         split_data[1].reserve(window_size/2 + 1);
         
-        for(int i = idx;i<idx+window_size;i++){
-            comb_data.push_back(data[i]);
+        for(int i = 0;i<window_size;i++){
+            comb_data.push_back(data[idx+i]);
             if(i<window_size/2){
-                split_data[0].push_back(data[i]);
+                split_data[0].push_back(data[idx+i]);
             }else{
-                split_data[1].push_back(data[i]);
+                split_data[1].push_back(data[idx+i]);
             }
         }
         
@@ -1247,7 +1247,7 @@ int copt_scan(vector<string> params) {
         double lphi_ratio = orig_lphi-comp_lP;
         cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
         
-        cout << lphi_ratio - c::l2 << '\n';
+        cout << idx + window_size/2 << " : " << lphi_ratio - c::l2 << '\n';
         
         //mt.reset();
         //map_tree comp_map_region_tree(N[0]+N[1], dim);
@@ -1260,7 +1260,7 @@ int copt_scan(vector<string> params) {
         //            comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
         
         idx = idx + scan_res;
-        if (idx+window_size<N+scan_res-1){
+        if (((idx+window_size)>=N)&& (idx+window_size<N+scan_res-1)){
             idx = N-window_size-1;
         }
     }
