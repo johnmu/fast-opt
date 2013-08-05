@@ -130,6 +130,8 @@ int llopt(vector<string> params);
 int lsopt(vector<string> params);
 int sopt(vector<string> params);
 int opt(vector<string> params);
+int copt(vector<string> params);
+int copt_scan(vector<string> params);
 int opt_comp(vector<string> params);
 int dfopt(vector<string> params);
 int disopt(vector<string> params);

@@ -62,6 +62,10 @@ int main(int argc, char** argv) {
         error_num = opt(params);
     } else if (mode == "opt_comp") {
         error_num = opt_comp(params);
+    } else if (mode == "copt") {
+        error_num = copt(params);
+    } else if (mode == "copt_scan") {
+        error_num = copt_scan(params);
     } else if (mode == "llopt") {
         error_num = llopt(params);
     } else if (mode == "lsopt") {
@@ -1041,6 +1045,226 @@ int opt_comp(vector<string> params) {
         //print_MAP_density(cerr, map_regions.get_regions(),
         //            map_region_tree.get_ra(), map_region_tree.get_num_points());
     }
+
+
+    return 0;
+}
+
+
+int copt(vector<string> params) {
+
+    string usage_text = "Usage: " + c::PROG_NAME + " copt <percent_points> <data_file_1> <data_file_2> <output_name>\n"
+            + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
+            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "          output_name -- Result output to <output_name>.den\n"
+            + "Log output to STDERR \n"
+            + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
+            + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n"
+            + "Recommend always stopping at 2 points.\n";
+
+    if (params.size() != 4) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    string out_filename = params[3];
+
+    vector<vector<double> > data[2] = {read_data(params[1], false),read_data(params[2], false)};
+
+    int dim = (int) data[0][0].size();
+    
+    if(dim != (int)data[1][0].size()){
+        cerr << "Error: dimension mismatch between data\n";
+    }
+    
+    int N[2] = {data[0].size(),data[1].size()};
+
+    cerr << "Running Two Sample Comparison Full-OPT" << '\n';
+    cerr << "Data_1: " << N[0] << " points in " << dim << " dimensions.\n";
+    cerr << "Data_2: " << N[1] << " points in " << dim << " dimensions.\n";
+
+    double stop_ratio = strTo<double>(params[0]);
+    int stop_points = 0;
+
+    if (stop_ratio < 1) {
+        stop_points = (int) (min(N[0],N[1]) * stop_ratio);
+    } else {
+        stop_points = (int) stop_ratio;
+    }
+    if (stop_points < 1) stop_points = 1;
+
+    cerr << "Stopping at " << stop_points << " points.\n";
+
+    double total_time = 0.0;
+
+    mu_timer mt;
+
+    {
+        // form combined data;
+        cerr << "Combining the dataset\n";
+        vector<vector<double> > comb_data = data[0];
+        comb_data.insert(comb_data.end(), data[1].begin(), data[1].end());
+        
+        cerr << "Constructing OPT from combined dataset\n";
+        opt_tree opt_slow(dim, stop_points, 1000);
+        mt.reset();
+        opt_slow.construct_full_tree(comb_data);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "combined OPT tree");
+        
+        double orig_lphi = opt_slow.get_lphi();
+        cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
+
+        //mt.reset();
+        //map_tree map_region_tree(N[0], dim);
+        //opt_region_hash<uint32_t> map_regions(20);
+        //opt_slow.construct_MAP_tree(map_region_tree, map_regions, N[0]);
+        //total_time += mt.elapsed_time();
+        //mt.print_elapsed_time(cerr, "MAP tree");
+        
+        //print_MAP_density(cerr, map_regions.get_regions(),
+        //            map_region_tree.get_ra(), map_region_tree.get_num_points());
+        
+        cerr << "Constructing coupling OPT tree\n";
+        copt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
+        mt.reset();
+        opt_slow_comp.construct_full_tree(data);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "coupling OPT tree");
+
+        double comp_lP = opt_slow_comp.get_lP();
+        cerr << "comp Log P: " << opt_slow_comp.get_lP() << endl;
+        
+        double lphi_ratio = orig_lphi-comp_lP;
+        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
+        
+        mt.reset();
+        map_tree comp_map_region_tree(N[0]+N[1], dim);
+        opt_region_hash<uint32_t> comp_map_regions(20);
+        opt_slow_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, N[0]+N[1]);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "comp MAP tree");
+
+        print_MAP_density(cerr, comp_map_regions.get_regions(),
+                    comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+        
+    }
+
+    return 0;
+}
+
+
+int copt_scan(vector<string> params) {
+
+    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan <percent_points> <scan_resolution> <data_file>\n"
+            + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
+            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "          output_name -- Result output to <output_name>.den\n"
+            + "Log output to STDERR \n"
+            + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
+            + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n"
+            + "Recommend always stopping at 2 points.\n";
+
+    if (params.size() != 4) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    int scan_res = strTo<int>(params[1]);
+
+    vector<vector<double> > data = read_data(params[2], false);
+
+    int dim = (int) data[0].size();
+    int N = data.size();
+
+    cerr << "Running coupling OPT scan" << '\n';
+    cerr << "Data: " << N << " points in " << dim << " dimensions.\n";
+
+    double stop_ratio = strTo<double>(params[0]);
+    int stop_points = 0;
+
+    if (stop_ratio < 1) {
+        stop_points = (int) (N * stop_ratio);
+    } else {
+        stop_points = (int) stop_ratio;
+    }
+    if (stop_points < 1) stop_points = 1;
+
+    cerr << "Stopping at " << stop_points << " points.\n";
+
+    double total_time = 0.0;
+
+    mu_timer mt;
+    
+    // loop to split the dataset
+    int window_size = 2000;
+    
+    if(N<window_size){
+        cerr << "N too small\n";
+        return 1;
+    }
+    
+    int idx = 0;
+    while((idx+window_size)<N){
+        vector<vector<double> > comb_data;
+        vector<vector<double> > split_data[2] = {vector<vector<double> >(),vector<vector<double> >()};
+        
+        comb_data.reserve(window_size);
+        split_data[0].reserve(window_size/2 + 1);
+        split_data[1].reserve(window_size/2 + 1);
+        
+        for(int i = idx;i<idx+window_size;i++){
+            comb_data.push_back(data[i]);
+            if(i<window_size/2){
+                split_data[0].push_back(data[i]);
+            }else{
+                split_data[1].push_back(data[i]);
+            }
+        }
+        
+        cerr << "idx: " << idx << " - " << idx+window_size << '\n';
+        
+        // form combined data;
+        
+        opt_tree opt_slow(dim, stop_points, 1000);
+        mt.reset();
+        opt_slow.construct_full_tree(comb_data);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "combined OPT tree");
+        
+        double orig_lphi = opt_slow.get_lphi();
+        cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
+        
+        copt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
+        mt.reset();
+        opt_slow_comp.construct_full_tree(split_data);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "coupling OPT tree");
+
+        double comp_lP = opt_slow_comp.get_lP();
+        cerr << "comp Log P: " << opt_slow_comp.get_lP() << endl;
+        
+        double lphi_ratio = orig_lphi-comp_lP;
+        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
+        
+        cout << lphi_ratio - c::l2 << '\n';
+        
+        //mt.reset();
+        //map_tree comp_map_region_tree(N[0]+N[1], dim);
+        //opt_region_hash<uint32_t> comp_map_regions(20);
+        //opt_slow_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, N[0]+N[1]);
+        //total_time += mt.elapsed_time();
+        //mt.print_elapsed_time(cerr, "comp MAP tree");
+
+        //print_MAP_density(cerr, comp_map_regions.get_regions(),
+        //            comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+        
+        idx = idx + scan_res;
+        if (idx+window_size<N+scan_res-1){
+            idx = N-window_size-1;
+        }
+    }
+    
 
 
     return 0;
