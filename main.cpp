@@ -1100,44 +1100,15 @@ int copt(vector<string> params) {
     mu_timer mt;
 
     {
-        // form combined data;
-        cerr << "Combining the dataset\n";
-        vector<vector<double> > comb_data = data[0];
-        comb_data.insert(comb_data.end(), data[1].begin(), data[1].end());
-        
-        cerr << "Constructing OPT from combined dataset\n";
-        opt_tree opt_slow(dim, stop_points, 1000);
-        mt.reset();
-        opt_slow.construct_full_tree(comb_data);
-        total_time += mt.elapsed_time();
-        mt.print_elapsed_time(cerr, "combined OPT tree");
-        
-        double orig_lphi = opt_slow.get_lphi();
-        cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
-
-        //mt.reset();
-        //map_tree map_region_tree(N[0], dim);
-        //opt_region_hash<uint32_t> map_regions(20);
-        //opt_slow.construct_MAP_tree(map_region_tree, map_regions, N[0]);
-        //total_time += mt.elapsed_time();
-        //mt.print_elapsed_time(cerr, "MAP tree");
-        
-        //print_MAP_density(cerr, map_regions.get_regions(),
-        //            map_region_tree.get_ra(), map_region_tree.get_num_points());
-        
         cerr << "Constructing coupling OPT tree\n";
-        copt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
+        copt_tree opt_slow_comp(dim, stop_points, 1000);
         mt.reset();
         opt_slow_comp.construct_full_tree(data);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "coupling OPT tree");
 
-        double comp_lP = opt_slow_comp.get_lP();
-        cerr << "comp Log P: " << opt_slow_comp.get_lP() << endl;
-        
-        double lphi_ratio = orig_lphi-comp_lP;
-        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
-        
+        cerr << "Log coupling prob: " << opt_slow_comp.get_log_coupling_prob() << endl;
+
         mt.reset();
         map_tree comp_map_region_tree(N[0]+N[1], dim);
         opt_region_hash<uint32_t> comp_map_regions(20);
@@ -1197,7 +1168,7 @@ int copt_scan(vector<string> params) {
     mu_timer mt;
     
     // loop to split the dataset
-    int window_size = 1000;
+    int window_size = 2000;
     
     if(N<window_size){
         cerr << "N too small\n";
@@ -1206,15 +1177,12 @@ int copt_scan(vector<string> params) {
     
     int idx = 0;
     while((idx+window_size)<N){
-        vector<vector<double> > comb_data;
+        // this splitting is really inefficient
         vector<vector<double> > split_data[2] = {vector<vector<double> >(),vector<vector<double> >()};
-        
-        comb_data.reserve(window_size);
         split_data[0].reserve(window_size/2 + 1);
         split_data[1].reserve(window_size/2 + 1);
         
         for(int i = 0;i<window_size;i++){
-            comb_data.push_back(data[idx+i]);
             if(i<window_size/2){
                 split_data[0].push_back(data[idx+i]);
             }else{
@@ -1224,40 +1192,30 @@ int copt_scan(vector<string> params) {
         
         cerr << "idx: " << idx << " - " << idx+window_size << '\n';
         
-        // form combined data;
-        
-        opt_tree opt_slow(dim, stop_points, 1000);
-        mt.reset();
-        opt_slow.construct_full_tree(comb_data);
-        total_time += mt.elapsed_time();
-        mt.print_elapsed_time(cerr, "combined OPT tree");
-        
-        double orig_lphi = opt_slow.get_lphi();
-        cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
-        
-        copt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
+        copt_tree opt_slow_comp(dim, stop_points, 1000);
         mt.reset();
         opt_slow_comp.construct_full_tree(split_data);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "coupling OPT tree");
 
-        double comp_lP = opt_slow_comp.get_lP();
-        cerr << "comp Log P: " << opt_slow_comp.get_lP() << endl;
+        double coup_prob = opt_slow_comp.get_log_coupling_prob();
+        cerr << "Log coupling prob: " << coup_prob << endl;
         
-        double lphi_ratio = orig_lphi-comp_lP;
-        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
+        cout << idx + window_size/2 << "," << coup_prob << '\n';
         
-        cout << idx + window_size/2 << " : " << lphi_ratio - c::l2 << '\n';
-        
-        //mt.reset();
-        //map_tree comp_map_region_tree(N[0]+N[1], dim);
-        //opt_region_hash<uint32_t> comp_map_regions(20);
-        //opt_slow_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, N[0]+N[1]);
-        //total_time += mt.elapsed_time();
-        //mt.print_elapsed_time(cerr, "comp MAP tree");
+        mt.reset();
+        map_tree comp_map_region_tree(N, dim);
+        opt_region_hash<uint32_t> comp_map_regions(20);
+        opt_slow_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, N);
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "comp MAP tree");
 
-        //print_MAP_density(cerr, comp_map_regions.get_regions(),
-        //            comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+        string temp = "partition_" + toStr<int>(idx) + ".txt";
+        ofstream out_file(temp.c_str());
+        print_MAP_density(out_file, comp_map_regions.get_regions(),
+                    comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+        out_file.close();
+        
         
         idx = idx + scan_res;
         if (((idx+window_size)>=N)&& (idx+window_size<N+scan_res-1)){

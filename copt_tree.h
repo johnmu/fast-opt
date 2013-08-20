@@ -57,23 +57,28 @@ private:
     // essentially the number of dimensions
     int num_children;
     
-    float lP;  // conditional marginal likelihood
-
+    float lP;   // conditional marginal likelihood of not coupling
+    float lphi; // conditional marginal for the OPT (combined sample) 
+    
+    uint32_t sequence_id;
+    
     void init(){
         count[0] = -1;
         count[1] = -1;
         lP = -c::inf;
+        lphi = -c::inf;
+        children = NULL;
+        num_children = 0;
+        sequence_id = 0;
     }
 
 public:
     ctree_node(){
-        children = NULL;
-        num_children = 0;
-
         init();
     }
 
     ctree_node(int num_children){
+        init();
         this->num_children = num_children;
 
         children = new ctree_node**[num_children];
@@ -84,19 +89,15 @@ public:
                 children[i][j] = NULL;
             }
         }
-
-        init();
     }
 
     ~ctree_node(){
-
         if(children == NULL) return;
 
         for(int i = 0;i<num_children;i++){
             delete [] children[i];
         }
         delete [] children;
-
     }
 
     bool is_leaf(){
@@ -105,32 +106,71 @@ public:
 
     void set_uniform(int depth){
         lP = (count[0]+count[1]) * depth * c::l2;
+        lphi = lP;
     }
 
-    void compute_lP(int depth, gamma_table& gt, double lP0){
+    // compute lPhi and lP
+    void compute_lPs(int depth, gamma_table& gt){
         
         vector<double> lphi_list;
         lphi_list.reserve(num_children+1);
         
         // Base measure
-        double max_val = - c::l2;
-        if (lP0 == -c::inf) {
-            cerr << "Error, lP not found, depth: " << depth << '\n';
-            max_val += ((count[0]+count[1]) * depth * c::l2);
-        }else{
-            max_val += lP0;
-        }
-        
+        int total_count = (count[0]+count[1]);
+        double max_val = (total_count * depth * c::l2) - (c::l2);
         lphi_list.push_back (max_val);
-
+        
         // The random constants
-        // lambda, (D([1/2,1/2]))^2 and 1/2
-        double ld = -log(num_children) - c::lpi - c::lpi - c::l2;
+        // lambda, D([1/2,1/2]) and 1/2
+        double ld = -log(num_children) - c::lpi - c::l2;
 
         for(int i = 0;i<num_children;i++){
             // check for null
             if(children[i][0] == NULL || children[i][1] == NULL){
                 cerr << "lphi NULL child!!! " << i << ',' << depth << '\n';
+                exit(2);
+            }
+
+            int child_1_count = children[i][0]->get_count();
+            int child_2_count = children[i][1]->get_count();
+
+            if(child_1_count < 0 || child_2_count < 0){
+                cerr << "lphi neg count!!! " << i << ',' << depth << '\n';
+                exit(2);
+            }
+
+            double val = ld;
+            val += children[i][0]->get_lphi();
+            val += children[i][1]->get_lphi();
+            val += gt.compute_lD2(total_count,child_1_count,child_2_count);
+
+            lphi_list.push_back(val);
+
+            if(val > max_val){
+                max_val = val;
+            }
+        }
+
+        lphi = max_val;
+        double sum = 0;
+        for(int i = 0;i<(num_children+1);i++){
+            sum += exp(lphi_list[i] - max_val);
+        }
+        if(sum > 0) lphi += log(sum);
+        
+        // this is for the coupling case
+        
+        max_val = lphi - c::l2;
+        lphi_list[0] = max_val;
+        
+        // The random constants
+        // lambda, (D([1/2,1/2]))^2 and 1/2
+        ld = -log(num_children) - c::lpi - c::lpi - c::l2;
+
+        for(int i = 0;i<num_children;i++){
+            // check for null
+            if(children[i][0] == NULL || children[i][1] == NULL){
+                cerr << "clphi NULL child!!! " << i << ',' << depth << '\n';
                 exit(2);
             }
 
@@ -141,7 +181,7 @@ public:
 
             if(child_1_count[0] < 0 || child_2_count[0] < 0
                     || child_1_count[1] < 0 || child_2_count[1] < 0){
-                cerr << "neg count!!! " << i << ',' << depth << '\n';
+                cerr << "cneg count!!! " << i << ',' << depth << '\n';
                 exit(2);
             }
 
@@ -151,16 +191,16 @@ public:
             val += gt.compute_lD2(count[0],child_1_count[0],child_2_count[0]);
             val += gt.compute_lD2(count[1],child_1_count[1],child_2_count[1]);
 
-            lphi_list.push_back(val);
+            lphi_list[i+1] = val;
 
             if(val > max_val){
                 max_val = val;
             }
 
         }
-
+        
         lP = max_val;
-        double sum = 0;
+        sum = 0;
         for(int i = 0;i<(num_children+1);i++){
             sum += exp(lphi_list[i] - max_val);
         }
@@ -170,6 +210,10 @@ public:
 
     double get_lP(){
         return lP;
+    }
+    
+    double get_lphi(){
+        return lphi;
     }
 
     int get_num_children(){
@@ -183,6 +227,10 @@ public:
     void set_lP(double lP){
         this->lP = lP;
     }
+    
+    void set_lPhi(double lphi){
+        this->lphi = lphi;
+    }
 
     void set_count(int count[2]){
         this->count[0] = count[0];
@@ -193,6 +241,10 @@ public:
         count_out[0] = this->count[0];
         count_out[1] = this->count[1];
     }
+    
+    int get_count(){
+        return count[0]+count[1];
+    }
 
     void set_child(int dim,int cut,ctree_node* node){
         if(children != NULL)children[dim][cut] = node;
@@ -202,7 +254,6 @@ public:
         if(children == NULL) return NULL;
         return children[dim][cut];
     }
-
 };
 
 
@@ -215,29 +266,29 @@ private:
 
     int count_lim;
     int max_depth;
-    
-    opt_tree* base_measure;
 
-    void init(int num_children, int count_lim, int max_depth,opt_tree* base_measure){
+    void init(int num_children, int count_lim, int max_depth){
         this->num_children = num_children;
         root = new ctree_node(num_children);
         this->count_lim = count_lim;
+        
+        if(this->count_lim < 2){
+            this->count_lim = 2;
+            cerr << "Warning: Minimum count limit is 2, may be fixed in future version\n";
+            // this is due to counting separately rather than together
+        }
+        
         this->max_depth = max_depth;
-        this->base_measure = base_measure;
     }
 
 public:
 
-    copt_tree(int num_children, int count_lim, int max_depth,opt_tree* base_measure){
-        init(num_children,count_lim,max_depth,base_measure);
-    }
-    
     copt_tree(int num_children, int count_lim, int max_depth){
-        init(num_children,count_lim,max_depth,NULL);
+        init(num_children,count_lim,max_depth);
     }
 
     copt_tree(int num_children){
-        init(num_children,5,1000,NULL);
+        init(num_children,5,1000);
     }
 
     ~copt_tree(){
@@ -250,7 +301,7 @@ public:
 
         int N[2] = {(int)all_data[0].size(),(int)all_data[1].size()};
 
-        gamma_table gt(N[0]+N[1]); // should probably be the max
+        gamma_table gt(N[0]+N[1]);
         root->set_count(N);
 
         vector<cpile_t<ctree_node*,uint32_t > > pile;
@@ -314,20 +365,7 @@ public:
                 }else{
                     // reached end of node!! back up
                     back_up = true;
-                    
-                    double lP0 = -c::inf;
-                    if(!(base_measure == NULL)){
-                        lP0 = base_measure->get_reg_lphi(working_reg);
-                        if(lP0 == -c::inf){
-                            cerr << "region not found:";
-                            working_reg.print_region();
-                            cerr << "\n";
-                            working_reg.print_region_limits();
-                            cerr << "\n";
-                        }
-                    }
-                    
-                    curr_node->compute_lP(depth,gt,lP0);
+                    curr_node->compute_lPs(depth,gt);
                 }
             }
 
@@ -487,19 +525,8 @@ public:
                 double post_rho = -c::l2;
                 
                 // base measure
-                if(base_measure == NULL){
-                    int curr_count[2];
-                    curr_node->get_count(curr_count);
-                    post_rho += depth * c::l2 * (curr_count[0]+curr_count[1]); // phi_0
-                }else{
-                    double lphi0 = base_measure->get_reg_lphi(working_reg);
-                    if(lphi0 != -c::inf){
-                        post_rho += lphi0;
-                    }else{
-                        cerr << "Error: MAP cannot find base measure\n";
-                    }
-                }
-                               
+
+                post_rho += curr_node->get_lphi();
                 post_rho -= curr_node->get_lP();
                 
                 if(post_rho>-c::l2){
@@ -574,7 +601,7 @@ public:
                 (*map_ra)[curr_map_node]->set_area(-depth);
                 int curr_count[2];
                 curr_node->get_count(curr_count);
-                (*map_ra)[curr_map_node]->set_count(abs(curr_count[0]-curr_count[1]));
+                (*map_ra)[curr_map_node]->set_count((curr_count[0]-curr_count[1]));
             }
 
             if(back_up){
@@ -617,6 +644,10 @@ public:
 
     double get_lP(){
         return root->get_lP();
+    }
+    
+    double get_log_coupling_prob(){
+        return root->get_lphi() - root->get_lP() - c::l2;
     }
 };
 

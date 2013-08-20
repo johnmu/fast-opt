@@ -101,20 +101,20 @@ public:
     // N is total number of points
     double get_density(int N,double pseudo_count, int num_regions){
         
-        if(count<0){
-            cerr<< "get_density:neg_count\n";
-            exit(1);
-        }
+        //if(count<0){
+        //    cerr<< "get_density:neg_count\n";
+        //    exit(1);
+        //}
         
         return ((count+pseudo_count)/(double)(N+(num_regions*pseudo_count)))*exp(-(area*c::l2));
     }
     
     double get_prob(int N,double pseudo_count, int num_regions){
         
-        if(count<0){
-            cerr<< "get_density:neg_count\n";
-            exit(1);
-        }
+        //if(count<0){
+        //    cerr<< "get_prob:neg_count\n";
+        //    exit(1);
+        //}
         
         return ((count+pseudo_count)/((double)N+(num_regions*pseudo_count)));
     }
