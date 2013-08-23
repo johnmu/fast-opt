@@ -457,7 +457,13 @@ public:
 
     }
 
-
+    // add and delete 1 point from each of the datasets
+    // used to shift the window 
+    // [ add0,  del0,  add1,  del1]
+    void update_points(double pts[4],int seq_idx){
+        
+    }
+    
     /////////////////////////
     // the tree and the regions
     // N is number of data points
