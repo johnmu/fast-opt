@@ -1,5 +1,5 @@
 /*
- *  copt_tree.h
+ *  online_copt_tree.h
  *  fast-opt
  *
  *  john.mu@ieee.org
@@ -32,8 +32,8 @@
  */
 
 
-#ifndef COPT_TREE_H
-#define	COPT_TREE_H
+#ifndef ONLINE_COPT_TREE_H
+#define	ONLINE_COPT_TREE_H
 
 //#define DEBUG
 //#define DEBUG_MAP
@@ -60,6 +60,9 @@ private:
     float lP;   // conditional marginal likelihood of not coupling
     float lphi; // conditional marginal for the OPT (combined sample) 
     
+    // used to keep track of which nodes have been updated
+    uint32_t sequence_id;              
+    
     void init(){
         count[0] = -1;
         count[1] = -1;
@@ -67,9 +70,16 @@ private:
         lphi = -c::inf;
         children = NULL;
         num_children = 0;
+        sequence_id = 0;
+        data = NULL;
     }
 
 public:
+    
+    // this stores the data points, but only used at the leaf nodes. 
+    // it should be NULL for any non-leaf node
+    vector<uint32_t>* data; 
+    
     ctree_node(){
         init();
     }
@@ -454,6 +464,166 @@ public:
 
     }
 
+    // add and delete 1 point from each of the datasets
+    // used to shift the window 
+    // [ add0,  del0,  add1,  del1]
+    void update_points(double pts[4],int seq_idx){
+        int64_t num_nodes = 0;
+        int64_t num_zero_nodes = 0;
+
+        int N[2] = {0,0};
+        root->get_count(N);
+        gamma_table gt(N[0]+N[1]);
+
+        vector<cpile_t<ctree_node*,uint32_t > > pile;
+        pile.push_back(cpile_t<ctree_node*,uint32_t >());
+        
+        pile[0].node = root;
+        pile[0].dim  = 0;
+        pile[0].cut  = 0;
+
+        current_region curr_reg(num_children);
+        opt_region working_reg(num_children);
+
+        int depth = 0;
+        
+        bool done = false;
+        while (!done){
+
+            if(pile.size() == 0){
+                done = true;
+                continue;
+            }
+
+            int curr_dim = pile[depth].dim;
+            int curr_cut = pile[depth].cut;
+            ctree_node* curr_node = pile[depth].node;
+
+            int curr_count[2];
+            curr_node->get_count(curr_count);
+            // work out what to count
+
+            bool back_up = false;
+            
+            // check if current node includes any of the 4 points
+            
+            
+            
+            
+            
+            
+            // check if current node is leaf or at end
+            if(curr_node->is_leaf()
+                    || (curr_count[0]+curr_count[1]) <= count_lim
+                    || depth >= max_depth
+                    || working_reg.full()){
+                // back up
+                back_up = true;
+
+                // assume cuts are the same, so don't nee to search for lP0
+                curr_node->set_uniform(depth);
+                
+            }else if(curr_node->get_child(curr_dim,curr_cut) != NULL){
+                // move to next node
+                
+                if(pile[depth].cut < c::cuts - 1){
+                    pile[depth].cut++;
+                }else if(pile[depth].dim < num_children - 1){
+                    pile[depth].dim++;
+                    pile[depth].cut = 0;
+                }else{
+                    // reached end of node!! back up
+                    
+                    // modify the counts here!
+                    
+                    back_up = true;
+                    curr_node->compute_lPs(depth,gt);
+                }
+            }
+
+            if (back_up) {
+
+                depth--;
+                pile.pop_back();
+                if(depth < 0) continue;
+                
+                curr_reg.uncut(pile[depth].dim,pile[depth].cut);
+                working_reg.uncut(pile[depth].dim);
+
+                continue;
+            }
+
+            curr_dim = pile[depth].dim;
+            curr_cut = pile[depth].cut;
+
+            // do the counting
+            
+            working_reg.cut(curr_dim,curr_cut);
+
+            // determine if current node is a leaf
+            
+            
+            
+
+            if (!new_node.second){
+
+                pile.push_back(cpile_t<ctree_node*,uint32_t >());
+                depth++;
+
+                // need to store the data point in the region if the region only has one point
+                // or is leaf
+                
+                bool is_diff_sep[2] = {true, true};
+                
+                bool is_diff = is_diff_sep[0]||is_diff_sep[1];
+
+                curr_reg.cut(curr_dim, curr_cut);
+
+                pile[depth].dim = 0;
+                pile[depth].cut = 0;
+
+                int curr_count[2];
+                curr_count[0] = pile[depth].data[0].size();
+                curr_count[1] = pile[depth].data[1].size();
+               
+                // must match the backup criteria
+                // kind of un-elegant that we need this...
+                if (!is_diff || (curr_count[0]+curr_count[1]) <= count_lim 
+                        || depth >= max_depth || working_reg.full()){
+                    new_node.first = new ctree_node();
+                    num_zero_nodes++;
+                }else {
+                    new_node.first = new ctree_node(num_children);
+                }
+
+                new_node.first->set_count(curr_count);
+
+                num_nodes++;
+
+                curr_node->set_child(curr_dim, curr_cut, new_node.first);
+                pile[depth].node = new_node.first;
+                region_cache.insert(working_reg,new_node.first,working_hash);
+
+                if (num_nodes % 1000000 == 0) {
+                    cerr << "Nodes(" <<pile[0].dim << "):"
+                            << num_nodes << " : " << num_zero_nodes
+                            << " : " << (num_nodes-num_zero_nodes) <<'\n';
+                }
+
+            } else {
+
+                curr_node->set_child(curr_dim, curr_cut, new_node.first);
+                working_reg.uncut(curr_dim);
+            }
+        }
+
+        cerr << "Nodes:" << num_nodes
+                << ", Zero nodes:" << num_zero_nodes
+                << ", Non-Zero nodes:" << (num_nodes-num_zero_nodes) <<'\n';
+
+
+    }
+    
     /////////////////////////
     // the tree and the regions
     // N is number of data points
