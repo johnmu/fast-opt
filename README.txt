@@ -1,3 +1,5 @@
+See http://johnmu.github.io/fast-opt/
+
 fast-opt
 A small package to perform density estimation via the optional polya tree. 
 Includes options for performing copula transform and classification. 
