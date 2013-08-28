@@ -424,7 +424,7 @@ public:
 
 
 template <typename T>
-class opt_region_hash {
+class opt_region_hash {    
 public:
     static const uint32_t magic = 2654435761u;
 
@@ -459,6 +459,18 @@ public:
                 }
             }
             delete [] map_table;
+        }
+    }
+    
+    void init_table(int table_bits){
+        ~opt_region_hash();
+        this->table_bits = table_bits;
+        this->table_size = 1u << table_bits;
+        this->mask = this->table_size - 1;
+
+        map_table = new map<opt_region, T>*[table_size];
+        for (uint32_t i = 0; i < table_size; i++) {
+            map_table[i] = NULL;
         }
     }
 

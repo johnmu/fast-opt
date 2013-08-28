@@ -44,7 +44,7 @@
 #include "map_tree.h"
 
 
-class ctree_node
+class online_ctree_node
 {
 private:
     int count[2]; // number of points in this region for each type
@@ -52,10 +52,10 @@ private:
     // this tree is designed so that it is a DAG
     // It is possible for branches to merge if the partitions are the same
     // pointer -> dimensions -> cuts (always 2 cuts for now)
-    ctree_node*** children;
+    //ctree_node*** children;
 
     // essentially the number of dimensions
-    int num_children;
+    //int num_children;
     
     float lP;   // conditional marginal likelihood of not coupling
     float lphi; // conditional marginal for the OPT (combined sample) 
@@ -68,47 +68,30 @@ private:
         count[1] = -1;
         lP = -c::inf;
         lphi = -c::inf;
-        children = NULL;
-        num_children = 0;
+        //children = NULL;
+        //num_children = 0;
         sequence_id = 0;
-        data = NULL;
+        data[0] = NULL;
+        data[1] = NULL;
     }
 
 public:
     
     // this stores the data points, but only used at the leaf nodes. 
     // it should be NULL for any non-leaf node
-    vector<uint32_t>* data; 
+    vector<uint32_t>* data[2]; 
     
-    ctree_node(){
+    online_ctree_node(){
         init();
     }
 
-    ctree_node(int num_children){
-        init();
-        this->num_children = num_children;
-
-        children = new ctree_node**[num_children];
-
-        for(int i = 0;i<num_children;i++){
-            children[i] = new ctree_node*[c::cuts];
-            for(int j = 0;j<c::cuts;j++){
-                children[i][j] = NULL;
-            }
-        }
-    }
-
-    ~ctree_node(){
-        if(children == NULL) return;
-
-        for(int i = 0;i<num_children;i++){
-            delete [] children[i];
-        }
-        delete [] children;
+    ~online_ctree_node(){        
+        if(data[0]!=NULL) delete data[0];
+        if(data[1]!=NULL) delete data[1];
     }
 
     bool is_leaf(){
-        return children == NULL;
+        return (data[0] == NULL);
     }
 
     void set_uniform(int depth){
@@ -116,6 +99,134 @@ public:
         lphi = lP;
     }
 
+    double get_lP(){
+        return lP;
+    }
+    
+    double get_lphi(){
+        return lphi;
+    }
+
+    void set_lP(double lP){
+        this->lP = lP;
+    }
+
+    void set_count(int count[2]){
+        this->count[0] = count[0];
+        this->count[1] = count[1];
+    }
+
+    void get_count(int count_out[2]){
+        count_out[0] = this->count[0];
+        count_out[1] = this->count[1];
+    }
+    
+    int get_count(){
+        return count[0]+count[1];
+    }
+};
+
+
+
+class online_copt_tree
+{
+private:
+    online_ctree_node* root;
+    int num_children;
+
+    int count_lim;
+    int max_depth;
+    
+    opt_region_hash<ctree_node*> region_cache;
+
+    void init(int num_children, int count_lim, int max_depth){
+        this->num_children = num_children;
+        root = new online_ctree_node(num_children);
+        this->count_lim = count_lim;
+        
+        if(this->count_lim < 2){
+            this->count_lim = 2;
+            cerr << "Warning: Minimum count limit is 2, may be fixed in future version\n";
+            // this is due to counting separately rather than together
+        }
+        
+        this->max_depth = max_depth;
+        
+        region_cache.init_table(27);
+    }
+    
+    static uint32_t get_child(opt_region working_reg, opt_region_hash<uint32_t> &region_cache,
+            int dim, int cut){
+
+
+        if(!working_reg.cut(dim,cut)){
+            cerr << "CANNOT CUT: ";
+            working_reg.print_region();
+            cerr << '\n';
+
+            exit(2);
+        }
+
+        pair<uint32_t,bool> out = region_cache.find(working_reg);
+
+        if(out.second){
+            return out.first;
+        }else{
+            return c::ra_null_val;
+        }
+    }
+    
+    // this is from llOPT use as template
+    static void compute_lphi(region_allocator<ll_tree_node_sparse> &ra,opt_region &working_reg,
+            opt_region_hash<uint32_t> &region_cache,
+            uint32_t curr_node, int depth, gamma_table &gt, int calling_loc,int num_children) {
+
+        vector<double> lphi_list; // should pre-allocate
+        double max_val = (ra[curr_node]->count * depth * c::l2) - c::l2;
+        lphi_list.push_back(max_val);
+
+        double ld = -log(num_children) - c::lpi - c::l2;
+        
+        for (int i = 0; i < num_children; i++) {
+
+            uint32_t child_id[2];
+            child_id[0] = get_child(working_reg, region_cache,i,0);
+            child_id[1] = get_child(working_reg, region_cache,i,1);
+            
+            int child_1_count = ra[child_id[0]]->count;
+            int child_2_count = ra[child_id[1]]->count;
+
+            if(child_1_count < 0){
+                child_1_count = -child_1_count;
+            }
+            
+            if(child_2_count < 0){
+                child_2_count = -child_2_count;
+            }
+            
+            double val = ld;
+            val += ra[child_id[0]]->get_lphi2(depth + 1);
+            val += ra[child_id[1]]->get_lphi2(depth + 1);
+            val += gt.compute_lD2(ra[curr_node]->count, child_1_count, child_2_count);
+
+            lphi_list.push_back(val);
+
+            if (val > max_val) {
+                max_val = val;
+            }
+        }
+
+        double lphi = max_val;
+        double sum = 0;
+        for (int i = 0; i < (num_children + 1); i++) {
+            sum += exp(lphi_list[i] - max_val);
+        }
+
+        if (sum > 0) lphi += log(sum);
+
+        ra[curr_node]->lphi = lphi;
+    }
+    
     // compute lPhi and lP
     void compute_lPs(int depth, gamma_table& gt){
         
@@ -215,90 +326,17 @@ public:
         if(sum > 0) lP += log(sum);
     }
 
-    double get_lP(){
-        return lP;
-    }
-    
-    double get_lphi(){
-        return lphi;
-    }
-
-    int get_num_children(){
-        return num_children;
-    }
-
-    int get_cuts(){
-        return c::cuts;
-    }
-
-    void set_lP(double lP){
-        this->lP = lP;
-    }
-    
-    void set_lPhi(double lphi){
-        this->lphi = lphi;
-    }
-
-    void set_count(int count[2]){
-        this->count[0] = count[0];
-        this->count[1] = count[1];
-    }
-
-    void get_count(int count_out[2]){
-        count_out[0] = this->count[0];
-        count_out[1] = this->count[1];
-    }
-    
-    int get_count(){
-        return count[0]+count[1];
-    }
-
-    void set_child(int dim,int cut,ctree_node* node){
-        if(children != NULL)children[dim][cut] = node;
-    }
-
-    ctree_node* get_child(int dim,int cut){
-        if(children == NULL) return NULL;
-        return children[dim][cut];
-    }
-};
-
-
-
-class copt_tree
-{
-private:
-    ctree_node* root;
-    int num_children;
-
-    int count_lim;
-    int max_depth;
-
-    void init(int num_children, int count_lim, int max_depth){
-        this->num_children = num_children;
-        root = new ctree_node(num_children);
-        this->count_lim = count_lim;
-        
-        if(this->count_lim < 2){
-            this->count_lim = 2;
-            cerr << "Warning: Minimum count limit is 2, may be fixed in future version\n";
-            // this is due to counting separately rather than together
-        }
-        
-        this->max_depth = max_depth;
-    }
-
 public:
 
-    copt_tree(int num_children, int count_lim, int max_depth){
+    online_copt_tree(int num_children, int count_lim, int max_depth){
         init(num_children,count_lim,max_depth);
     }
 
-    copt_tree(int num_children){
+    online_copt_tree(int num_children){
         init(num_children,5,1000);
     }
 
-    ~copt_tree(){
+    ~online_copt_tree(){
         delete root;
     }
 
@@ -329,7 +367,6 @@ public:
         current_region curr_reg(num_children);
         opt_region working_reg(num_children);
 
-        opt_region_hash<ctree_node*> region_cache(27);
 
         int depth = 0;
         
@@ -358,8 +395,11 @@ public:
                 // back up
                 back_up = true;
 
-                // assume cuts are the same, so don't nee to search for lP0
                 curr_node->set_uniform(depth);
+                
+                // save data in the leaf nodes
+                curr_node->data[0] = new vector<uint32_t>(pile[depth].data[0]);
+                curr_node->data[1] = new vector<uint32_t>(pile[depth].data[1]);
                 
             }else if(curr_node->get_child(curr_dim,curr_cut) != NULL){
                 // move to next node
@@ -505,14 +545,16 @@ public:
 
             bool back_up = false;
             
+            // if sequence id is not reached check this
             // check if current node includes any of the 4 points
-            
+            // if doesn't include back up
             
             
             
             
             
             // check if current node is leaf or at end
+            // do this check if the sequence id is reached
             if(curr_node->is_leaf()
                     || (curr_count[0]+curr_count[1]) <= count_lim
                     || depth >= max_depth
@@ -534,7 +576,9 @@ public:
                 }else{
                     // reached end of node!! back up
                     
-                    // modify the counts here!
+                    // modify counts here
+                    
+                    
                     
                     back_up = true;
                     curr_node->compute_lPs(depth,gt);
@@ -558,6 +602,7 @@ public:
 
             // do the counting
             
+            // cut down
             working_reg.cut(curr_dim,curr_cut);
 
             // determine if current node is a leaf

@@ -62,10 +62,6 @@ struct ll_tree_node_sparse{
         init();
     }
 
-    ll_tree_node_sparse(int a) {
-        init();
-    }
-
     double get_lphi_unif(int depth){
         if(count >= 0){
             return (count * depth * c::l2) - c::l2;
@@ -195,7 +191,6 @@ public:
             exit(2);
         }
 
-
         pair<uint32_t,bool> out = region_cache.find(working_reg);
 
         if(out.second){
@@ -210,20 +205,12 @@ public:
             opt_region_hash<uint32_t> &region_cache,
             uint32_t curr_node, int depth, gamma_table &gt, int calling_loc,int num_children) {
 
-        //cerr << "compute_lphi(" << depth << "): ";
-        //working_reg.print_region(cerr);
-        //cerr << '\n';
-
         vector<double> lphi_list; // should pre-allocate
         double max_val = (ra[curr_node]->count * depth * c::l2) - c::l2;
         lphi_list.push_back(max_val);
 
-        //if(calling_loc == 3) cerr << "max_val: " << max_val << '\n';
-
         double ld = -log(num_children) - c::lpi - c::l2;
-
-        //if(calling_loc == 3) cerr << "ld: " << ld << '\n';
-
+        
         for (int i = 0; i < num_children; i++) {
 
             uint32_t child_id[2];
@@ -241,7 +228,6 @@ public:
                 child_2_count = -child_2_count;
             }
             
-            
             double val = ld;
             val += ra[child_id[0]]->get_lphi2(depth + 1);
             val += ra[child_id[1]]->get_lphi2(depth + 1);
@@ -252,7 +238,6 @@ public:
             if (val > max_val) {
                 max_val = val;
             }
-
         }
 
         double lphi = max_val;
@@ -264,8 +249,6 @@ public:
         if (sum > 0) lphi += log(sum);
 
         ra[curr_node]->lphi = lphi;
-
-        //if(calling_loc == 3) cerr << "lphi: " << lphi << '\n';
     }
 
 
@@ -311,8 +294,6 @@ public:
                 done = true;
                 continue;
             }
-
-
             uint32_t curr_node_idx = pile[depth].node;
 
             //pthread_mutex_lock(locker);
