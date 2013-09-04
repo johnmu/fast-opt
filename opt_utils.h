@@ -327,14 +327,10 @@ public:
 
     T* operator[](uint32_t idx){
         if(idx>=(uint32_t)store.size()){
-
             cerr << "region_allocator: Out of range: "<< idx<< "\n";
-
             return NULL;
         }else if(idx == c::ra_null_val){
-
             cerr << "region_allocator: NULL\n";
-
             return NULL;
         }
         return &store[idx];

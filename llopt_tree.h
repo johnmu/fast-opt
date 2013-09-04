@@ -61,6 +61,10 @@ struct ll_tree_node_sparse{
     ll_tree_node_sparse() {
         init();
     }
+    
+    ll_tree_node_sparse(int num_children) {
+        init();
+    }
 
     double get_lphi_unif(int depth){
         if(count >= 0){
@@ -345,6 +349,7 @@ public:
                 pile.push_back(pile_t<uint32_t,uint32_t > ());
                 depth++;
 
+                // this should be moved inside the if statement!!!!
                 is_diff = cut_region_one(*all_data, pile[depth - 1].data, pile[depth].data,
                         curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
 
@@ -363,12 +368,9 @@ public:
                 //pthread_mutex_unlock(locker);
 
                 if (!new_node.second) {
-
-                    //cerr << "not found: " << curr_count << "\n";
-
                     // MUTEX
                     //pthread_mutex_lock(locker);
-                    pair<uint32_t, ll_tree_node_sparse*> out = ra->create_node(num_children);
+                    pair<uint32_t, ll_tree_node_sparse*> out = ra->create_node();
                     new_node.first = out.first;
                     
                     if(is_diff){
@@ -390,7 +392,7 @@ public:
                     //pthread_mutex_unlock(locker);
 
                 } else {
-
+                    // do we really need to go down in this case?
                     pile[depth].node = new_node.first;
                     //cerr << "fUNCUT: " << curr_dim  << '\n';
 

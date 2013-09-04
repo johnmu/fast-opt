@@ -95,16 +95,24 @@ public:
     }
 
     void set_uniform(int depth){
-        lP = (count[0]+count[1]) * depth * c::l2;
+        lP = abs(count[0]+count[1]) * depth * c::l2;
         lphi = lP;
     }
 
-    double get_lP(){
+    float get_lP(){
         return lP;
     }
     
-    double get_lphi(){
+    float get_lphi(){
         return lphi;
+    }
+    
+    void set_lP(float lP){
+        this->lP = lP;
+    }
+    
+    void set_lphi(float lphi){
+        this->lphi = lphi;
     }
 
     void set_lP(double lP){
@@ -131,39 +139,37 @@ public:
 class online_copt_tree
 {
 private:
-    online_ctree_node* root;
+    uint32_t root;
     int num_children;
 
     int count_lim;
     int max_depth;
     
-    opt_region_hash<ctree_node*> region_cache;
+    region_allocator<online_ctree_node> ra;
+    opt_region_hash<uint32_t> region_cache;
+    gamma_table gt;
 
-    void init(int num_children, int count_lim, int max_depth){
+    void init(int num_children, int count_lim, int max_depth,int max_N){
         this->num_children = num_children;
-        root = new online_ctree_node(num_children);
+        root = c::ra_null_val;
         this->count_lim = count_lim;
-        
         if(this->count_lim < 2){
             this->count_lim = 2;
             cerr << "Warning: Minimum count limit is 2, may be fixed in future version\n";
             // this is due to counting separately rather than together
         }
-        
         this->max_depth = max_depth;
-        
         region_cache.init_table(27);
+        gt.init(max_N);
     }
     
     static uint32_t get_child(opt_region working_reg, opt_region_hash<uint32_t> &region_cache,
             int dim, int cut){
 
-
         if(!working_reg.cut(dim,cut)){
             cerr << "CANNOT CUT: ";
             working_reg.print_region();
             cerr << '\n';
-
             exit(2);
         }
 
@@ -176,65 +182,17 @@ private:
         }
     }
     
-    // this is from llOPT use as template
-    static void compute_lphi(region_allocator<ll_tree_node_sparse> &ra,opt_region &working_reg,
-            opt_region_hash<uint32_t> &region_cache,
-            uint32_t curr_node, int depth, gamma_table &gt, int calling_loc,int num_children) {
-
-        vector<double> lphi_list; // should pre-allocate
-        double max_val = (ra[curr_node]->count * depth * c::l2) - c::l2;
-        lphi_list.push_back(max_val);
-
-        double ld = -log(num_children) - c::lpi - c::l2;
-        
-        for (int i = 0; i < num_children; i++) {
-
-            uint32_t child_id[2];
-            child_id[0] = get_child(working_reg, region_cache,i,0);
-            child_id[1] = get_child(working_reg, region_cache,i,1);
-            
-            int child_1_count = ra[child_id[0]]->count;
-            int child_2_count = ra[child_id[1]]->count;
-
-            if(child_1_count < 0){
-                child_1_count = -child_1_count;
-            }
-            
-            if(child_2_count < 0){
-                child_2_count = -child_2_count;
-            }
-            
-            double val = ld;
-            val += ra[child_id[0]]->get_lphi2(depth + 1);
-            val += ra[child_id[1]]->get_lphi2(depth + 1);
-            val += gt.compute_lD2(ra[curr_node]->count, child_1_count, child_2_count);
-
-            lphi_list.push_back(val);
-
-            if (val > max_val) {
-                max_val = val;
-            }
-        }
-
-        double lphi = max_val;
-        double sum = 0;
-        for (int i = 0; i < (num_children + 1); i++) {
-            sum += exp(lphi_list[i] - max_val);
-        }
-
-        if (sum > 0) lphi += log(sum);
-
-        ra[curr_node]->lphi = lphi;
-    }
-    
     // compute lPhi and lP
-    void compute_lPs(int depth, gamma_table& gt){
+    // modify so that we don't access the hash twice
+    void compute_lPs(opt_region &working_reg, uint32_t curr_node, int depth){
         
         vector<double> lphi_list;
         lphi_list.reserve(num_children+1);
         
         // Base measure
-        int total_count = (count[0]+count[1]);
+        int count[2];
+        ra[curr_node]->get_count(count);
+        int total_count = abs(count[0]+count[1]);
         double max_val = (total_count * depth * c::l2) - (c::l2);
         lphi_list.push_back (max_val);
         
@@ -244,13 +202,12 @@ private:
 
         for(int i = 0;i<num_children;i++){
             // check for null
-            if(children[i][0] == NULL || children[i][1] == NULL){
-                cerr << "lphi NULL child!!! " << i << ',' << depth << '\n';
-                exit(2);
-            }
+            uint32_t child_id[2];
+            child_id[0] = get_child(working_reg, region_cache,i,0);
+            child_id[1] = get_child(working_reg, region_cache,i,1);
 
-            int child_1_count = children[i][0]->get_count();
-            int child_2_count = children[i][1]->get_count();
+            int child_1_count = abs(ra[child_id[0]]->get_count());
+            int child_2_count = abs(ra[child_id[1]]->get_count());
 
             if(child_1_count < 0 || child_2_count < 0){
                 cerr << "lphi neg count!!! " << i << ',' << depth << '\n';
@@ -258,8 +215,8 @@ private:
             }
 
             double val = ld;
-            val += children[i][0]->get_lphi();
-            val += children[i][1]->get_lphi();
+            val += ra[child_id[0]]->get_lphi();
+            val += ra[child_id[1]]->get_lphi();
             val += gt.compute_lD2(total_count,child_1_count,child_2_count);
 
             lphi_list.push_back(val);
@@ -269,12 +226,14 @@ private:
             }
         }
 
-        lphi = max_val;
+        float lphi = max_val;
         double sum = 0;
         for(int i = 0;i<(num_children+1);i++){
             sum += exp(lphi_list[i] - max_val);
         }
         if(sum > 0) lphi += log(sum);
+        
+        ra[curr_node]->set_lphi(lphi);
         
         // this is for the coupling case
         
@@ -286,16 +245,18 @@ private:
         ld = -log(num_children) - c::lpi - c::lpi - c::l2;
 
         for(int i = 0;i<num_children;i++){
-            // check for null
-            if(children[i][0] == NULL || children[i][1] == NULL){
-                cerr << "clphi NULL child!!! " << i << ',' << depth << '\n';
-                exit(2);
-            }
+            uint32_t child_id[2];
+            child_id[0] = get_child(working_reg, region_cache,i,0);
+            child_id[1] = get_child(working_reg, region_cache,i,1);
 
             int child_1_count[2];
-            children[i][0]->get_count(child_1_count);
+            ra[child_id[0]]->get_count(child_1_count);
+            child_1_count[0] = abs(child_1_count[0]);
+            child_1_count[1] = abs(child_1_count[1]);
             int child_2_count[2];
-            children[i][1]->get_count(child_2_count);
+            ra[child_id[1]]->get_count(child_2_count);
+            child_2_count[0] = abs(child_2_count[0]);
+            child_2_count[1] = abs(child_2_count[1]);
 
             if(child_1_count[0] < 0 || child_2_count[0] < 0
                     || child_1_count[1] < 0 || child_2_count[1] < 0){
@@ -304,8 +265,8 @@ private:
             }
 
             double val = ld;
-            val += children[i][0]->get_lP();
-            val += children[i][1]->get_lP();
+            val += ra[child_id[0]]->get_lP();
+            val += ra[child_id[1]]->get_lP();
             val += gt.compute_lD2(count[0],child_1_count[0],child_2_count[0]);
             val += gt.compute_lD2(count[1],child_1_count[1],child_2_count[1]);
 
@@ -314,45 +275,44 @@ private:
             if(val > max_val){
                 max_val = val;
             }
-
         }
         
-        lP = max_val;
+        float lP = max_val;
         sum = 0;
         for(int i = 0;i<(num_children+1);i++){
             sum += exp(lphi_list[i] - max_val);
         }
 
         if(sum > 0) lP += log(sum);
+        
+        ra[curr_node]->set_lP(lP);
     }
 
 public:
 
-    online_copt_tree(int num_children, int count_lim, int max_depth){
-        init(num_children,count_lim,max_depth);
+    online_copt_tree(int num_children, int count_lim, int max_depth,int max_N){
+        init(num_children,count_lim,max_depth, max_N);
     }
 
-    online_copt_tree(int num_children){
-        init(num_children,5,1000);
+    online_copt_tree(int num_children,int max_N){
+        init(num_children,5,1000, max_N);
     }
 
     ~online_copt_tree(){
-        delete root;
     }
 
     void construct_full_tree(vector<vector<double> > all_data[2]){
         int64_t num_nodes = 0;
-        int64_t num_zero_nodes = 0;
 
         int N[2] = {(int)all_data[0].size(),(int)all_data[1].size()};
 
-        gamma_table gt(N[0]+N[1]);
-        root->set_count(N);
+        pair<uint32_t,online_ctree_node*> root_out = ra.create_node();
+        root = root_out.first;
+        root_out.second->set_count(N);
 
-        vector<cpile_t<ctree_node*,uint32_t > > pile;
-        pile.push_back(cpile_t<ctree_node*,uint32_t >());
+        vector<cpile_t<uint32_t,uint32_t > > pile;
+        pile.push_back(cpile_t<uint32_t,uint32_t >());
        
-        
         for (int k = 0; k < 2; k++) {
             pile[0].data[k] = vector<uint32_t>(N[k],0);
             for (int i = 0; i < N[k]; i++) {
@@ -367,7 +327,6 @@ public:
         current_region curr_reg(num_children);
         opt_region working_reg(num_children);
 
-
         int depth = 0;
         
         bool done = false;
@@ -380,7 +339,7 @@ public:
 
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
-            ctree_node* curr_node = pile[depth].node;
+            online_ctree_node* curr_node = ra[pile[depth].node];
 
             int curr_count[2];
             curr_node->get_count(curr_count);
@@ -401,23 +360,15 @@ public:
                 curr_node->data[0] = new vector<uint32_t>(pile[depth].data[0]);
                 curr_node->data[1] = new vector<uint32_t>(pile[depth].data[1]);
                 
-            }else if(curr_node->get_child(curr_dim,curr_cut) != NULL){
-                // move to next node
-                
-                if(pile[depth].cut < c::cuts - 1){
-                    pile[depth].cut++;
-                }else if(pile[depth].dim < num_children - 1){
-                    pile[depth].dim++;
-                    pile[depth].cut = 0;
-                }else{
+            }else if(pile[depth].dim > num_children - 1){
                     // reached end of node!! back up
                     back_up = true;
-                    curr_node->compute_lPs(depth,gt);
-                }
+                    //(opt_region &working_reg, uint32_t curr_node, int depth, int num_children
+                    compute_lPs(working_reg, pile[depth].node, depth);
+                
             }
 
             if (back_up) {
-
                 depth--;
                 pile.pop_back();
                 if(depth < 0) continue;
@@ -425,6 +376,13 @@ public:
                 curr_reg.uncut(pile[depth].dim,pile[depth].cut);
                 working_reg.uncut(pile[depth].dim);
 
+                if(pile[depth].cut < c::cuts - 1){
+                    pile[depth].cut++;
+                }else if(pile[depth].dim < num_children - 1){
+                    pile[depth].dim++;
+                    pile[depth].cut = 0;
+                }
+                
                 continue;
             }
 
@@ -436,18 +394,17 @@ public:
             working_reg.cut(curr_dim,curr_cut);
             uint32_t working_hash = region_cache.hash(working_reg);
 
-            pair<ctree_node*,bool> new_node = region_cache.find(working_reg,working_hash);
+            pair<uint32_t,bool> new_node = region_cache.find(working_reg,working_hash);
 
             if (!new_node.second) {
-
-                pile.push_back(cpile_t<ctree_node*,uint32_t >());
+                pile.push_back(cpile_t<uint32_t,uint32_t>());
                 depth++;
 
                 bool is_diff_sep[2] = {true, true};
                 for (int k = 0; k < 2; k++) {
                     if(pile[depth-1].data[k].size() > 0){
-                        is_diff_sep[k] = cut_region_one(all_data[k], pile[depth - 1].data[k], pile[depth].data[k],
-                            curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
+                        is_diff_sep[k] = cut_region_one(all_data[k], pile[depth - 1].data[k],
+                                pile[depth].data[k],curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
                     }else{
                         is_diff_sep[k] = false;
                     }
@@ -461,47 +418,35 @@ public:
                 pile[depth].cut = 0;
 
                 int curr_count[2];
-                curr_count[0] = pile[depth].data[0].size();
-                curr_count[1] = pile[depth].data[1].size();
-               
-                // must match the backup criteria
-                // kind of un-elegant that we need this...
-                if (!is_diff || (curr_count[0]+curr_count[1]) <= count_lim 
-                        || depth >= max_depth || working_reg.full()){
-                    new_node.first = new ctree_node();
-                    num_zero_nodes++;
-                }else {
-                    new_node.first = new ctree_node(num_children);
+                if(is_diff){
+                    curr_count[0] = pile[depth].data[0].size();
+                    curr_count[1] = pile[depth].data[1].size();
+                }else{
+                    curr_count[0] = -pile[depth].data[0].size();
+                    curr_count[1] = -pile[depth].data[1].size();
                 }
+               
+                pair<uint32_t, online_ctree_node*> out = ra.create_node();
+                new_node.first = out.first;
 
-                new_node.first->set_count(curr_count);
+                out.second->set_count(curr_count);
 
                 num_nodes++;
-
-                curr_node->set_child(curr_dim, curr_cut, new_node.first);
+                
                 pile[depth].node = new_node.first;
                 region_cache.insert(working_reg,new_node.first,working_hash);
 
                 if (num_nodes % 1000000 == 0) {
                     cerr << "Nodes(" <<pile[0].dim << "):"
-                            << num_nodes << " : " << num_zero_nodes
-                            << " : " << (num_nodes-num_zero_nodes) <<'\n';
+                            << num_nodes <<'\n';
                 }
 
             } else {
-#ifdef DEBUG
-                cerr << "found node: " << curr_dim << "," << curr_cut << '\n';
-#endif
-                curr_node->set_child(curr_dim, curr_cut, new_node.first);
                 working_reg.uncut(curr_dim);
             }
         }
 
-        cerr << "Nodes:" << num_nodes
-                << ", Zero nodes:" << num_zero_nodes
-                << ", Non-Zero nodes:" << (num_nodes-num_zero_nodes) <<'\n';
-
-
+        cerr << "Nodes:" << num_nodes <<'\n';
     }
 
     // add and delete 1 point from each of the datasets
@@ -512,11 +457,11 @@ public:
         int64_t num_zero_nodes = 0;
 
         int N[2] = {0,0};
-        root->get_count(N);
+        ra[root]->get_count(N);
         gamma_table gt(N[0]+N[1]);
 
-        vector<cpile_t<ctree_node*,uint32_t > > pile;
-        pile.push_back(cpile_t<ctree_node*,uint32_t >());
+        vector<cpile_t<uint32_t,uint32_t> > pile;
+        pile.push_back(cpile_t<uint32_t,uint32_t>());
         
         pile[0].node = root;
         pile[0].dim  = 0;
@@ -537,7 +482,7 @@ public:
 
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
-            ctree_node* curr_node = pile[depth].node;
+            online_ctree_node* curr_node = ra[pile[depth].node];
 
             int curr_count[2];
             curr_node->get_count(curr_count);
@@ -662,11 +607,6 @@ public:
             }
         }
 
-        cerr << "Nodes:" << num_nodes
-                << ", Zero nodes:" << num_zero_nodes
-                << ", Non-Zero nodes:" << (num_nodes-num_zero_nodes) <<'\n';
-
-
     }
     
     /////////////////////////
@@ -675,8 +615,10 @@ public:
     void construct_MAP_tree(map_tree &map_region_tree,opt_region_hash<uint32_t> &map_regions,int N){
 
         // Check if tree and region is empty
-        
-        // copy the root over
+        if(root == c::ra_null_val){
+            cerr << "Error: coupling OPT not constructed yet\n";
+            exit(2);
+        }
 
         // the second part is actually not used :/
         vector<pile_t<uint32_t,char> > map_pile;
@@ -687,12 +629,11 @@ public:
 
         region_allocator<map_tree_node> *map_ra = map_region_tree.get_ra();
 
-        // initialise state variables
+        // initialize state variables
         int depth = 0;
-        gamma_table gt(N);
 
-        vector<pile_t<ctree_node*,char > > pile;
-        pile.push_back(pile_t<ctree_node*,char >());
+        vector<pile_t<uint32_t,char > > pile;
+        pile.push_back(pile_t<uint32_t,char >());
 
         pile[0].data = vector<char>();
         pile[0].node = root;
@@ -712,7 +653,7 @@ public:
 
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
-            ctree_node* curr_node = pile[depth].node;
+            online_ctree_node* curr_node = ra[pile[depth].node];
 
             uint32_t curr_map_node = map_pile[depth].node;
 
@@ -746,17 +687,28 @@ public:
                     back_up = true;
                 }else{
                     // choose a dimension
-
+                    uint32_t child_id[2];
+                    child_id[0] = get_child(working_reg, region_cache, 0, 0);
+                    child_id[1] = get_child(working_reg, region_cache, 0, 1);
+                    
                     map_dim = 0;
-                    ctree_node* child_0 = curr_node->get_child(0,0);
-                    ctree_node* child_1 = curr_node->get_child(0,1);
+                    online_ctree_node* child_0 = ra[child_id[0]];
+                    online_ctree_node* child_1 = ra[child_id[1]];
 
                     int count0[2];
                     child_0->get_count(count0);
+                    count0[0] = abs(count0[0]);
+                    count0[1] = abs(count0[1]);
+                    
                     int count1[2];
                     child_1->get_count(count1);
+                    count1[0] = abs(count1[0]);
+                    count1[1] = abs(count1[1]);
+                    
                     int curr_count[2];
                     curr_node->get_count(curr_count);
+                    curr_count[0] = abs(curr_count[0]);
+                    curr_count[1] = abs(curr_count[1]);
                     
                     double max_post_prob = 0;
                     max_post_prob += gt.compute_lD2(curr_count[0],count0[0],count1[0]);
@@ -765,8 +717,11 @@ public:
                     max_post_prob += child_1->get_lP();
 
                     for(int i = 1;i<num_children; i++) {
-                        child_0 = curr_node->get_child(i, 0);
-                        child_1 = curr_node->get_child(i, 1);
+                        child_id[0] = get_child(working_reg, region_cache, i, 0);
+                        child_id[1] = get_child(working_reg, region_cache, i, 1);
+                        
+                        online_ctree_node* child_0 = ra[child_id[0]];
+                        online_ctree_node* child_1 = ra[child_id[1]];
                         
                         child_0->get_count(count0);
                         child_1->get_count(count1);
@@ -834,13 +789,13 @@ public:
             map_pile.push_back(pile_t<uint32_t,char >());
             map_pile[depth].node = new_map_node.first;
 
-            working_reg.cut(curr_dim, curr_cut);
-
-            pile.push_back(pile_t<ctree_node*,char >());
+            pile.push_back(pile_t<uint32_t,char >());
 
             pile[depth].dim  = -1;
             pile[depth].cut  = -1;
-            pile[depth].node = curr_node->get_child(curr_dim,curr_cut);
+            pile[depth].node = get_child(working_reg, region_cache, curr_dim, curr_cut);
+            
+            working_reg.cut(curr_dim, curr_cut);
         }
     }
 
@@ -849,16 +804,17 @@ public:
         return num_children;
     }
 
-    ctree_node* get_full_tree(){
-        return root;
+    online_ctree_node* get_full_tree(){
+        return ra[root];
     }
 
     double get_lP(){
-        return root->get_lP();
+        return ra[root]->get_lP();
     }
     
     double get_log_coupling_prob(){
-        return root->get_lphi() - root->get_lP() - c::l2;
+        online_ctree_node* curr_node = ra[root];
+        return curr_node->get_lphi() - curr_node->get_lP() - c::l2;
     }
 };
 
