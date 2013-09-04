@@ -453,8 +453,6 @@ public:
     // used to shift the window 
     // [ add0,  del0,  add1,  del1]
     void update_points(double pts[4],int seq_idx){
-        int64_t num_nodes = 0;
-        int64_t num_zero_nodes = 0;
 
         int N[2] = {0,0};
         ra[root]->get_count(N);
@@ -510,24 +508,17 @@ public:
                 // assume cuts are the same, so don't nee to search for lP0
                 curr_node->set_uniform(depth);
                 
-            }else if(curr_node->get_child(curr_dim,curr_cut) != NULL){
-                // move to next node
-                
-                if(pile[depth].cut < c::cuts - 1){
-                    pile[depth].cut++;
-                }else if(pile[depth].dim < num_children - 1){
-                    pile[depth].dim++;
-                    pile[depth].cut = 0;
-                }else{
-                    // reached end of node!! back up
-                    
-                    // modify counts here
-                    
-                    
-                    
-                    back_up = true;
-                    curr_node->compute_lPs(depth,gt);
-                }
+            }else if(pile[depth].dim > num_children - 1){
+
+                // reached end of node!! back up
+
+                // modify counts here
+
+
+
+                back_up = true;
+                compute_lPs(working_reg, pile[depth].node, depth);
+
             }
 
             if (back_up) {
@@ -539,6 +530,13 @@ public:
                 curr_reg.uncut(pile[depth].dim,pile[depth].cut);
                 working_reg.uncut(pile[depth].dim);
 
+                if(pile[depth].cut < c::cuts - 1){
+                    pile[depth].cut++;
+                }else if(pile[depth].dim < num_children - 1){
+                    pile[depth].dim++;
+                    pile[depth].cut = 0;
+                }
+                
                 continue;
             }
 
@@ -552,12 +550,15 @@ public:
 
             // determine if current node is a leaf
             
-            
+            working_reg.cut(curr_dim,curr_cut);
+            uint32_t working_hash = region_cache.hash(working_reg);
+
+            pair<uint32_t,bool> new_node = region_cache.find(working_reg,working_hash);
             
 
             if (!new_node.second){
 
-                pile.push_back(cpile_t<ctree_node*,uint32_t >());
+                pile.push_back(cpile_t<uint32_t,uint32_t >());
                 depth++;
 
                 // need to store the data point in the region if the region only has one point
@@ -573,36 +574,25 @@ public:
                 pile[depth].cut = 0;
 
                 int curr_count[2];
-                curr_count[0] = pile[depth].data[0].size();
-                curr_count[1] = pile[depth].data[1].size();
-               
-                // must match the backup criteria
-                // kind of un-elegant that we need this...
-                if (!is_diff || (curr_count[0]+curr_count[1]) <= count_lim 
-                        || depth >= max_depth || working_reg.full()){
-                    new_node.first = new ctree_node();
-                    num_zero_nodes++;
-                }else {
-                    new_node.first = new ctree_node(num_children);
+                if(is_diff){
+                    curr_count[0] = pile[depth].data[0].size();
+                    curr_count[1] = pile[depth].data[1].size();
+                }else{
+                    curr_count[0] = -pile[depth].data[0].size();
+                    curr_count[1] = -pile[depth].data[1].size();
                 }
+                
+                pair<uint32_t, online_ctree_node*> out = ra.create_node();
+                new_node.first = out.first;
 
-                new_node.first->set_count(curr_count);
-
-                num_nodes++;
-
-                curr_node->set_child(curr_dim, curr_cut, new_node.first);
+                out.second->set_count(curr_count);
+                
                 pile[depth].node = new_node.first;
                 region_cache.insert(working_reg,new_node.first,working_hash);
 
-                if (num_nodes % 1000000 == 0) {
-                    cerr << "Nodes(" <<pile[0].dim << "):"
-                            << num_nodes << " : " << num_zero_nodes
-                            << " : " << (num_nodes-num_zero_nodes) <<'\n';
-                }
 
             } else {
 
-                curr_node->set_child(curr_dim, curr_cut, new_node.first);
                 working_reg.uncut(curr_dim);
             }
         }

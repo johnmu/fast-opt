@@ -429,6 +429,19 @@ public:
     uint32_t table_size;
     uint32_t mask;
     
+    void deinit(){
+        //  iterate through and delete all the nodes
+        
+        if(map_table != NULL){
+            for (uint32_t i = 0; i < table_size; i++) {
+                if (map_table[i] != NULL) {
+                    delete map_table[i];
+                }
+            }
+            delete [] map_table;
+        }
+    }
+    
     opt_region_hash(){
         // in this is used, must load
         map_table = NULL;
@@ -446,20 +459,11 @@ public:
     }
 
     ~opt_region_hash() {
-       //  iterate through and delete all the nodes
-        
-        if(map_table != NULL){
-            for (uint32_t i = 0; i < table_size; i++) {
-                if (map_table[i] != NULL) {
-                    delete map_table[i];
-                }
-            }
-            delete [] map_table;
-        }
+       deinit();
     }
     
     void init_table(int table_bits){
-        ~opt_region_hash();
+        deinit();
         this->table_bits = table_bits;
         this->table_size = 1u << table_bits;
         this->mask = this->table_size - 1;
