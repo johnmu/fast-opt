@@ -49,14 +49,6 @@ class online_ctree_node
 private:
     int count[2]; // number of points in this region for each type
     
-    // this tree is designed so that it is a DAG
-    // It is possible for branches to merge if the partitions are the same
-    // pointer -> dimensions -> cuts (always 2 cuts for now)
-    //ctree_node*** children;
-
-    // essentially the number of dimensions
-    //int num_children;
-    
     float lP;   // conditional marginal likelihood of not coupling
     float lphi; // conditional marginal for the OPT (combined sample) 
     
@@ -124,6 +116,10 @@ public:
         this->count[1] = count[1];
     }
 
+    void set_sequence_id(int sequence_id){
+        this->sequence_id = sequence_id;
+    }
+    
     void get_count(int count_out[2]){
         count_out[0] = this->count[0];
         count_out[1] = this->count[1];
@@ -131,6 +127,10 @@ public:
     
     int get_count(){
         return count[0]+count[1];
+    }
+    
+    int get_sequence_id(){
+        return sequence_id;
     }
 };
 
@@ -301,10 +301,17 @@ public:
     ~online_copt_tree(){
     }
 
-    void construct_full_tree(vector<vector<double> > all_data[2]){
+    // start and end are inclusive
+    void construct_full_tree(vector<vector<double> > &all_data, uint32_t start[2],uint32_t end[2]){
         int64_t num_nodes = 0;
 
-        int N[2] = {(int)all_data[0].size(),(int)all_data[1].size()};
+        for (int k = 0; k < 2; k++) {
+            if(start[k] > end[k]){
+                cerr << "Error: start after end: " << k << '\n';
+            }
+        }
+        
+        int N[2] = {(int)(end[0]-start[0]),(int)(end[1]-start[1])};
 
         pair<uint32_t,online_ctree_node*> root_out = ra.create_node();
         root = root_out.first;
@@ -315,7 +322,7 @@ public:
        
         for (int k = 0; k < 2; k++) {
             pile[0].data[k] = vector<uint32_t>(N[k],0);
-            for (int i = 0; i < N[k]; i++) {
+            for (uint32_t i = start[k]; i <= end[k]; i++) {
                 pile[0].data[k][i] = i;
             }
         }
@@ -403,7 +410,7 @@ public:
                 bool is_diff_sep[2] = {true, true};
                 for (int k = 0; k < 2; k++) {
                     if(pile[depth-1].data[k].size() > 0){
-                        is_diff_sep[k] = cut_region_one(all_data[k], pile[depth - 1].data[k],
+                        is_diff_sep[k] = cut_region_one(all_data, pile[depth - 1].data[k],
                                 pile[depth].data[k],curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
                     }else{
                         is_diff_sep[k] = false;
@@ -452,14 +459,21 @@ public:
     // add and delete 1 point from each of the datasets
     // used to shift the window 
     // [ add0,  del0,  add1,  del1]
-    void update_points(double pts[4],int seq_idx){
+    
+    void update_points(vector<vector<double> > all_data,uint32_t pts[4],int seq_idx){
 
         int N[2] = {0,0};
         ra[root]->get_count(N);
-        gamma_table gt(N[0]+N[1]);
 
         vector<cpile_t<uint32_t,uint32_t> > pile;
         pile.push_back(cpile_t<uint32_t,uint32_t>());
+        
+        // here we use data to store which points are still active
+        // 1 = active, 0 = inactive
+        pile[0].data[0].push_back(1); //add
+        pile[0].data[0].push_back(1); //del
+        pile[0].data[1].push_back(1); //add
+        pile[0].data[1].push_back(1); //del
         
         pile[0].node = root;
         pile[0].dim  = 0;
@@ -491,34 +505,77 @@ public:
             // if sequence id is not reached check this
             // check if current node includes any of the 4 points
             // if doesn't include back up
+
+            bool point_included = false;
+            {
+                double lim = curr_reg.get_lim(curr_dim);
+
+                for (int i = 0; i < 4 && !point_included; i++) {
+                    if (curr_cut == 0) {
+                        if (all_data[pts[i]][curr_dim] < lim) {
+                            point_included = true;
+                        }
+                    } else if (curr_cut == 1) {
+                        if (all_data[pts[i]][curr_dim] >= lim) {
+                            point_included = true;
+                        }
+                    }
+                }
+            }
             
-            
-            
-            
-            
+
+
             // check if current node is leaf or at end
             // do this check if the sequence id is reached
-            if(curr_node->is_leaf()
-                    || (curr_count[0]+curr_count[1]) <= count_lim
-                    || depth >= max_depth
-                    || working_reg.full()){
-                // back up
+            if (point_included) {
+
+                if (curr_node->get_sequence_id() == seq_idx) {
+                    if ((curr_count[0] + curr_count[1]) <= count_lim
+                            || depth >= max_depth
+                            || working_reg.full()) {
+                        // back up
+                        back_up = true;
+
+                        // check if this node is a leaf
+                        // If it is a leaf delete all children
+                        
+                        // check if it has children
+                        // probably need to check all children :/
+                        for (int i = 0; i < num_children; i++) {
+                            // get the child
+                            working_reg.cut(curr_dim, curr_cut);
+                            region_cache.erase(working_reg);
+                            
+                            // uncut
+                            working_reg.uncut(curr_dim);
+                        }
+                        
+                        // assume cuts are the same, so don't nee to search for lP0
+                        curr_node->set_uniform(depth);
+
+                    } else if (pile[depth].dim > num_children - 1) {
+
+                        // reached end of node!! back up
+
+                        
+                        // if it is not a leaf, delete the data points within
+                        if (curr_node->data[0] != NULL) {
+                            delete curr_node->data[0];
+                            delete curr_node->data[1];
+                            
+                            curr_node->data[0] = NULL;
+                            curr_node->data[1] = NULL;
+                        }
+                        
+
+
+                        back_up = true;
+                        compute_lPs(working_reg, pile[depth].node, depth);
+
+                    }
+                }
+            } else {
                 back_up = true;
-
-                // assume cuts are the same, so don't nee to search for lP0
-                curr_node->set_uniform(depth);
-                
-            }else if(pile[depth].dim > num_children - 1){
-
-                // reached end of node!! back up
-
-                // modify counts here
-
-
-
-                back_up = true;
-                compute_lPs(working_reg, pile[depth].node, depth);
-
             }
 
             if (back_up) {
@@ -544,48 +601,151 @@ public:
             curr_cut = pile[depth].cut;
 
             // do the counting
-            
-            // cut down
-            working_reg.cut(curr_dim,curr_cut);
 
             // determine if current node is a leaf
+            // if it is a leaf we may need to delete the node or create new nodes
+            // at most create one new level
             
             working_reg.cut(curr_dim,curr_cut);
             uint32_t working_hash = region_cache.hash(working_reg);
 
             pair<uint32_t,bool> new_node = region_cache.find(working_reg,working_hash);
             
-
+            // In addition to checking if the new node exists we check the sequence number
+            bool recount = false;
             if (!new_node.second){
+                recount = true;
+            }else{
+                if(ra[new_node.first]->get_sequence_id()!=seq_idx){
+                    recount = true;
+                }
+            }
+            
+            if (recount){
 
-                pile.push_back(cpile_t<uint32_t,uint32_t >());
+                pile.push_back(cpile_t<uint32_t, uint32_t >());
                 depth++;
 
-                // need to store the data point in the region if the region only has one point
-                // or is leaf
-                
-                bool is_diff_sep[2] = {true, true};
-                
-                bool is_diff = is_diff_sep[0]||is_diff_sep[1];
-
                 curr_reg.cut(curr_dim, curr_cut);
-
-                pile[depth].dim = 0;
-                pile[depth].cut = 0;
-
-                int curr_count[2];
-                if(is_diff){
-                    curr_count[0] = pile[depth].data[0].size();
-                    curr_count[1] = pile[depth].data[1].size();
-                }else{
-                    curr_count[0] = -pile[depth].data[0].size();
-                    curr_count[1] = -pile[depth].data[1].size();
+                
+                // determine which data points are active
+                double lim = curr_reg.get_lim(curr_dim);
+                for (int k = 0; k < 2; k++) {
+                    for (int i = 0; i < 2; i++) {
+                        if (pile[depth - 1].data[k][i] == 1) {
+                            if (curr_cut == 0) {
+                                if (!(all_data[pts[(2*k)+i]][curr_dim] < lim)) {
+                                    pile[depth - 1].data[k][i] = 0;
+                                }
+                            } else if (curr_cut == 1) {
+                                if (!(all_data[pts[(2*k)+i]][curr_dim] >= lim)) {
+                                    pile[depth - 1].data[k][i] = 0;
+                                }
+                            }
+                        }
+                    }
                 }
                 
-                pair<uint32_t, online_ctree_node*> out = ra.create_node();
-                new_node.first = out.first;
+                if (!new_node.second) {
+                    // if the region does not exist
+                    // we need to do counting and create a new node
 
-                out.second->set_count(curr_count);
+                    vector<uint32_t>* new_data[2]; 
+                    
+                    bool is_diff_sep[2] = {true, true};
+                    for (int k = 0; k < 2; k++) {
+                        new_data[k] = new vector<uint32_t>();
+                        if (curr_node->data[k]->size() > 0) {
+                            is_diff_sep[k] = cut_region_one(all_data, *(curr_node->data[k]),
+                                    *(new_data[k]), curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
+                        } else {
+                            is_diff_sep[k] = false;
+                        }
+                    }
+                    bool is_diff = is_diff_sep[0] || is_diff_sep[1];
+
+                    pile[depth].dim = 0;
+                    pile[depth].cut = 0;
+
+                    int curr_count[2];
+                    if (is_diff) {
+                        curr_count[0] = new_data[0]->size();
+                        curr_count[1] = new_data[1]->size();
+                    } else {
+                        curr_count[0] = -new_data[0]->size();
+                        curr_count[1] = -new_data[1]->size();
+                    }
+
+                    // if we create a new node, remember to copy the leaf data into it. 
+
+                    pair<uint32_t, online_ctree_node*> out = ra.create_node();
+                    new_node.first = out.first;
+
+                    out.second->set_count(curr_count);
+                    out.second->data[0] = new_data[0];
+                    out.second->data[1] = new_data[1];
+                } else {
+                    // update counts
+                    // modify counts here 
+                    int count[2];
+                    curr_node->get_count(count);
+                    for (int i = 0; i < 4; i++) {
+                        int k = i/2;
+                        int j = i % 2;
+                        if (pile[depth].data[k][j] == 0) {
+                            continue;
+                        }
+
+                        if (j == 0) {
+                            count[k]++;
+                        } else {
+                            count[k]--;
+                        }
+                    }
+                    
+                    
+                    
+                    if (ra[new_node.first]->is_leaf()) {
+                        // if the region is a leaf
+                        // modify the data points in the leaf
+
+                        for(int k = 0;k<2;k++){
+                            if(pile[depth].data[k][1] == 1){
+                                // del
+                                vector<uint32_t>* data_ptr = curr_node->data[k];
+                                uint32_t del_pt = pts[(2*k)+1];
+                                vector<uint32_t>::iterator del_it = data_ptr->end();
+                                for (vector<uint32_t>::iterator it = data_ptr->begin();
+                                        it != data_ptr->end();it++){
+                                    if(*it == del_pt){
+                                        del_it = it;
+                                        it = data_ptr->end();
+                                    }
+                                }
+                                if(del_it != data_ptr->end()){
+                                    data_ptr->erase(del_it);
+                                }else{
+                                    // error!!!
+                                    cerr << "Del error!\n";
+                                }
+                            }
+                            
+                            // add
+                            if(pile[depth].data[k][0] == 1){
+                                vector<uint32_t>* data_ptr = curr_node->data[k];
+                                data_ptr->push_back(pts[2*k]);
+                            }
+                        }
+                        
+                    } else {
+                        // if the region is not a leaf
+                        // do nothing?
+                        
+                    }
+                }
+                
+                // do the counting of the data points here
+                
                 
                 pile[depth].node = new_node.first;
                 region_cache.insert(working_reg,new_node.first,working_hash);

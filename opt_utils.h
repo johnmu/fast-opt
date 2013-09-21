@@ -512,6 +512,21 @@ public:
         }
         map_table[hash]->insert(pair<opt_region, T>(reg, node));
     }
+    
+    void erase(opt_region& reg) {
+        erase(reg, hash(reg));
+    }
+
+    void erase(opt_region& reg, uint32_t hash) {
+        if (map_table[hash] != NULL) {
+            map_table[hash]->erase(reg);
+        }
+        if(map_table[hash]->size()==0){
+            delete map_table[hash];
+            map_table[hash] = NULL;
+        }
+        
+    }
 
     void print_regions() {
         for (uint32_t i = 0; i < table_size; i++) {

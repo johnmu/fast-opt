@@ -64,6 +64,8 @@ int main(int argc, char** argv) {
         error_num = opt_comp(params);
     } else if (mode == "copt") {
         error_num = copt(params);
+    } else if (mode == "copt_scan_old") {
+        error_num = copt_scan_old(params);
     } else if (mode == "copt_scan") {
         error_num = copt_scan(params);
     } else if (mode == "llopt") {
@@ -1125,9 +1127,9 @@ int copt(vector<string> params) {
 }
 
 
-int copt_scan(vector<string> params) {
+int copt_scan_old(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan <percent_points> <scan_resolution> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan_old <percent_points> <scan_resolution> <data_file>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
             + "          output_name -- Result output to <output_name>.den\n"
@@ -1229,27 +1231,78 @@ int copt_scan(vector<string> params) {
 }
 
 
-int fun(vector<string> params){
-    string usage_text = "Usage: " + c::PROG_NAME
-            + " fun <num_ends> <data>\n"
-            + "      data -- data\n"
-            + "blah blah blah\n"
-            + "blah blah blah\n";
-    
-    if (params.size() != 2) {
+
+int copt_scan(vector<string> params) {
+
+    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan <percent_points> <window_size> <data_file>\n"
+            + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
+            + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
+            + "          output_name -- Result output to <output_name>.den\n"
+            + "Log output to STDERR \n"
+            + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
+            + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n"
+            + "Recommend always stopping at 2 points.\n";
+
+    if (params.size() != 3) {
         cerr << usage_text << endl;
         return 3;
     }
+
+    int window_size = strTo<int>(params[1]);
+
+    vector<vector<double> > data = read_data(params[2], false);
+
+    int dim = (int) data[0].size();
+    int N = data.size();
+
+    cerr << "Running coupling OPT scan" << '\n';
+    cerr << "Data: " << N << " points in " << dim << " dimensions.\n";
+
+    double stop_ratio = strTo<double>(params[0]);
+    int stop_points = 0;
+
+    if (stop_ratio < 1) {
+        stop_points = (int) (N * stop_ratio);
+    } else {
+        stop_points = (int) stop_ratio;
+    }
+    if (stop_points < 1) stop_points = 1;
+
+    cerr << "Stopping at " << stop_points << " points.\n";
+
+    double total_time = 0.0;
+
+    mu_timer mt;
     
-    vector<vector<double> > data = read_data(params[1], false);
+    if(N<window_size){
+        cerr << "N too small\n";
+        return 1;
+    }
     
-    //int num_ends = strTo<int>(params[0]);
+    // run copt for the first window
     
+    // output the partition
     
+    int idx = 0;
+    while((idx+window_size)<N){
+        // swap out the middle data point
+        
+        
+        // output the partition
+        
+        
+        idx = idx + 1;
+        if (((idx+window_size)>=N)&& (idx+window_size<N)){
+            idx = N-window_size-1;
+        }
+    }
     
+    cerr << "Total time: " << total_time << "s\n";
+    
+
+
     return 0;
 }
-
 
 
 
