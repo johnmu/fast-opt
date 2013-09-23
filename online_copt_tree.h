@@ -311,7 +311,7 @@ public:
             }
         }
         
-        int N[2] = {(int)(end[0]-start[0]),(int)(end[1]-start[1])};
+        int N[2] = {(int)(end[0]-start[0]+1),(int)(end[1]-start[1]+1)};
 
         pair<uint32_t,online_ctree_node*> root_out = ra.create_node();
         root = root_out.first;
@@ -507,7 +507,7 @@ public:
             // if doesn't include back up
 
             bool point_included = false;
-            {
+            if (curr_node->get_sequence_id() != seq_idx) {
                 double lim = curr_reg.get_lim(curr_dim);
 
                 for (int i = 0; i < 4 && !point_included; i++) {
@@ -521,61 +521,67 @@ public:
                         }
                     }
                 }
+
+                if (!point_included) {
+                    back_up = true;
+
+                    // also set the sequence ID to current idx
+                    curr_node->set_sequence_id(seq_idx);
+                }
             }
             
-
+            
 
             // check if current node is leaf or at end
             // do this check if the sequence id is reached
-            if (point_included) {
+            if (curr_node->get_sequence_id() == seq_idx) {
+                
+                // check leaf criteria
+                if ((curr_count[0] + curr_count[1]) <= count_lim
+                        || depth >= max_depth
+                        || working_reg.full()) {
+                    // back up
+                    back_up = true;
 
-                if (curr_node->get_sequence_id() == seq_idx) {
-                    if ((curr_count[0] + curr_count[1]) <= count_lim
-                            || depth >= max_depth
-                            || working_reg.full()) {
-                        // back up
-                        back_up = true;
+                    // check if this node is a leaf
+                    // If it is a leaf delete all children
 
-                        // check if this node is a leaf
-                        // If it is a leaf delete all children
-                        
-                        // check if it has children
-                        // probably need to check all children :/
-                        for (int i = 0; i < num_children; i++) {
-                            // get the child
-                            working_reg.cut(curr_dim, curr_cut);
-                            region_cache.erase(working_reg);
-                            
-                            // uncut
-                            working_reg.uncut(curr_dim);
+                    // check if it has children
+                    // probably need to check all children :/
+                    for (int i = 0; i < num_children; i++) {
+                        // get the child
+                        working_reg.cut(curr_dim, curr_cut);
+                        uint32_t del_node = region_cache.erase(working_reg);
+                        if (del_node != c::ra_null_val) {
+                            ra.delete_node(del_node);
                         }
-                        
-                        // assume cuts are the same, so don't nee to search for lP0
-                        curr_node->set_uniform(depth);
-
-                    } else if (pile[depth].dim > num_children - 1) {
-
-                        // reached end of node!! back up
-
-                        
-                        // if it is not a leaf, delete the data points within
-                        if (curr_node->data[0] != NULL) {
-                            delete curr_node->data[0];
-                            delete curr_node->data[1];
-                            
-                            curr_node->data[0] = NULL;
-                            curr_node->data[1] = NULL;
-                        }
-                        
-
-
-                        back_up = true;
-                        compute_lPs(working_reg, pile[depth].node, depth);
-
+                        // uncut
+                        working_reg.uncut(curr_dim);
                     }
+
+                    // assume cuts are the same, so don't nee to search for lP0
+                    curr_node->set_uniform(depth);
+
+                } else if (pile[depth].dim > num_children - 1) {
+
+                    // reached end of node!! back up
+
+                    // if it is not a leaf, delete the data points within
+                    if (curr_node->data[0] != NULL) {
+                        delete curr_node->data[0];
+                        delete curr_node->data[1];
+
+                        curr_node->data[0] = NULL;
+                        curr_node->data[1] = NULL;
+                    }
+
+
+
+                    back_up = true;
+                    compute_lPs(working_reg, pile[depth].node, depth);
+
                 }
-            } else {
-                back_up = true;
+                
             }
 
             if (back_up) {
@@ -632,14 +638,15 @@ public:
                 double lim = curr_reg.get_lim(curr_dim);
                 for (int k = 0; k < 2; k++) {
                     for (int i = 0; i < 2; i++) {
+                        pile[depth].data[k][i] = pile[depth-1].data[k][i];
                         if (pile[depth - 1].data[k][i] == 1) {
                             if (curr_cut == 0) {
                                 if (!(all_data[pts[(2*k)+i]][curr_dim] < lim)) {
-                                    pile[depth - 1].data[k][i] = 0;
+                                    pile[depth].data[k][i] = 0;
                                 }
                             } else if (curr_cut == 1) {
                                 if (!(all_data[pts[(2*k)+i]][curr_dim] >= lim)) {
-                                    pile[depth - 1].data[k][i] = 0;
+                                    pile[depth].data[k][i] = 0;
                                 }
                             }
                         }
@@ -754,6 +761,13 @@ public:
             } else {
 
                 working_reg.uncut(curr_dim);
+                
+                if(pile[depth].cut < c::cuts - 1){
+                    pile[depth].cut++;
+                }else if(pile[depth].dim < num_children - 1){
+                    pile[depth].dim++;
+                    pile[depth].cut = 0;
+                }
             }
         }
 

@@ -513,19 +513,28 @@ public:
         map_table[hash]->insert(pair<opt_region, T>(reg, node));
     }
     
-    void erase(opt_region& reg) {
-        erase(reg, hash(reg));
+    // returns the node that was erased
+    T erase(opt_region& reg) {
+        return erase(reg, hash(reg));
     }
 
-    void erase(opt_region& reg, uint32_t hash) {
+    T erase(opt_region& reg, uint32_t hash) {
+        
+        // BUG: This is bad fix this
+        T del_node = (T)c::ra_null_val;
+        
         if (map_table[hash] != NULL) {
-            map_table[hash]->erase(reg);
+            typename map<opt_region, T>::iterator it = map_table[hash]->find(reg);
+            if (it != map_table[hash]->end()) {
+                del_node = it->second;
+                map_table[hash]->erase(it);
+            } 
         }
         if(map_table[hash]->size()==0){
             delete map_table[hash];
             map_table[hash] = NULL;
         }
-        
+        return del_node;
     }
 
     void print_regions() {
