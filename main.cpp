@@ -1170,7 +1170,7 @@ int copt_scan_old(vector<string> params) {
     mu_timer mt;
     
     // loop to split the dataset
-    int window_size = 200;
+    int window_size = 100;
     
     if(N<window_size){
         cerr << "N too small\n";
