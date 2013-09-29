@@ -592,11 +592,17 @@ int hell_dist(vector<string> params) {
         density_list.reserve(true_samples.size());
         ifstream infile(joint_filename.c_str());
         
+        if(!infile.is_open()){
+            cerr << "Cannot open density file: " << joint_filename << '\n';
+            return 1;
+        }
+        
         string temp = "";
         while(!infile.eof()){
             temp = "";
             getline(infile,temp);
             trim2(temp);
+            cerr << temp << '\n';
             if(temp.length() == 0){
                 continue;
             }
