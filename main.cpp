@@ -596,6 +596,10 @@ int hell_dist(vector<string> params) {
         while(!infile.eof()){
             temp = "";
             getline(infile,temp);
+            trim2(temp);
+            if(temp.length() == 0){
+                continue;
+            }
             density_list.push_back(strTo<double>(temp));
         }
         
