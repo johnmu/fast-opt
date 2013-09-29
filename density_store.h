@@ -130,10 +130,14 @@ private:
         if (joint_filename.length() > 0) { // block
             ifstream den_file;
             int num_den = 0;
-            init_file_in(den_file, joint_filename, num_den);
+            int status = init_file_in(den_file, joint_filename, num_den);
 
-            if (num_den != 1) {
-                cerr << "More than one density in joint file\n";
+            if (status == 0) {
+                if (num_den != 1) {
+                    cerr << "More than one density in joint file\n";
+                    return 1;
+                }
+            } else {
                 return 1;
             }
 
