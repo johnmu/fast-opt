@@ -107,7 +107,9 @@ int opt(vector<string> params) {
 
     string out_filename = params[2];
 
-    vector<vector<double> > data = read_data(params[1], false);
+    vector<vector<double> > data;
+    vector<uint32_t> skipped; 
+    read_data(params[1], false,data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -194,7 +196,9 @@ int llopt(vector<string> params) {
         }
     }
 
-    vector<vector<double> > data = read_data(params[params_offset + 3], false);
+    vector<vector<double> > data;
+    vector<uint32_t> skipped; 
+    read_data(params[params_offset + 3], false,data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -264,7 +268,10 @@ int lsopt(vector<string> params) {
     int convergence_iterations = strTo<int>(params[4]);
     int lookahead_depth = strTo<int>(params[1]);
 
-    vector<vector<double> > data = read_data(params[5], false);
+    
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    read_data(params[5], false,data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -318,7 +325,9 @@ int dfopt(vector<string> params) {
 
     string out_filename = params[4];
 
-    vector<vector<double> > data = read_data(params[3], false);
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    read_data(params[3], false,data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -393,8 +402,9 @@ int disopt(vector<string> params) {
         }
     }
 
-
-    vector<vector<double> > data = read_data(params[params_offset + 3], false);
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    read_data(params[params_offset + 3], false,data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -443,7 +453,9 @@ int copula(vector<string> params) {
     string data_file = params[1];
     string out_filename = params[2];
 
-    vector<vector<double> > data = read_data(data_file, false);
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    read_data(data_file, false,data,skipped);
 
     int dim = (int) data[0].size();
     uint32_t N = (uint32_t) data.size();
@@ -562,7 +574,9 @@ int hell_dist(vector<string> params) {
         return 3;
     }
 
-    vector<vector<double> > true_samples = read_data(params[0], true);
+    vector<vector<double> > true_samples;
+    vector<uint32_t> skipped;
+    read_data(params[0], true, true_samples, skipped);
 
     int true_N = (int) true_samples.size();
     int dim = (int) true_samples[0].size() - 1;
@@ -688,7 +702,9 @@ int classify(vector<string> params) {
         }
     }
 
-    vector<vector<double> > test_data = read_data(params[0 + param_offset], confusion);
+    vector<vector<double> > test_data;
+    vector<uint32_t> skipped;
+    read_data(params[0 + param_offset], confusion,test_data,skipped);
 
     int test_N = (int) test_data.size();
     int dim = (int) test_data[0].size() - param_offset;
@@ -859,14 +875,18 @@ int density_old(vector<string> params) {
     }
 
 
-    vector<vector<double> > test_data = read_data(params[1], false);
+    vector<vector<double> > test_data;
+    vector<uint32_t> test_skipped;
+    read_data(params[1], false,test_data,test_skipped);
 
     int test_N = (int) test_data.size();
     int dim = (int) test_data[0].size();
 
     cerr << test_N << " data points in " << dim << " dimensions.\n";
 
-    vector<vector<double> > MAP_dist = read_data(params[0], true);
+    vector<vector<double> > MAP_dist;
+    vector<uint32_t> MAP_skipped;
+    read_data(params[0], true,test_data,test_skipped);
 
     // Loop through the data
     // This should be changed to binary tree
@@ -914,9 +934,12 @@ int density(vector<string> params) {
         cerr << usage_text << endl;
         return 3;
     }
-
-    vector<vector<double> > test_data = read_data(params[0], false);
-
+    
+    
+    vector<vector<double> > test_data;
+    vector<uint32_t> skipped;
+    read_data(params[0], false,test_data,skipped);
+    
     int test_N = (int) test_data.size();
     int dim = (int) test_data[0].size();
 
