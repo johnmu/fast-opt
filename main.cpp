@@ -945,7 +945,7 @@ int opt_comp(vector<string> params) {
         cerr << "Error: dimension mismatch between data\n";
     }
     
-    int N[2] = {data_1.size(),data_2.size()};
+    uint32_t N[2] = {(uint32_t)data_1.size(),(uint32_t)data_2.size()};
 
     cerr << "Running Two Sample Comparison Full-OPT" << '\n';
     cerr << "Data_1: " << N[0] << " points in " << dim << " dimensions.\n";
@@ -1079,7 +1079,7 @@ int copt(vector<string> params) {
         cerr << "Error: dimension mismatch between data\n";
     }
     
-    int N[2] = {data[0].size(),data[1].size()};
+    uint32_t N[2] = {(uint32_t)data[0].size(),(uint32_t)data[1].size()};
 
     cerr << "Running Two Sample Comparison Full-OPT" << '\n';
     cerr << "Data_1: " << N[0] << " points in " << dim << " dimensions.\n";
@@ -1170,7 +1170,7 @@ int copt_scan_old(vector<string> params) {
     mu_timer mt;
     
     // loop to split the dataset
-    int window_size = 100;
+    int window_size = 10;
     
     if(N<window_size){
         cerr << "N too small\n";
@@ -1212,7 +1212,7 @@ int copt_scan_old(vector<string> params) {
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "comp MAP tree");
 
-        string temp = "partition_" + toStr<int>(idx) + ".txt";
+        string temp = "old_partition_" + toStr<int>(idx) + ".txt";
         ofstream out_file(temp.c_str());
         print_MAP_density(out_file, comp_map_regions.get_regions(),
                     comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
@@ -1248,9 +1248,14 @@ int copt_scan(vector<string> params) {
         return 3;
     }
 
-    int window_size = strTo<int>(params[1]);
-    int half_wind = (window_size/2);
+    uint32_t window_size = strTo<uint32_t>(params[1]);
+    uint32_t half_wind = (window_size/2);
 
+    if(half_wind == 0){
+        cerr << "Error: window size too small\n";
+        return 1;
+    }
+    
     vector<vector<double> > data = read_data(params[2], false);
 
     int dim = (int) data[0].size();
@@ -1279,21 +1284,23 @@ int copt_scan(vector<string> params) {
     }
     
     // run copt for the first window
-    online_copt_tree online_comp(dim, stop_points, 31*dim,window_size);
-    uint32_t start_idx[2] = {0,half_wind-1};
-    uint32_t end_idx[2] = {half_wind,window_size};
+    online_copt_tree* online_comp = new online_copt_tree(dim, stop_points, 31*dim,window_size);
+    uint32_t start_idx[2] = {0,half_wind};
+    uint32_t end_idx[2] = {half_wind-1,window_size-1};
     
-    online_comp.construct_full_tree(data,start_idx,end_idx);
+    online_comp->construct_full_tree(data,start_idx,end_idx);
     
     // output the partition
     // need to change to output immediately rather than store in hash table
     map_tree comp_map_region_tree(N, dim);
     opt_region_hash<uint32_t> comp_map_regions(15);
-    online_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, window_size);
+    online_comp->construct_MAP_tree(comp_map_region_tree, comp_map_regions, window_size);
 
     string temp = "partition_" + toStr<int>(half_wind) + ".txt";
     ofstream out_file(temp.c_str());
     print_MAP_density(out_file, comp_map_regions.get_regions(),
+            comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+    print_MAP_density(cerr, comp_map_regions.get_regions(),
             comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
     out_file.close();
     
@@ -1301,14 +1308,16 @@ int copt_scan(vector<string> params) {
     while((idx+window_size)<N){
         // swap out the middle data point
         
+        cerr << "idx: " << half_wind+idx << '\n';
+        
         // [ add0,  del0,  add1,  del1]
-        uint32_t pts[4] = {half_wind+idx-1,idx-1,window_size+idx,half_wind+idx-1};
-        online_comp.update_points(data,pts,idx);
+        uint32_t pts[4] = {half_wind+idx-1,uint32_t(idx-1),window_size+idx-1,half_wind+idx-1};
+        online_comp->update_points(data,pts,idx);
         
         // output the partition
         map_tree comp_map_region_tree(N, dim);
         opt_region_hash<uint32_t> comp_map_regions(15);
-        online_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, window_size);
+        online_comp->construct_MAP_tree(comp_map_region_tree, comp_map_regions, window_size);
 
         string temp = "partition_" + toStr<int>(half_wind+idx) + ".txt";
         ofstream out_file(temp.c_str());
@@ -1321,7 +1330,7 @@ int copt_scan(vector<string> params) {
     }
     
     cerr << "Total time: " << mt.elapsed_time() << "s\n";
-    
+    delete online_comp;
 
 
     return 0;

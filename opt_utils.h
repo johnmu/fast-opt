@@ -77,6 +77,19 @@ struct cpile_t{
     T node;
     int dim;
     int cut;
+    
+    cpile_t(const cpile_t &a){
+        data[0] = a.data[0];
+        data[1] = a.data[1];
+        node = a.node;
+        dim = a.dim;
+        cut = a.cut;
+    }
+    
+    cpile_t(){
+        data[0] = vector<U>();
+        data[1] = vector<U>();
+    }
 };
 
 // stores the cuts that have been made
@@ -717,22 +730,19 @@ private:
     vector<double> resolution; // 1/2 the size of the region
     int num_children;
 
-
-
 public:
 
     void init(int num_children){
         this->num_children = num_children;
-        this->lim_pile = vector<double>(num_children,0.5);
-        this->resolution = vector<double>(num_children,0.5);
+        lim_pile = vector<double>(num_children,0.5);
+        resolution = vector<double>(num_children,0.5);
     }
 
-    current_region(){
-
+    current_region():lim_pile(),resolution(){
     }
 
-    current_region(int num_children){
-        init(num_children);
+    current_region(int num_children):lim_pile(num_children,0.5),resolution(num_children,0.5){
+        this->num_children = num_children;
     }
 
     double get_lim(int dim){

@@ -76,14 +76,36 @@ public:
     online_ctree_node(){
         init();
     }
+    
+    online_ctree_node(const online_ctree_node& a){
+        count[0] = a.count[0];
+        count[1] = a.count[1];
+        
+        lP = a.lP;
+        lphi = a.lphi;
+        sequence_id = a.sequence_id;
+        
+        if(a.data[0] != NULL){
+            data[0] = new vector<uint32_t>(a.data[0]->begin(),a.data[0]->end());
+        }else{
+            data[0] = NULL;
+        }
+        if(a.data[1] != NULL){
+            data[1] = new vector<uint32_t>(a.data[1]->begin(),a.data[1]->end());
+        }else{
+            data[1] = NULL;
+        }
+                
+    }
 
     ~online_ctree_node(){        
+        cerr << "delete: " <<  data[0] << ',' << data[1] << '\n';
         if(data[0]!=NULL) delete data[0];
         if(data[1]!=NULL) delete data[1];
     }
 
     bool is_leaf(){
-        return (data[0] == NULL);
+        return (data[0] != NULL);
     }
 
     void set_uniform(int depth){
@@ -302,7 +324,7 @@ public:
     }
 
     // start and end are inclusive
-    void construct_full_tree(vector<vector<double> > &all_data, uint32_t start[2],uint32_t end[2]){
+    void construct_full_tree(vector<vector<double> > &all_data, uint32_t start[2], uint32_t end[2]){
         int64_t num_nodes = 0;
 
         for (int k = 0; k < 2; k++) {
@@ -317,11 +339,12 @@ public:
         root = root_out.first;
         root_out.second->set_count(N);
 
-        vector<cpile_t<uint32_t,uint32_t > > pile;
-        pile.push_back(cpile_t<uint32_t,uint32_t >());
-       
+        vector<cpile_t<uint32_t,uint32_t > > pile(1);
+        
+        
         for (int k = 0; k < 2; k++) {
-            pile[0].data[k] = vector<uint32_t>(N[k],0);
+            pile[0].data[k].resize(N[k]);
+            cerr << "N["<< k<<"]"<<N[k]<<'\n';
             for (uint32_t i = start[k]; i <= end[k]; i++) {
                 pile[0].data[k][i] = i;
             }
@@ -352,6 +375,12 @@ public:
             curr_node->get_count(curr_count);
             // work out what to count
 
+            cerr << "== depth = " << depth << '\n';
+            cerr << "curr_dim = " << curr_dim << '\n';
+            cerr << "curr_cut = " << curr_cut << '\n';
+            cerr << "curr_count[0] = " << curr_count[0] << '\n';
+            cerr << "curr_count[1] = " << curr_count[1] << '\n';
+            
             bool back_up = false;
             // check if current node is leaf or at end
             if(curr_node->is_leaf()
@@ -364,28 +393,33 @@ public:
                 curr_node->set_uniform(depth);
                 
                 // save data in the leaf nodes
+                cerr << "Is leaf! save data! "<< curr_node->is_leaf() <<"\n";
                 curr_node->data[0] = new vector<uint32_t>(pile[depth].data[0]);
                 curr_node->data[1] = new vector<uint32_t>(pile[depth].data[1]);
-                
-            }else if(pile[depth].dim > num_children - 1){
-                    // reached end of node!! back up
-                    back_up = true;
-                    //(opt_region &working_reg, uint32_t curr_node, int depth, int num_children
-                    compute_lPs(working_reg, pile[depth].node, depth);
-                
+
+            } else if (curr_dim > num_children - 1) {
+                // reached end of node!! back up
+                cerr << "end of nodes backup!\n";
+
+                back_up = true;
+                //(opt_region &working_reg, uint32_t curr_node, int depth, int num_children
+                compute_lPs(working_reg, pile[depth].node, depth);
+
             }
 
             if (back_up) {
+                cerr << "DO BACKUP\n";
+                
                 depth--;
                 pile.pop_back();
-                if(depth < 0) continue;
+                if (depth < 0) continue;
                 
                 curr_reg.uncut(pile[depth].dim,pile[depth].cut);
                 working_reg.uncut(pile[depth].dim);
 
                 if(pile[depth].cut < c::cuts - 1){
                     pile[depth].cut++;
-                }else if(pile[depth].dim < num_children - 1){
+                }else if(pile[depth].dim <= num_children - 1){
                     pile[depth].dim++;
                     pile[depth].cut = 0;
                 }
@@ -397,13 +431,15 @@ public:
             curr_cut = pile[depth].cut;
 
             // do the counting
-            
+            cerr << "CUT!...\n";
             working_reg.cut(curr_dim,curr_cut);
             uint32_t working_hash = region_cache.hash(working_reg);
 
             pair<uint32_t,bool> new_node = region_cache.find(working_reg,working_hash);
 
             if (!new_node.second) {
+                cerr << "new node not found...\n";
+                
                 pile.push_back(cpile_t<uint32_t,uint32_t>());
                 depth++;
 
@@ -449,7 +485,15 @@ public:
                 }
 
             } else {
+                cerr << "node was found...\n";
                 working_reg.uncut(curr_dim);
+                
+                if(pile[depth].cut < c::cuts - 1){
+                    pile[depth].cut++;
+                }else if(pile[depth].dim <= num_children - 1){
+                    pile[depth].dim++;
+                    pile[depth].cut = 0;
+                }
             }
         }
 
@@ -460,7 +504,7 @@ public:
     // used to shift the window 
     // [ add0,  del0,  add1,  del1]
     
-    void update_points(vector<vector<double> > all_data,uint32_t pts[4],int seq_idx){
+    void update_points(vector<vector<double> > &all_data, uint32_t pts[4],int seq_idx){
 
         int N[2] = {0,0};
         ra[root]->get_count(N);
@@ -595,7 +639,7 @@ public:
 
                 if(pile[depth].cut < c::cuts - 1){
                     pile[depth].cut++;
-                }else if(pile[depth].dim < num_children - 1){
+                }else if(pile[depth].dim <= num_children - 1){
                     pile[depth].dim++;
                     pile[depth].cut = 0;
                 }
@@ -764,7 +808,7 @@ public:
                 
                 if(pile[depth].cut < c::cuts - 1){
                     pile[depth].cut++;
-                }else if(pile[depth].dim < num_children - 1){
+                }else if(pile[depth].dim <= num_children - 1){
                     pile[depth].dim++;
                     pile[depth].cut = 0;
                 }
