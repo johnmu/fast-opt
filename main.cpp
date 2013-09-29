@@ -592,10 +592,11 @@ int hell_dist(vector<string> params) {
         density_list.reserve(true_samples.size());
         ifstream infile(joint_filename.c_str());
         
+        string temp = "";
         while(!infile.eof()){
-            double a = 0.0;
-            infile >> a;
-            density_list.push_back(a);
+            temp = "";
+            getline(infile,temp);
+            density_list.push_back(strTo<double>(temp));
         }
         
         infile.close();
