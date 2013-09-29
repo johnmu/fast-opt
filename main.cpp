@@ -643,7 +643,7 @@ int hell_dist(vector<string> params) {
             return 1;
         }
         den_list = true;
-    }else{
+    }else if(!dens.is_loaded()){
         cerr << "Error loading files...\n";
         return 1;
     }
