@@ -602,7 +602,6 @@ int hell_dist(vector<string> params) {
             temp = "";
             getline(infile,temp);
             trim2(temp);
-            cerr << temp << '\n';
             if(temp.length() == 0){
                 continue;
             }
