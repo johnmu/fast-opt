@@ -612,6 +612,8 @@ int hell_dist(vector<string> params) {
         }
         
         string temp = "";
+        uint32_t skip_idx = 0;
+        uint32_t idx = 0;
         while(!infile.eof()){
             temp = "";
             getline(infile,temp);
@@ -619,7 +621,17 @@ int hell_dist(vector<string> params) {
             if(temp.length() == 0){
                 continue;
             }
-            density_list.push_back(strTo<double>(temp));
+            bool skip =  false;
+            if(skip_idx < skipped.size()){
+                if(idx == skipped[skip_idx]){
+                    skip_idx++;
+                    skip = true;
+                }
+            }
+            if(!skip){
+                density_list.push_back(strTo<double>(temp));
+            }
+            idx++;
         }
         
         infile.close();
