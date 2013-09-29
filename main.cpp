@@ -548,9 +548,10 @@ int copula(vector<string> params) {
 }
 
 int hell_dist(vector<string> params) {
-    string usage_text = "Usage: " + c::PROG_NAME + " hell_dist <true_samples> <joint/copula_den> [marginal_den] \n"
+    string usage_text = "Usage: " + c::PROG_NAME + " hell_dist <true_samples> <joint/copula_den/density_list> [marginal_den] \n"
             + "     true_samples     -- Each row one data point, last column is true density (Restricted to [0,1] cube)\n"
             + "     joint/copula_den -- Joint or Copula density, Copula needs marginals, use - for uniform\n"
+            + "     density_list     -- If not .den file, will try to read as a list of densities\n"
             + "     marginal_den     -- Marginal densities, if given then copula is used\n"
             + "Compute sampled Hellinger distance via importance sampling. "
             + "The true samples must be sampled from the true distribution.\n"
@@ -582,16 +583,45 @@ int hell_dist(vector<string> params) {
     }
 
     // load the joint/copula densities
+    bool den_list = false;
+    vector<double> density_list;
     density_store dens(joint_filename, marginal_filename);
 
+    if(!dens.is_loaded() && marginal_filename.length() == 0){
+        // try to load as density list
+        density_list.reserve(true_samples.size());
+        ifstream infile(joint_filename.c_str());
+        
+        while(!infile.eof()){
+            double a = 0.0;
+            infile >> a;
+            density_list.push_back(a);
+        }
+        
+        infile.close();
+        
+        if(density_list.size() != true_samples.size()){
+            cerr << "Incorrect density file length or format...\n";
+            return 1;
+        }
+        den_list = true;
+    }else{
+        cerr << "Error loading files...\n";
+        return 1;
+    }
+    
     double val = 0.0;
 
     for (int i = 0; i < true_N; i++) {
         double true_den = true_samples[i][dim];
         double map_den = 0.0;
 
-        vector<double> point(true_samples[i].begin(), true_samples[i].end() - 1);
-        map_den = dens.compute_density(point,0);
+        if(!den_list) {
+            vector<double> point(true_samples[i].begin(), true_samples[i].end() - 1);
+            map_den = dens.compute_density(point, 0);
+        } else {
+            map_den = density_list[i];
+        }
         val += sqrt(map_den / true_den); // importance sample
     }
 

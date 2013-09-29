@@ -1,0 +1,7 @@
+
+fast-opt
+
+*.plist
+nbproject/*
+
+*.o

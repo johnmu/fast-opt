@@ -58,7 +58,7 @@ void init_file_out(ofstream &den_file, string file_name, int num_den) {
 
 // num_den is number of densities stored in this file
 
-void init_file_in(ifstream &den_file, string file_name, int &num_den) {
+int init_file_in(ifstream &den_file, string file_name, int &num_den) {
 
     string temp = file_name;
     den_file.open(temp.c_str(), ios::in | ios::binary);
@@ -68,15 +68,14 @@ void init_file_in(ifstream &den_file, string file_name, int &num_den) {
     den_file.read((char*) &magic_val, sizeof (magic_val));
 
     if (magic_val != c::magic) {
-        cerr << "ERROR: Filetype mismatch\n";
+        //cerr << "ERROR: Filetype mismatch\n";
         den_file.close();
-        return;
+        return 1;
     }
 
     den_file.read((char*) &num_den, sizeof (num_den));
 
-    //cerr<< "num_den: " << num_den << '\n';
-
+    return 0;
 }
 
 
@@ -112,13 +111,17 @@ private:
     int load_densities(string filename) {
         int num_den = 0;
         ifstream den_file;
-        init_file_in(den_file, filename, num_den);
+        int status = init_file_in(den_file, filename, num_den);
         den_file.close();
 
-        if (num_den == 1) {
-            return load_densities(filename, "");
-        } else {
-            return load_densities("", filename);
+        if (status == 0) {
+            if (num_den == 1) {
+                return load_densities(filename, "");
+            } else {
+                return load_densities("", filename);
+            }
+        }else{
+            return status;
         }
     }
 
@@ -216,7 +219,7 @@ public:
         int status = load_files(filename);
 
         if (status != 0) {
-            cerr << "ERROR: with initialization.\n";
+            //cerr << "ERROR: with initialization.\n";
         }
     }
 
@@ -225,7 +228,7 @@ public:
         int status = load_files(joint_filename, marginal_filename);
 
         if (status != 0) {
-            cerr << "ERROR: with initialization.\n";
+            //cerr << "ERROR: with initialization.\n";
         }
     }
 
@@ -237,7 +240,7 @@ public:
         int status = load_densities(filename);
 
         if (status != 0) {
-            cerr << "ERROR: Failed loading of file: " << filename << '\n';
+            //cerr << "ERROR: Failed loading of file: " << filename << '\n';
             return status;
         }
 
@@ -251,8 +254,8 @@ public:
         int status = load_densities(joint_filename, marginal_filename);
 
         if (status != 0) {
-            cerr << "ERROR: Failed loading of file: " << joint_filename
-                    << "," << marginal_filename << '\n';
+            //cerr << "ERROR: Failed loading of file: " << joint_filename
+            //        << "," << marginal_filename << '\n';
             return status;
         }
 
@@ -362,6 +365,10 @@ public:
 
     ~density_store() {
         destroy();
+    }
+    
+    bool is_loaded(){
+        return joint_loaded || marginal_loaded;
     }
 
 };
