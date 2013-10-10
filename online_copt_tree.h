@@ -397,7 +397,8 @@ public:
             bool back_up = false;
             // check if current node is leaf or at end
             if(curr_node->is_leaf()
-                    || (curr_count[0]+curr_count[1]) <= count_lim
+                    || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
+                    || (curr_count[0]<0 && curr_count[1]<0)
                     || depth >= max_depth
                     || working_reg.full()){
                 // back up
@@ -557,7 +558,8 @@ public:
             // do this check if the sequence id is reached
 
             // check leaf criteria
-            if ((curr_count[0] + curr_count[1]) <= count_lim
+            if ((abs(curr_count[0]) + abs(curr_count[1])) <= count_lim
+                    || (curr_count[0] < 0 && curr_count[1] < 0)
                     || depth >= max_depth
                     || working_reg.full()) {
                 // back up
@@ -608,7 +610,8 @@ public:
                                         }else{
                                             int parent_count[2];
                                             ra[parent]->get_count(parent_count);
-                                            if (!((parent_count[0] + parent_count[1]) <= count_lim)) {
+                                            if (!( (abs(parent_count[0]) + abs(parent_count[1])) <= count_lim
+                                                    || (parent_count[0]<0 && parent_count[1]<0) )) {
                                                 // don't delete because parent is not a leaf
                                                 delete_node = false;
                                             }
@@ -850,7 +853,8 @@ public:
             if (curr_node->get_sequence_id() == seq_idx || depth == 0) {
 
                 // check leaf criteria
-                if ((curr_count[0] + curr_count[1]) <= count_lim
+                if ((abs(curr_count[0]) + abs(curr_count[1])) <= count_lim
+                        || (curr_count[0] <0 && curr_count[1] <0)
                         || depth >= max_depth
                         || working_reg.full()) {
                     // back up
@@ -863,8 +867,8 @@ public:
                     if (!is_leaf) {
                         curr_node->data[0] = new vector<uint32_t>();
                         curr_node->data[1] = new vector<uint32_t>();
-                        curr_node->data[0]->reserve(curr_count[0]+1);
-                        curr_node->data[1]->reserve(curr_count[1]+1);
+                        curr_node->data[0]->reserve(abs(curr_count[0])+1);
+                        curr_node->data[1]->reserve(abs(curr_count[1])+1);
                         
                         // check if it has children
                         // probably need to check all children :/
@@ -970,10 +974,10 @@ public:
 
                         }
    
-                        if(curr_node->data[0]->size() != curr_count[0]){
+                        if(curr_node->data[0]->size() != abs(curr_count[0])){
                             cerr << "COUNT_ERROR 0: " << curr_node->data[0]->size() << "," << curr_count[0] << '\n';
                         }
-                        if(curr_node->data[1]->size() != curr_count[1]){
+                        if(curr_node->data[1]->size() != abs(curr_count[1])){
                             cerr << "COUNT_ERROR 1: " << curr_node->data[1]->size() << "," << curr_count[1] << '\n';
                         }
                         
@@ -1303,8 +1307,11 @@ public:
             int curr_count[2];
             curr_node->get_count(curr_count);
             
-            if (curr_node->is_leaf()|| (curr_count[0]+curr_count[1]) <= count_lim 
-                    || depth >= max_depth || working_reg.full()) {
+            if (curr_node->is_leaf()
+                    || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim 
+                    || (curr_count[0] < 0&& curr_count[1]<0)
+                    || depth >= max_depth 
+                    || working_reg.full()) {
                 // we are already at a uniform node
 
                 // add to regions
@@ -1364,6 +1371,12 @@ public:
                         child_0->get_count(count0);
                         child_1->get_count(count1);
 
+                        count0[0] = abs(count0[0]);
+                        count0[1] = abs(count0[1]);
+
+                        count1[0] = abs(count1[0]);
+                        count1[1] = abs(count1[1]);
+
                         double post_prob = 0;
                         post_prob += gt.compute_lD2(curr_count[0],count0[0],count1[0]);
                         post_prob += gt.compute_lD2(curr_count[1],count0[1],count1[1]);
@@ -1405,7 +1418,7 @@ public:
                 (*map_ra)[curr_map_node]->set_area(-depth);
                 int curr_count[2];
                 curr_node->get_count(curr_count);
-                (*map_ra)[curr_map_node]->set_count((curr_count[0]-curr_count[1]));
+                (*map_ra)[curr_map_node]->set_count((abs(curr_count[0])-abs(curr_count[1])));
             }
 
             if(back_up){

@@ -1265,6 +1265,8 @@ int copt_scan(vector<string> params) {
     int N = data.size();
 
     cerr << "Running coupling OPT scan" << '\n';
+    cerr << "Window size: " << window_size << '\n';
+    cerr << "Half Window size: " << half_wind << '\n';
     cerr << "Data: " << N << " points in " << dim << " dimensions.\n";
 
     double stop_ratio = strTo<double>(params[0]);
@@ -1287,6 +1289,7 @@ int copt_scan(vector<string> params) {
     }
 
     // run copt for the first window
+    cerr << "idx: " << half_wind << '\n';
     online_copt_tree* online_comp = new online_copt_tree(dim, stop_points, 31 * dim, window_size);
     uint32_t start_idx[2] = {0, half_wind};
     uint32_t end_idx[2] = {half_wind - 1, window_size - 1};
@@ -1309,7 +1312,6 @@ int copt_scan(vector<string> params) {
         cerr << '\n';
     }
      */
-
 
     // output the partition
     // need to change to output immediately rather than store in hash table
@@ -1343,7 +1345,7 @@ int copt_scan(vector<string> params) {
         online_comp->prune_tree(data, pts, idx); // this must be run every iteration (not yet tested for other case)
 
         // output the partition
-        if ((idx + window_size) == (N - 1) || (idx % output_interval) == 0) {
+        if (((idx + window_size) == (N - 1)) || ((idx % output_interval) == 0)) {
             map_tree comp_map_region_tree(N, dim);
             opt_region_hash<uint32_t> comp_map_regions(15);
             online_comp->construct_MAP_tree(comp_map_region_tree, comp_map_regions, window_size);

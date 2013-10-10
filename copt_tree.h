@@ -102,7 +102,7 @@ public:
     }
 
     void set_uniform(int depth){
-        lP = (count[0]+count[1]) * depth * c::l2;
+        lP = (abs(count[0])+abs(count[1])) * depth * c::l2;
         lphi = lP;
     }
 
@@ -113,7 +113,7 @@ public:
         lphi_list.reserve(num_children+1);
         
         // Base measure
-        int total_count = (count[0]+count[1]);
+        int total_count = (abs(count[0])+abs(count[1]));
         double max_val = (total_count * depth * c::l2) - (c::l2);
         lphi_list.push_back (max_val);
         
@@ -128,13 +128,8 @@ public:
                 exit(2);
             }
 
-            int child_1_count = children[i][0]->get_count();
-            int child_2_count = children[i][1]->get_count();
-
-            if(child_1_count < 0 || child_2_count < 0){
-                cerr << "lphi neg count!!! " << i << ',' << depth << '\n';
-                exit(2);
-            }
+            int child_1_count = abs(children[i][0]->get_count());
+            int child_2_count = abs(children[i][1]->get_count());
 
             double val = ld;
             val += children[i][0]->get_lphi();
@@ -176,17 +171,17 @@ public:
             int child_2_count[2];
             children[i][1]->get_count(child_2_count);
 
-            if(child_1_count[0] < 0 || child_2_count[0] < 0
-                    || child_1_count[1] < 0 || child_2_count[1] < 0){
-                cerr << "cneg count!!! " << i << ',' << depth << '\n';
-                exit(2);
-            }
+            child_1_count[0] = abs(child_1_count[0]);
+            child_1_count[1] = abs(child_1_count[1]);
+            
+            child_2_count[0] = abs(child_2_count[0]);
+            child_2_count[1] = abs(child_2_count[1]);
 
             double val = ld;
             val += children[i][0]->get_lP();
             val += children[i][1]->get_lP();
-            val += gt.compute_lD2(count[0],child_1_count[0],child_2_count[0]);
-            val += gt.compute_lD2(count[1],child_1_count[1],child_2_count[1]);
+            val += gt.compute_lD2(abs(count[0]),child_1_count[0],child_2_count[0]);
+            val += gt.compute_lD2(abs(count[1]),child_1_count[1],child_2_count[1]);
 
             lphi_list[i+1] = val;
 
@@ -238,13 +233,17 @@ public:
         count_out[0] = this->count[0];
         count_out[1] = this->count[1];
     }
-    
-    int get_count(){
-        return count[0]+count[1];
+
+    int get_count() {
+        if (count[0] < 0 && count[1] < 0) {
+            return count[0] + count[1];
+        } else {
+            return abs(count[0]) + abs(count[1]);
+        }
     }
 
-    void set_child(int dim,int cut,ctree_node* node){
-        if(children != NULL)children[dim][cut] = node;
+    void set_child(int dim, int cut, ctree_node* node) {
+        if (children != NULL)children[dim][cut] = node;
     }
 
     ctree_node* get_child(int dim,int cut){
@@ -345,7 +344,8 @@ public:
             bool back_up = false;
             // check if current node is leaf or at end
             if(curr_node->is_leaf()
-                    || (curr_count[0]+curr_count[1]) <= count_lim
+                    || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
+                    || (curr_count[0] < 0 && curr_count[1] < 0)
                     || depth >= max_depth
                     || working_reg.full()){
                 // back up
@@ -420,8 +420,11 @@ public:
 
                 // must match the backup criteria
                 // kind of un-elegant that we need this...
-                if (!is_diff || (curr_count[0]+curr_count[1]) <= count_lim 
-                        || depth >= max_depth || working_reg.full()){
+                if (!is_diff 
+                        || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
+                        || (curr_count[0] < 0 && curr_count[1] < 0)
+                        || depth >= max_depth 
+                        || working_reg.full()){
                     new_node.first = new ctree_node();
                     num_zero_nodes++;
                 }else {
@@ -511,8 +514,11 @@ public:
             int curr_count[2];
             curr_node->get_count(curr_count);
             
-            if (curr_node->is_leaf()|| (curr_count[0]+curr_count[1]) <= count_lim 
-                    || depth >= max_depth || working_reg.full()) {
+            if (curr_node->is_leaf()
+                    || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
+                    || (curr_count[0] < 0 && curr_count[1] < 0)
+                    || depth >= max_depth 
+                    || working_reg.full()) {
                 // we are already at a uniform node
 
                 // add to regions
@@ -544,10 +550,15 @@ public:
                     child_1->get_count(count1);
                     int curr_count[2];
                     curr_node->get_count(curr_count);
+
+                    count0[0] = abs(count0[0]);
+                    count0[1] = abs(count0[1]);
+                    count1[0] = abs(count1[0]);
+                    count1[1] = abs(count1[1]);
                     
                     double max_post_prob = 0;
-                    max_post_prob += gt.compute_lD2(curr_count[0],count0[0],count1[0]);
-                    max_post_prob += gt.compute_lD2(curr_count[1],count0[1],count1[1]);
+                    max_post_prob += gt.compute_lD2(abs(curr_count[0]),count0[0],count1[0]);
+                    max_post_prob += gt.compute_lD2(abs(curr_count[1]),count0[1],count1[1]);
                     max_post_prob += child_0->get_lP();
                     max_post_prob += child_1->get_lP();
 
@@ -558,9 +569,14 @@ public:
                         child_0->get_count(count0);
                         child_1->get_count(count1);
 
+                        count0[0] = abs(count0[0]);
+                        count0[1] = abs(count0[1]);
+                        count1[0] = abs(count1[0]);
+                        count1[1] = abs(count1[1]);
+                        
                         double post_prob = 0;
-                        post_prob += gt.compute_lD2(curr_count[0],count0[0],count1[0]);
-                        post_prob += gt.compute_lD2(curr_count[1],count0[1],count1[1]);
+                        post_prob += gt.compute_lD2(abs(curr_count[0]),count0[0],count1[0]);
+                        post_prob += gt.compute_lD2(abs(curr_count[1]),count0[1],count1[1]);
                         post_prob += child_0->get_lP();
                         post_prob += child_1->get_lP();
 
@@ -599,7 +615,7 @@ public:
                 (*map_ra)[curr_map_node]->set_area(-depth);
                 int curr_count[2];
                 curr_node->get_count(curr_count);
-                (*map_ra)[curr_map_node]->set_count((curr_count[0]-curr_count[1]));
+                (*map_ra)[curr_map_node]->set_count((abs(curr_count[0])-abs(curr_count[1])));
             }
 
             if(back_up){
