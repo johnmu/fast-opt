@@ -1194,8 +1194,8 @@ int copt_scan_old(vector<string> params) {
         
         cerr << "idx: " << idx << " - " << idx+window_size << '\n';
         
-        copt_tree opt_slow_comp(dim, stop_points, 1000);
         mt.reset();
+        copt_tree opt_slow_comp(dim, stop_points, 1000);
         opt_slow_comp.construct_full_tree(split_data);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "coupling OPT tree");
@@ -1212,7 +1212,7 @@ int copt_scan_old(vector<string> params) {
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "comp MAP tree");
 
-        string temp = "old_partition_" + toStr<int>(idx+1) + ".txt";
+        string temp = "old_partition_" + toStr<int>(idx + window_size/2) + ".txt";
         ofstream out_file(temp.c_str());
         print_MAP_density(out_file, comp_map_regions.get_regions(),
                     comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
@@ -1226,7 +1226,7 @@ int copt_scan_old(vector<string> params) {
             idx = N-window_size-1;
         }
     }
-    
+    cerr << "Total time: " << total_time << '\n';
 
 
     return 0;

@@ -552,8 +552,6 @@ public:
             // work out what to count
 
             bool back_up = false;
-            
-
 
             // check if current node is leaf or at end
             // do this check if the sequence id is reached
@@ -587,7 +585,6 @@ public:
                         int ecut = node_pile[edepth].cut;
 
                         if (edim < num_children) {
-
                             working_reg.cut(edim, ecut);
 
                             //uint32_t del_node = region_cache.erase(working_reg);
@@ -619,9 +616,7 @@ public:
                                     }
 
                                     if (delete_node) {
-
                                         region_cache.erase(working_reg, reg_hash);
-
                                     }
                                 }
                             
@@ -629,29 +624,25 @@ public:
                                 if (ra[del_node]->is_leaf()) {
                                     if (delete_node) ra.delete_node(del_node);
                                 } else {
-
                                     edepth++;
                                     node_pile.push_back(epile_t<uint32_t>());
                                     if (delete_node)node_pile[edepth].node = del_node;
                                     else node_pile[edepth].node = c::ra_null_val;
                                     node_pile[edepth].dim = 0;
                                     node_pile[edepth].cut = 0;
-                                    node_pile[edepth].insert = node_pile[edepth - 1].insert;
                                     continue;
                                 }
                             }
                             // uncut
                             working_reg.uncut(edim);
-
                         }
-
 
                         if (node_pile[edepth].dim == num_children) {
                             if (edepth != 0) {
                                 if (node_pile[edepth].node != c::ra_null_val)ra.delete_node(node_pile[edepth].node);
                             }
                             node_pile.pop_back();
-                            if(edepth>0)edepth--;
+                            edepth--;
                             if(edepth>=0){
                                 working_reg.uncut(node_pile[edepth].dim);
                             }
@@ -682,11 +673,8 @@ public:
                 }
                 
                 back_up = true;
-
             }
 
-
-            
             bool point_included = false;
             
             if (back_up) {
@@ -695,6 +683,7 @@ public:
                 if(depth < 0) continue;
                 
                 curr_reg.uncut(pile[depth].dim,pile[depth].cut);
+
                 working_reg.uncut(pile[depth].dim);
 
             }else{
@@ -762,9 +751,7 @@ public:
                 pile[depth].dim = 0;
                 pile[depth].cut = 0;
                 pile[depth].node = new_node.first;
-                
-                
-                
+
                 // determine which data points are active
                 double lim = curr_reg.get_lim(curr_dim);
                 for (int k = 0; k < 2; k++) {
@@ -790,14 +777,12 @@ public:
                 }
 
                 online_ctree_node* new_ptr = ra[new_node.first];
-
                 new_ptr->set_sequence_id(-seq_idx);
 
                 // cut after the counting
                 curr_reg.cut(curr_dim, curr_cut);
 
             } else {
-
                 working_reg.uncut(curr_dim);
                 
                 if(pile[depth].cut < c::cuts - 1){
@@ -905,8 +890,6 @@ public:
                             int ecut = node_pile[edepth].cut;
 
                             if (edim < num_children) {
-
-                                working_reg.print_region(cerr);
                                 working_reg.cut(edim, ecut);
 
                                 //uint32_t del_node = region_cache.erase(working_reg);
@@ -928,7 +911,6 @@ public:
                                                     // before deleting children need to store children data within
                                                     curr_node->data[k]->insert(curr_node->data[k]->end(),
                                                             ra[del_node]->data[k]->begin(), ra[del_node]->data[k]->end());
-
                                                 } else {
                                                     // if it is incorrect, we need to re-count it, urgh
 
@@ -957,8 +939,6 @@ public:
                                     } else {
                                         edepth++;
                                         node_pile.push_back(epile_t<uint32_t>());
-                                        //if(delete_node)node_pile[edepth].node = del_node;
-                                        //else node_pile[edepth].node = c::ra_null_val;
                                         node_pile[edepth].dim = 0;
                                         node_pile[edepth].cut = 0;
                                         node_pile[edepth].insert = node_pile[edepth - 1].insert;
@@ -967,14 +947,15 @@ public:
                                 }
                                 // uncut
                                 working_reg.uncut(edim);
-      
                             }
                             
                             if (node_pile[edepth].dim == num_children) {
 
                                 node_pile.pop_back();
                                 edepth--;
-                                if(edepth>=0)working_reg.uncut(node_pile[edepth].dim);
+                                if(edepth>=0){
+                                    working_reg.uncut(node_pile[edepth].dim);
+                                }
                             }
 
                             if (edepth >= 0) {
@@ -1246,8 +1227,6 @@ public:
                         // if the region is not a leaf
                         // do nothing?
                     }
-                    
-                    
                 }
                 
                 // cut after the counting
@@ -1255,7 +1234,6 @@ public:
                 
                 pile[depth].node = new_node.first;
             } else {
-
                 working_reg.uncut(curr_dim);
                 
                 if(pile[depth].cut < c::cuts - 1){

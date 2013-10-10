@@ -1,6 +1,6 @@
 CC = g++ 
-#CFLAGS = -O2 -m64 -msse2 -lm -Wall -pthread -funroll-loops
-CFLAGS = -g -m64 -msse2 -lm -Wall -pthread
+CFLAGS = -O2 -m64 -msse2 -lm -Wall -pthread -funroll-loops
+#CFLAGS = -g -m64 -msse2 -lm -Wall -pthread
 
 install: fast-opt
 
