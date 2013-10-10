@@ -410,17 +410,12 @@ public:
                 curr_reg.uncut(pile[depth].dim, pile[depth].cut);
                 working_reg.uncut(pile[depth].dim);
 
-                //working_reg.print_region();
-                //cerr << '\n';
-
                 if (pile[depth].cut < c::cuts - 1) {
                     pile[depth].cut++;
                 } else if (pile[depth].dim <= num_children - 1) {
                     pile[depth].dim++;
                     pile[depth].cut = 0;
                 }
-
-                //cerr << "AFTER dim:cut --- " << pile[depth].dim << ":" << pile[depth].cut << '\n';
 
                 continue;
             }
@@ -734,7 +729,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 int64_t num_removed = 0;
                 int64_t total_nodes = 0;
 
-                for (uint32_t i = 0; i < region_cache.table_size; i++) {
+                for (uint32_t i = 0; i < region_cache.get_table_size(); i++) {
                     if (region_cache.map_table[i] != NULL) {
 
                         map<opt_region, uint32_t> *new_map = new map<opt_region, uint32_t > ();
@@ -774,6 +769,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 //if(total_nodes>0)cerr << "Removed " << num_removed << "/" << total_nodes
                 //        << "(" << (num_removed / (total_nodes / 100.0)) << "%)" << '\n';
             }
+
 
         }
 

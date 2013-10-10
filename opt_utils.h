@@ -56,7 +56,6 @@ struct child_t{
     void load(istream & in){
         for(int i = 0;i<c::cuts;i++){
             in.read((char*)&(val[i]),sizeof(val[i]));
-            //cerr << "Child[" << i << "]:" << val[i] << '\n';
         }
     }
 };
@@ -69,6 +68,14 @@ struct pile_t{
     T node;
     int dim;
     int cut;
+};
+
+template <typename T>
+struct epile_t{
+    T node;
+    int dim;
+    int cut;
+    bool insert;
 };
 
 template <typename T,typename U>
@@ -130,12 +137,22 @@ public:
         return dim_cuts[dim].push_back(cut);
     }
 
-    void uncut(int dim){
-        if(dim_cuts[dim].size() == 0){
+    bool uncut(int dim){
+        int bit_size = dim_cuts[dim].size();
+        if(bit_size == 0){
             cerr << "Error, empty dim: " << dim << '\n';
+            return false;
         }
-        //dim_cuts[dim].erase(dim_cuts[dim].size()-1);
-        dim_cuts[dim].pop_back();
+        dim_cuts[dim].pop_back(bit_size);
+        return true;
+    }
+    
+    int back(int dim){
+        int bit_size = dim_cuts[dim].size();
+        if(bit_size == 0){
+            return -1;
+        }
+        return (int) dim_cuts[dim][bit_size-1];
     }
 
     bool operator==(const opt_region& b)const {
@@ -249,13 +266,9 @@ public:
         uint32_t len = 0;
         
         in.read((char*)&len,sizeof(len));
-        
-        //cerr << "in len: " << len << '\n';
-        
         dim_cuts.resize(len,bit_str());
         
         for(uint32_t i = 0;i<len;i++){
-            //cerr << "len[i]= " << i << '\n';
             dim_cuts[i].load(in);
         }
     } 
@@ -368,10 +381,7 @@ public:
         
         in.read((char*)&free_len,sizeof(free_len));
         in.read((char*)&store_len,sizeof(store_len));
-        
-        //cerr << "free_len: " << free_len << '\n';
-        //cerr << "store_len: " << store_len << '\n';
-        
+
         free_locs.clear();
         for(uint32_t i = 0;i<free_len;i++){
             free_locs.push_back(0);
@@ -434,13 +444,18 @@ public:
 
 template <typename T>
 class opt_region_hash {    
-public:
+private:
     static const uint32_t magic = 2654435761u;
 
+    
+    
+public:
+    
     map<opt_region, T>** map_table;
     int table_bits;
     uint32_t table_size;
     uint32_t mask;
+    
     
     void deinit(){
         //  iterate through and delete all the nodes
@@ -492,7 +507,8 @@ public:
         for (int i = 0; i < reg.num_children(); i++) {
             hash_val = hash_val ^ (reg.dim_cuts[i].data + i);
         }
-        return (hash_val*magic) & mask;
+        hash_val = (hash_val*magic) & mask; 
+        return hash_val;
     }
 
     pair<T,bool> find(opt_region& reg) {
@@ -505,25 +521,26 @@ public:
         } else {
             typename map<opt_region, T>::iterator it = map_table[hash]->find(reg);
             if (it == map_table[hash]->end()) {
-                //cerr << "NOTFOUND\n";
                 return pair<T,bool>(T(),false);
             } else {
-                //cerr << "FOUND\n";
                 return pair<T,bool>(it->second,true);
             }
         }
         return pair<T,bool>(T(),false);
     }
 
-    void insert(opt_region& reg, T node) {
+    uint32_t insert(opt_region& reg, T node) {
+        uint32_t hash_val = hash(reg); 
         insert(reg, node, hash(reg));
+        return hash_val;
     }
 
-    void insert(opt_region& reg, T node, uint32_t hash) {
-        if (map_table[hash] == NULL) {
-            map_table[hash] = new map<opt_region, T>();
+    uint32_t insert(opt_region& reg, T node, uint32_t hash_val) {
+        if (map_table[hash_val] == NULL) {
+            map_table[hash_val] = new map<opt_region, T>();
         }
-        map_table[hash]->insert(pair<opt_region, T>(reg, node));
+        map_table[hash_val]->insert(pair<opt_region, T>(reg, node));
+        return hash_val;
     }
     
     // returns the node that was erased
@@ -534,19 +551,21 @@ public:
     T erase(opt_region& reg, uint32_t hash) {
         
         // BUG: This is bad fix this
-        T del_node = (T)c::ra_null_val;
-        
+        T del_node = (T) c::ra_null_val;
+
         if (map_table[hash] != NULL) {
             typename map<opt_region, T>::iterator it = map_table[hash]->find(reg);
             if (it != map_table[hash]->end()) {
                 del_node = it->second;
                 map_table[hash]->erase(it);
-            } 
+            }
+
+            if (map_table[hash]->size() == 0) {
+                delete map_table[hash];
+                map_table[hash] = NULL;
+            }
         }
-        if(map_table[hash]->size()==0){
-            delete map_table[hash];
-            map_table[hash] = NULL;
-        }
+        
         return del_node;
     }
 
@@ -560,6 +579,23 @@ public:
                     cerr << '\n';
                 }
             }
+        }
+    }
+
+    void print_hash(uint32_t hash_val) {
+        cerr << hash_val << "\n";
+        if (map_table[hash_val] != NULL) {
+            for (typename map<opt_region, T>::iterator it = map_table[hash_val]->begin();
+                    it != map_table[hash_val]->end(); it++) {
+                it->first.print_region();
+                cerr << ": " << it->second;
+                if(it->second == 0){
+                    cerr << "FUNNNY!\n";
+                }
+                cerr << '\n';
+            }
+        }else{
+            cerr << "empty hash\n";
         }
     }
 
@@ -587,6 +623,10 @@ public:
             }
         }
         return num_regions;
+    }
+    
+    uint32_t get_table_size(){
+        return table_size;
     }
 
     void save(ostream & out) const{
@@ -635,20 +675,13 @@ public:
             }
             delete [] map_table;
         }
-        //cerr << "delete ok\n";
-        
+
         in.read((char*)&table_bits,sizeof(table_bits));
         in.read((char*)&table_size,sizeof(table_size));
         in.read((char*)&mask,sizeof(mask));
-        
-        //cerr << "table_bits: " <<table_bits << '\n';
-        //cerr << "table_size: " << table_size << '\n';
-        //cerr << "mask: " << mask <<'\n';
-        
+
         uint32_t non_null_count = 0;
         in.read((char*) &non_null_count, sizeof (non_null_count));
-
-        //cerr << "non_null_count: " << non_null_count << '\n';
 
         // initialise the table
         map_table = new map<opt_region, T>*[table_size];
@@ -673,23 +706,17 @@ public:
             uint32_t map_len = 0;
 
             in.read((char*) &map_len, sizeof (map_len));
-            
-            //cerr << "map_len: " << map_len << '\n';
 
             for(uint32_t j = 0;j<map_len;j++){
                 opt_region temp_region;
                 T val;
-                
-                //cerr << "map[j]: " << j << '\n';
-                
+
                 temp_region.load(in);
                 in.read((char*)&(val),sizeof(val));
-                
-                //cerr << "val: " << val << '\n';
-                
+
                 it->insert(pair<opt_region, T>(temp_region, val));
             }
-            //cerr << "load map done" << '\n';
+
 
         }
     }   

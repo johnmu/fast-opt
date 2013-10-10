@@ -1076,7 +1076,7 @@ public:
 
 
             // remove all the nodes not consistent with current good regions
-
+/*
             if (prune_tree && ((curr_data_size > 500 && ra.free_locs.size() < 1000000) || (curr_data_size > 1000))) {
                 int64_t num_removed = 0;
                 int64_t total_nodes = 0;
@@ -1121,6 +1121,7 @@ public:
                 //if(total_nodes>0)cerr << "Removed " << num_removed << "/" << total_nodes
                 //        << "(" << (num_removed / (total_nodes / 100.0)) << "%)" << '\n';
             }
+ * */
 
         }
 

@@ -295,6 +295,14 @@ public:
         }
     }
 
+    void pop_back(int s){
+
+        if(s > 0){
+            data = data & ((((uint32_t)1)<<s)-1);
+            data = data | (((uint32_t)1)<<(s-1));
+        }
+    }
+    
     bool operator==(const bit_str &b) const{
         return data == b.data;
     }

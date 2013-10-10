@@ -276,9 +276,12 @@ private:
         }
         
         this->max_depth = max_depth;
+        region_cache.init_table(27);
     }
 
 public:
+    
+    opt_region_hash<ctree_node*> region_cache;
 
     copt_tree(int num_children, int count_lim, int max_depth){
         init(num_children,count_lim,max_depth);
@@ -303,7 +306,6 @@ public:
 
         vector<cpile_t<ctree_node*,uint32_t > > pile;
         pile.push_back(cpile_t<ctree_node*,uint32_t >());
-       
         
         for (int k = 0; k < 2; k++) {
             pile[0].data[k] = vector<uint32_t>(N[k],0);
@@ -319,7 +321,7 @@ public:
         current_region curr_reg(num_children);
         opt_region working_reg(num_children);
 
-        opt_region_hash<ctree_node*> region_cache(27);
+        
 
         int depth = 0;
         
@@ -338,6 +340,21 @@ public:
             int curr_count[2];
             curr_node->get_count(curr_count);
             // work out what to count
+            
+            cerr << "== depth = " << depth << '\n';
+            cerr << "curr_dim = " << curr_dim << '\n';
+            cerr << "curr_cut = " << curr_cut << '\n';
+            cerr << "curr_count[0] = " << curr_count[0] << '\n';
+            cerr << "curr_count[1] = " << curr_count[1] << '\n';
+            for(int k = 0;k<2;k++){
+                cerr << "data[" << k << "]:\n";
+                for(int i = 0;i<(int)pile[depth].data[k].size();i++){
+                    for(int j = 0;j<num_children;j++){
+                        cerr << all_data[k][pile[depth].data[k][i]][j] << ',';
+                    }
+                    cerr << "\n";
+                }
+            }
 
             bool back_up = false;
             // check if current node is leaf or at end
@@ -348,6 +365,8 @@ public:
                 // back up
                 back_up = true;
 
+                cerr << "LEAF!\n";
+                
                 // assume cuts are the same, so don't nee to search for lP0
                 curr_node->set_uniform(depth);
                 
@@ -361,8 +380,13 @@ public:
                     pile[depth].cut = 0;
                 }else{
                     // reached end of node!! back up
+                    cerr << "BACKUP\n";
+                    
                     back_up = true;
                     curr_node->compute_lPs(depth,gt);
+                    
+                    cerr << "lphi = " << curr_node->get_lphi() << '\n';
+                    cerr << "lP =   " << curr_node->get_lP() << '\n';
                 }
             }
 
@@ -413,6 +437,9 @@ public:
                 int curr_count[2];
                 curr_count[0] = pile[depth].data[0].size();
                 curr_count[1] = pile[depth].data[1].size();
+                
+                cerr << "##curr_count[0] = " << curr_count[0] << '\n';
+                cerr << "##curr_count[1] = " << curr_count[1] << '\n';
                
                 // must match the backup criteria
                 // kind of un-elegant that we need this...
