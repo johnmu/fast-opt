@@ -394,14 +394,6 @@ public:
             curr_node->get_count(curr_count);
             // work out what to count
 
-            
-            cerr << "== depth = " << depth << '\n';
-            cerr << "curr_dim = " << curr_dim << '\n';
-            cerr << "curr_cut = " << curr_cut << '\n';
-            cerr << "curr_count[0] = " << curr_count[0] << '\n';
-            cerr << "curr_count[1] = " << curr_count[1] << '\n';
-
-            
             bool back_up = false;
             // check if current node is leaf or at end
             if(curr_node->is_leaf()
@@ -420,11 +412,9 @@ public:
             } else if (curr_dim > num_children - 1) {
                 // reached end of node!! back up
                 back_up = true;
-                //(opt_region &working_reg, uint32_t curr_node, int depth, int num_children
+
                 compute_lPs(working_reg, pile[depth].node, depth,0);
 
-                cerr << "lphi = " << curr_node->get_lphi() << '\n';
-                cerr << "lP =   " << curr_node->get_lP() << '\n';
             }
 
             if (back_up) {
@@ -486,11 +476,7 @@ public:
                     curr_count[1] = -pile[depth].data[1].size();
                 }
                 
-                cerr << "##curr_count[0] = " << curr_count[0] << '\n';
-                cerr << "##curr_count[1] = " << curr_count[1] << '\n';
-                cerr << "create node: ";
-                working_reg.print_region(cerr);
-                cerr << '\n';
+
                 pair<uint32_t, online_ctree_node*> out = ra.create_node();
                 new_node.first = out.first;
 
@@ -527,8 +513,6 @@ public:
     
     void prune_tree(vector<vector<double> > &all_data, uint32_t pts[4],int seq_idx){
 
-        cerr << "prune!---------seqp: " << seq_idx << '\n';
-        
         int N[2] = {0,0};
         ra[root]->get_count(N);
 
@@ -566,14 +550,6 @@ public:
             int curr_count[2];
             curr_node->get_count(curr_count);
             // work out what to count
-            
-            cerr << "== depth = " << depth << '\n';
-            cerr << "curr_dim = " << curr_dim << '\n';
-            cerr << "curr_cut = " << curr_cut << '\n';
-            cerr << "curr_count[0] = " << curr_count[0] << '\n';
-            cerr << "curr_count[1] = " << curr_count[1] << '\n';
-            cerr << "idx: " << curr_node->get_sequence_id() << '\n';
-
 
             bool back_up = false;
             
@@ -598,7 +574,7 @@ public:
                     // check if it has children
                     // probably need to check all children :/
                     // also return the data
-                    cerr << "pDelete children:\n";
+
                     vector<epile_t<uint32_t> > node_pile;
                     node_pile.push_back(epile_t<uint32_t>());
                     int edepth = 0;
@@ -612,7 +588,6 @@ public:
 
                         if (edim < num_children) {
 
-                            working_reg.print_region(cerr);
                             working_reg.cut(edim, ecut);
 
                             //uint32_t del_node = region_cache.erase(working_reg);
@@ -696,7 +671,6 @@ public:
 
             } else if (pile[depth].dim > num_children - 1) {
                 // reached end of node!! back up
-                cerr << "Reached end backup\n";
 
                 // if it is not a leaf, delete the data points within
                 if (curr_node->data[0] != NULL) {
@@ -716,9 +690,6 @@ public:
             bool point_included = false;
             
             if (back_up) {
-
-                cerr << "BACKUP!\n";
-
                 depth--;
                 pile.pop_back();
                 if(depth < 0) continue;
@@ -777,9 +748,7 @@ public:
             // In addition to checking if the new node exists we check the sequence number
             bool recount = false;
             if (!new_node.second){
-                cerr << "Error: pnot found!";
                 exit(1); // should always find
-                     
             }else{
                 if(ra[new_node.first]->get_sequence_id()!=-seq_idx){
                     recount = true;
@@ -850,8 +819,6 @@ public:
     
     void update_points(vector<vector<double> > &all_data, uint32_t pts[4],int seq_idx){
 
-        cerr << "---------seq_idx: " << seq_idx << '\n';
-        
         int N[2] = {0,0};
         ra[root]->get_count(N);
 
@@ -889,15 +856,6 @@ public:
             int curr_count[2];
             curr_node->get_count(curr_count);
             // work out what to count
-            
-            cerr << "== depth = " << depth << '\n';
-            cerr << "curr_dim = " << curr_dim << '\n';
-            cerr << "curr_cut = " << curr_cut << '\n';
-            cerr << "curr_count[0] = " << curr_count[0] << '\n';
-            cerr << "curr_count[1] = " << curr_count[1] << '\n';
-            cerr << "idx: " << curr_node->get_sequence_id() << '\n';
-
-
             bool back_up = false;
             
 
@@ -1038,8 +996,7 @@ public:
                             cerr << "COUNT_ERROR 1: " << curr_node->data[1]->size() << "," << curr_count[1] << '\n';
                         }
                         
-                        
-                        
+
                     }
 
                     // assume cuts are the same, so don't nee to search for lP0
@@ -1052,8 +1009,7 @@ public:
                     back_up = true;
 
                     compute_lPs(working_reg, pile[depth].node, depth,seq_idx);
-                    cerr << "lphi = " << curr_node->get_lphi() << '\n';
-                    cerr << "lP =   " << curr_node->get_lP() << '\n';
+
                 }
                 
             }
@@ -1062,7 +1018,6 @@ public:
             
             if (back_up) {
 
-                cerr << "BACKUP!\n";
                 curr_node->set_sequence_id(seq_idx);
                 
                 depth--;

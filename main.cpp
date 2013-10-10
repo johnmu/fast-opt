@@ -1170,7 +1170,7 @@ int copt_scan_old(vector<string> params) {
     mu_timer mt;
     
     // loop to split the dataset
-    int window_size = 10;
+    int window_size = 100;
     
     if(N<window_size){
         cerr << "N too small\n";
@@ -1199,19 +1199,6 @@ int copt_scan_old(vector<string> params) {
         opt_slow_comp.construct_full_tree(split_data);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "coupling OPT tree");
-        
-        cerr << "partitions!!~!@~!\n";
-        vector<pair<opt_region, ctree_node*> > print_stuff = opt_slow_comp.region_cache.get_regions();
-
-        for (int i = 0; i < (int) print_stuff.size(); i++) {
-            print_stuff[i].first.print_region_limits();
-            ctree_node* node = print_stuff[i].second;
-            int count[2];
-            node->get_count(count);
-            cerr << " : " << count[0] << "," << count[1];
-            cerr << " : " << node->get_lP() << " : " << node->get_lphi();
-            cerr << '\n';
-        }
 
         double coup_prob = opt_slow_comp.get_log_coupling_prob();
         cerr << "Log coupling prob: " << coup_prob << endl;
@@ -1225,7 +1212,7 @@ int copt_scan_old(vector<string> params) {
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "comp MAP tree");
 
-        string temp = "old_partition_" + toStr<int>(idx) + ".txt";
+        string temp = "old_partition_" + toStr<int>(idx+1) + ".txt";
         ofstream out_file(temp.c_str());
         print_MAP_density(out_file, comp_map_regions.get_regions(),
                     comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
@@ -1304,6 +1291,8 @@ int copt_scan(vector<string> params) {
     uint32_t end_idx[2] = {half_wind-1,window_size-1};
     
     online_comp->construct_full_tree(data,start_idx,end_idx);
+    
+    /*
     cerr << "partitions!!~!@~!\n";
     vector<pair<opt_region, uint32_t> > print_stuff = online_comp->get_region_cache()->get_regions();
     region_allocator<online_ctree_node>* print_ra = online_comp->get_ra();
@@ -1318,6 +1307,7 @@ int copt_scan(vector<string> params) {
         cerr << " : " << node->get_lP() << " : " << node->get_lphi();
         cerr << '\n';
     }
+    */
 
     
     // output the partition
@@ -1349,52 +1339,10 @@ int copt_scan(vector<string> params) {
         // [ add0,  del0,  add1,  del1]
         uint32_t pts[4] = {half_wind+idx-1,uint32_t(idx-1),window_size+idx-1,half_wind+idx-1};
         online_comp->update_points(data,pts,idx);
-        cerr << "add 0/del1[" << half_wind+idx-1 <<"]\n";
-        for(int i = 0;i<dim;i++){
-            cerr << data[half_wind+idx-1][i] << ",";
-        }
-        cerr << '\n';
-        cerr << "del 0/[" << idx-1 <<"]\n";
-        for(int i = 0;i<dim;i++){
-            cerr << data[idx-1][i] << ",";
-        }
-        cerr << '\n';
-        cerr << "add 1/[" << window_size+idx-1 <<"]\n";
-        for(int i = 0;i<dim;i++){
-            cerr << data[window_size+idx-1][i] << ",";
-        }
-        cerr << '\n';
                 
-        cerr << "partitions!!~!@~!\n";
-        vector<pair<opt_region, uint32_t> > print_stuff = online_comp->get_region_cache()->get_regions();
-        region_allocator<online_ctree_node>* print_ra = online_comp->get_ra();
-        for (int i = 0; i < (int) print_stuff.size(); i++) {
-            print_stuff[i].first.print_region_limits();
-            online_ctree_node* node = (*print_ra)[print_stuff[i].second];
-            int count[2];
-            node->get_count(count);
-            cerr << " ; " << print_stuff[i].second;
-            cerr << " : " << node->get_sequence_id();
-            cerr << " : " << count[0] << "," << count[1];
-            cerr << " : " << node->get_lP() << " : " << node->get_lphi();
-            cerr << '\n';
-        }
 
         online_comp->prune_tree(data,pts,idx);
-        cerr << "part pruned\n";
-        print_stuff = online_comp->get_region_cache()->get_regions();
-        print_ra = online_comp->get_ra();
-        for (int i = 0; i < (int) print_stuff.size(); i++) {
-            print_stuff[i].first.print_region_limits();
-            online_ctree_node* node = (*print_ra)[print_stuff[i].second];
-            int count[2];
-            node->get_count(count);
-            cerr << " ; " << print_stuff[i].second;
-            cerr << " : " << node->get_sequence_id();
-            cerr << " : " << count[0] << "," << count[1];
-            cerr << " : " << node->get_lP() << " : " << node->get_lphi();
-            cerr << '\n';
-        }
+
         
         // output the partition
         map_tree comp_map_region_tree(N, dim);

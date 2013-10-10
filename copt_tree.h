@@ -341,20 +341,6 @@ public:
             curr_node->get_count(curr_count);
             // work out what to count
             
-            cerr << "== depth = " << depth << '\n';
-            cerr << "curr_dim = " << curr_dim << '\n';
-            cerr << "curr_cut = " << curr_cut << '\n';
-            cerr << "curr_count[0] = " << curr_count[0] << '\n';
-            cerr << "curr_count[1] = " << curr_count[1] << '\n';
-            for(int k = 0;k<2;k++){
-                cerr << "data[" << k << "]:\n";
-                for(int i = 0;i<(int)pile[depth].data[k].size();i++){
-                    for(int j = 0;j<num_children;j++){
-                        cerr << all_data[k][pile[depth].data[k][i]][j] << ',';
-                    }
-                    cerr << "\n";
-                }
-            }
 
             bool back_up = false;
             // check if current node is leaf or at end
@@ -365,8 +351,6 @@ public:
                 // back up
                 back_up = true;
 
-                cerr << "LEAF!\n";
-                
                 // assume cuts are the same, so don't nee to search for lP0
                 curr_node->set_uniform(depth);
                 
@@ -380,13 +364,9 @@ public:
                     pile[depth].cut = 0;
                 }else{
                     // reached end of node!! back up
-                    cerr << "BACKUP\n";
-                    
+
                     back_up = true;
                     curr_node->compute_lPs(depth,gt);
-                    
-                    cerr << "lphi = " << curr_node->get_lphi() << '\n';
-                    cerr << "lP =   " << curr_node->get_lP() << '\n';
                 }
             }
 
@@ -437,10 +417,7 @@ public:
                 int curr_count[2];
                 curr_count[0] = pile[depth].data[0].size();
                 curr_count[1] = pile[depth].data[1].size();
-                
-                cerr << "##curr_count[0] = " << curr_count[0] << '\n';
-                cerr << "##curr_count[1] = " << curr_count[1] << '\n';
-               
+
                 // must match the backup criteria
                 // kind of un-elegant that we need this...
                 if (!is_diff || (curr_count[0]+curr_count[1]) <= count_lim 
@@ -466,9 +443,7 @@ public:
                 }
 
             } else {
-#ifdef DEBUG
-                cerr << "found node: " << curr_dim << "," << curr_cut << '\n';
-#endif
+
                 curr_node->set_child(curr_dim, curr_cut, new_node.first);
                 working_reg.uncut(curr_dim);
             }
