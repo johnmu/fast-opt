@@ -80,7 +80,7 @@ namespace c{
     static const double inf = INFINITY;
     static const uint32_t ra_null_val = 4294967295u;
     static const string PROG_NAME = "fast-opt";
-    static const string BUILD = "0.6-r77";
+    static const string BUILD = "0.6-r80";
     static const int MAX_COORD_DEPTH = 30;
     
     static const int magic = 1741324111; // for files created by this program
