@@ -218,10 +218,10 @@ int llopt(vector<string> params) {
 
     cerr << "Each small OPT stopping at " << ll_levels << " levels.\n";
     cerr << "Each level stopping at " << stop_ratio * 100 << "% of points.\n";
-    
-    if(top_stop_ratio >= 1){
+
+    if (top_stop_ratio >= 1) {
         cerr << "Total stopping at " << top_stop_ratio << " points.\n";
-    }else{
+    } else {
         cerr << "Total stopping at " << top_stop_ratio * 100 << "% of points.\n";
     }
 
@@ -248,6 +248,7 @@ int llopt(vector<string> params) {
 }
 
 // not used for now... need to convert to new format
+
 int lsopt(vector<string> params) {
 
 
@@ -372,6 +373,7 @@ int dfopt(vector<string> params) {
 }
 
 // this wasn't really a good idea anyways
+
 int disopt(vector<string> params) {
 
 
@@ -578,10 +580,10 @@ int hell_dist(vector<string> params) {
 
     string joint_filename = params[1];
 
-    if(joint_filename == "-"){
+    if (joint_filename == "-") {
         joint_filename = "";
     }
-    
+
     string marginal_filename = "";
     bool copula = false;
     if (params.size() == 3) {
@@ -599,7 +601,7 @@ int hell_dist(vector<string> params) {
         double map_den = 0.0;
 
         vector<double> point(true_samples[i].begin(), true_samples[i].end() - 1);
-        map_den = dens.compute_density(point,0);
+        map_den = dens.compute_density(point, 0);
         val += sqrt(map_den / true_den); // importance sample
     }
 
@@ -639,18 +641,18 @@ int classify(vector<string> params) {
 
     vector<double> prior;
     {
-        vector<string> prior_str = split(params[1 + param_offset],',');
-        
+        vector<string> prior_str = split(params[1 + param_offset], ',');
+
         double prior_sum = 0;
-        for(int i = 0;i<(int)prior_str.size();i++){
+        for (int i = 0; i < (int) prior_str.size(); i++) {
             double val = strTo<double>(prior_str[i]);
             prior.push_back(val);
             prior_sum += val;
         }
-        
+
         // do normalization
-        for(int i = 0;i<(int)prior_str.size();i++){
-            prior[i] = prior[i]/prior_sum;
+        for (int i = 0; i < (int) prior_str.size(); i++) {
+            prior[i] = prior[i] / prior_sum;
         }
     }
 
@@ -674,8 +676,8 @@ int classify(vector<string> params) {
         cerr << "ERROR: Must if marginals are given, must be same number as copula densities.\n";
         return 1;
     }
-    
-    if(joint_filenames.size() != prior.size()){
+
+    if (joint_filenames.size() != prior.size()) {
         cerr << "ERROR: Prior must be same length as classes\n";
         return 1;
     }
@@ -706,11 +708,11 @@ int classify(vector<string> params) {
     vector<density_store> class_dist(num_class);
 
     for (int i = 0; i < num_class; i++) {
-        
-        if(joint_filenames[i]=="-"){
-            joint_filenames[i]= "";
+
+        if (joint_filenames[i] == "-") {
+            joint_filenames[i] = "";
         }
-        
+
         if (copula) {
             class_dist[i].load_files(joint_filenames[i], marginal_filenames[i]);
         } else {
@@ -741,7 +743,7 @@ int classify(vector<string> params) {
             double map_den = 0.0;
 
             // bayes rule
-            map_den = prior[c] * class_dist[c].compute_density(point,0.5);
+            map_den = prior[c] * class_dist[c].compute_density(point, 0.5);
 
             class_density[c] = map_den;
 
@@ -812,6 +814,7 @@ int classify(vector<string> params) {
 }
 
 // the old way of getting density from the partition... has some numerical issues
+
 int density_old(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
             + " density_old <MAP_partitions> <sample_data> \n"
@@ -889,8 +892,8 @@ int density(vector<string> params) {
     cerr << test_N << " data points in " << dim << " dimensions.\n";
 
     string joint_filename = params[1];
-    
-    if(joint_filename == "-"){
+
+    if (joint_filename == "-") {
         joint_filename = "";
     }
 
@@ -910,13 +913,12 @@ int density(vector<string> params) {
             it != test_data.end(); it++) {
         // for each data point
 
-        double den = dens.compute_density(*it,0);
+        double den = dens.compute_density(*it, 0);
         cout << std::scientific << den << '\n';
     }
 
     return 0;
 }
-
 
 int opt_comp(vector<string> params) {
 
@@ -940,12 +942,12 @@ int opt_comp(vector<string> params) {
     vector<vector<double> > data_2 = read_data(params[2], false);
 
     int dim = (int) data_1[0].size();
-    
-    if(dim != (int)data_2[0].size()){
+
+    if (dim != (int) data_2[0].size()) {
         cerr << "Error: dimension mismatch between data\n";
     }
-    
-    uint32_t N[2] = {(uint32_t)data_1.size(),(uint32_t)data_2.size()};
+
+    uint32_t N[2] = {(uint32_t) data_1.size(), (uint32_t) data_2.size()};
 
     cerr << "Running Two Sample Comparison Full-OPT" << '\n';
     cerr << "Data_1: " << N[0] << " points in " << dim << " dimensions.\n";
@@ -955,7 +957,7 @@ int opt_comp(vector<string> params) {
     int stop_points = 0;
 
     if (stop_ratio < 1) {
-        stop_points = (int) (min(N[0],N[1]) * stop_ratio);
+        stop_points = (int) (min(N[0], N[1]) * stop_ratio);
     } else {
         stop_points = (int) stop_ratio;
     }
@@ -974,7 +976,7 @@ int opt_comp(vector<string> params) {
         opt_slow.construct_full_tree(data_2);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "data_2 OPT tree");
-        
+
         double orig_lphi = opt_slow.get_lphi();
         cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
 
@@ -984,12 +986,12 @@ int opt_comp(vector<string> params) {
         opt_slow.construct_MAP_tree(map_region_tree, map_regions, N[0]);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "MAP tree");
-        
+
         //print_MAP_density(cerr, map_regions.get_regions(),
         //            map_region_tree.get_ra(), map_region_tree.get_num_points());
-        
+
         cerr << "Comparing to data_1\n";
-        opt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
+        opt_tree opt_slow_comp(dim, stop_points, 1000, &opt_slow);
         mt.reset();
         opt_slow_comp.construct_full_tree(data_1);
         total_time += mt.elapsed_time();
@@ -997,10 +999,10 @@ int opt_comp(vector<string> params) {
 
         double comp_lphi = opt_slow_comp.get_lphi();
         cerr << "comp Log Phi: " << opt_slow_comp.get_lphi() << endl;
-        
-        double lphi_ratio = orig_lphi-comp_lphi;
-        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
-        
+
+        double lphi_ratio = orig_lphi - comp_lphi;
+        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio) / 2 << '\n';
+
         mt.reset();
         map_tree comp_map_region_tree(N[0], dim);
         opt_region_hash<uint32_t> comp_map_regions(20);
@@ -1010,7 +1012,7 @@ int opt_comp(vector<string> params) {
 
         //print_MAP_density(cerr, comp_map_regions.get_regions(),
         //            comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
-        
+
     }
 
     {
@@ -1020,12 +1022,12 @@ int opt_comp(vector<string> params) {
         opt_slow.construct_full_tree(data_1);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "data_1 OPT tree");
-        
+
         double orig_lphi = opt_slow.get_lphi();
         cerr << "Log Phi: " << opt_slow.get_lphi() << endl;
 
         cerr << "Comparing to data_2\n";
-        opt_tree opt_slow_comp(dim, stop_points, 1000,&opt_slow);
+        opt_tree opt_slow_comp(dim, stop_points, 1000, &opt_slow);
         mt.reset();
         opt_slow_comp.construct_full_tree(data_2);
         total_time += mt.elapsed_time();
@@ -1033,10 +1035,10 @@ int opt_comp(vector<string> params) {
 
         double comp_lphi = opt_slow_comp.get_lphi();
         cerr << "comp Log Phi: " << opt_slow_comp.get_lphi() << endl;
-        
-        double lphi_ratio = orig_lphi-comp_lphi;
-        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio)/2 << '\n';
-        
+
+        double lphi_ratio = orig_lphi - comp_lphi;
+        cerr << "lphi_ratio: " << lphi_ratio - c::l2 << " = " << exp(lphi_ratio) / 2 << '\n';
+
         mt.reset();
         map_tree map_region_tree(N[1], dim);
         opt_region_hash<uint32_t> map_regions(20);
@@ -1051,7 +1053,6 @@ int opt_comp(vector<string> params) {
 
     return 0;
 }
-
 
 int copt(vector<string> params) {
 
@@ -1071,15 +1072,15 @@ int copt(vector<string> params) {
 
     string out_filename = params[3];
 
-    vector<vector<double> > data[2] = {read_data(params[1], false),read_data(params[2], false)};
+    vector<vector<double> > data[2] = {read_data(params[1], false), read_data(params[2], false)};
 
     int dim = (int) data[0][0].size();
-    
-    if(dim != (int)data[1][0].size()){
+
+    if (dim != (int) data[1][0].size()) {
         cerr << "Error: dimension mismatch between data\n";
     }
-    
-    uint32_t N[2] = {(uint32_t)data[0].size(),(uint32_t)data[1].size()};
+
+    uint32_t N[2] = {(uint32_t) data[0].size(), (uint32_t) data[1].size()};
 
     cerr << "Running Two Sample Comparison Full-OPT" << '\n';
     cerr << "Data_1: " << N[0] << " points in " << dim << " dimensions.\n";
@@ -1089,7 +1090,7 @@ int copt(vector<string> params) {
     int stop_points = 0;
 
     if (stop_ratio < 1) {
-        stop_points = (int) (min(N[0],N[1]) * stop_ratio);
+        stop_points = (int) (min(N[0], N[1]) * stop_ratio);
     } else {
         stop_points = (int) stop_ratio;
     }
@@ -1112,40 +1113,41 @@ int copt(vector<string> params) {
         cerr << "Log coupling prob: " << opt_slow_comp.get_log_coupling_prob() << endl;
 
         mt.reset();
-        map_tree comp_map_region_tree(N[0]+N[1], dim);
+        map_tree comp_map_region_tree(N[0] + N[1], dim);
         opt_region_hash<uint32_t> comp_map_regions(20);
-        opt_slow_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, N[0]+N[1]);
+        opt_slow_comp.construct_MAP_tree(comp_map_region_tree, comp_map_regions, N[0] + N[1]);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "comp MAP tree");
 
         print_MAP_density(cerr, comp_map_regions.get_regions(),
-                    comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
-        
+                comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+
     }
 
     return 0;
 }
 
-
 int copt_scan_old(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan_old <percent_points> <scan_resolution> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan_old <percent_points> <window_size> <scan_resolution> <data_file>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
+            + "          window_size -- Size of window to scan for changes, break at window_size/2\n"
+            + "      scan_resolution -- Number of data points to move each time\n"
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
-            + "          output_name -- Result output to <output_name>.den\n"
-            + "Log output to STDERR \n"
-            + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
-            + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n"
-            + "Recommend always stopping at 2 points.\n";
+            + "Log posterior coupling probability to STDOUT\n"
+            + "Scans through data_file and runs a coupling OPT for each window with the split at window_size/2"
+            + "Outputs one partition for each coupling OPT \n"
+            + "Runs full-OPT, uses a lot of memory for high dimensions. Not recommended for dimension \n"
+            + "greater than 5. Best choice for 1 - 3 dimensional data.\n";
 
-    if (params.size() != 3) {
+    if (params.size() != 4) {
         cerr << usage_text << endl;
         return 3;
     }
 
-    int scan_res = strTo<int>(params[1]);
-
-    vector<vector<double> > data = read_data(params[2], false);
+    int window_size = strTo<int>(params[1]);
+    int scan_res = strTo<int>(params[2]);
+    vector<vector<double> > data = read_data(params[3], false);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -1168,32 +1170,30 @@ int copt_scan_old(vector<string> params) {
     double total_time = 0.0;
 
     mu_timer mt;
-    
+
     // loop to split the dataset
-    int window_size = 100;
-    
-    if(N<window_size){
+    if (N < window_size) {
         cerr << "N too small\n";
         return 1;
     }
-    
+
     int idx = 0;
-    while((idx+window_size)<N){
+    while ((idx + window_size) < N) {
         // this splitting is really inefficient
-        vector<vector<double> > split_data[2] = {vector<vector<double> >(),vector<vector<double> >()};
-        split_data[0].reserve(window_size/2 + 1);
-        split_data[1].reserve(window_size/2 + 1);
-        
-        for(int i = 0;i<window_size;i++){
-            if(i<window_size/2){
-                split_data[0].push_back(data[idx+i]);
-            }else{
-                split_data[1].push_back(data[idx+i]);
+        vector<vector<double> > split_data[2] = {vector<vector<double> >(), vector<vector<double> >()};
+        split_data[0].reserve(window_size / 2 + 1);
+        split_data[1].reserve(window_size / 2 + 1);
+
+        for (int i = 0; i < window_size; i++) {
+            if (i < window_size / 2) {
+                split_data[0].push_back(data[idx + i]);
+            } else {
+                split_data[1].push_back(data[idx + i]);
             }
         }
-        
-        cerr << "idx: " << idx << " - " << idx+window_size << '\n';
-        
+
+        cerr << "idx: " << idx << " - " << idx + window_size << '\n';
+
         mt.reset();
         copt_tree opt_slow_comp(dim, stop_points, 1000);
         opt_slow_comp.construct_full_tree(split_data);
@@ -1202,9 +1202,9 @@ int copt_scan_old(vector<string> params) {
 
         double coup_prob = opt_slow_comp.get_log_coupling_prob();
         cerr << "Log coupling prob: " << coup_prob << endl;
-        
-        cout << idx + window_size/2 << "," << coup_prob << '\n';
-        
+
+        cout << idx + window_size / 2 << "," << coup_prob << '\n';
+
         mt.reset();
         map_tree comp_map_region_tree(N, dim);
         opt_region_hash<uint32_t> comp_map_regions(20);
@@ -1212,53 +1212,54 @@ int copt_scan_old(vector<string> params) {
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "comp MAP tree");
 
-        string temp = "old_partition_" + toStr<int>(idx + window_size/2) + ".txt";
+        string temp = "old_partition_" + toStr<int>(idx + window_size / 2) + ".txt";
         ofstream out_file(temp.c_str());
         print_MAP_density(out_file, comp_map_regions.get_regions(),
-                    comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+                comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
         print_MAP_density(cerr, comp_map_regions.get_regions(),
-                    comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+                comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
         out_file.close();
-        
-        
+
+
         idx = idx + scan_res;
-        if (((idx+window_size)>=N)&& (idx+window_size<N+scan_res-1)){
-            idx = N-window_size-1;
+        if (((idx + window_size) >= N)&& (idx + window_size < N + scan_res - 1)) {
+            idx = N - window_size - 1;
         }
     }
+
+    cerr.unsetf(ios::scientific);
     cerr << "Total time: " << total_time << '\n';
 
 
     return 0;
 }
 
-
-
 int copt_scan(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan <percent_points> <window_size> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan <percent_points> <window_size> <output_interval> <data_file>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
-            + "          output_name -- Result output to <output_name>.den\n"
-            + "Log output to STDERR \n"
-            + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
-            + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n"
-            + "Recommend always stopping at 2 points.\n";
+            + "Log posterior coupling probability to STDOUT\n"
+            + "Scans through data_file and runs a coupling OPT for each window with the split at window_size/2"
+            + "Outputs one partition for each coupling OPT \n"
+            + "Runs full-OPT, uses a lot of memory for high dimensions. Not recommended for dimension \n"
+            + "greater than 5. Best choice for 1 - 3 dimensional data.\n";
 
-    if (params.size() != 3) {
+    if (params.size() != 4) {
         cerr << usage_text << endl;
         return 3;
     }
 
-    uint32_t window_size = strTo<uint32_t>(params[1]);
-    uint32_t half_wind = (window_size/2);
-
-    if(half_wind == 0){
+    int window_size = strTo<int>(params[1]);
+    int half_wind = (window_size / 2);
+    int output_interval = strTo<int>(params[2]);
+    
+    if (half_wind <= 0) {
         cerr << "Error: window size too small\n";
         return 1;
     }
-    
-    vector<vector<double> > data = read_data(params[2], false);
+
+    vector<vector<double> > data = read_data(params[3], false);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -1277,21 +1278,21 @@ int copt_scan(vector<string> params) {
     if (stop_points < 1) stop_points = 1;
 
     cerr << "Stopping at " << stop_points << " points.\n";
-    
+
     mu_timer mt;
-    
-    if(N<window_size){
+
+    if (N < window_size) {
         cerr << "N too small\n";
         return 1;
     }
-    
+
     // run copt for the first window
-    online_copt_tree* online_comp = new online_copt_tree(dim, stop_points, 31*dim,window_size);
-    uint32_t start_idx[2] = {0,half_wind};
-    uint32_t end_idx[2] = {half_wind-1,window_size-1};
-    
-    online_comp->construct_full_tree(data,start_idx,end_idx);
-    
+    online_copt_tree* online_comp = new online_copt_tree(dim, stop_points, 31 * dim, window_size);
+    uint32_t start_idx[2] = {0, half_wind};
+    uint32_t end_idx[2] = {half_wind - 1, window_size - 1};
+
+    online_comp->construct_full_tree(data, start_idx, end_idx);
+
     /*
     cerr << "partitions!!~!@~!\n";
     vector<pair<opt_region, uint32_t> > print_stuff = online_comp->get_region_cache()->get_regions();
@@ -1307,9 +1308,9 @@ int copt_scan(vector<string> params) {
         cerr << " : " << node->get_lP() << " : " << node->get_lphi();
         cerr << '\n';
     }
-    */
+     */
 
-    
+
     // output the partition
     // need to change to output immediately rather than store in hash table
     map_tree comp_map_region_tree(N, dim);
@@ -1323,55 +1324,52 @@ int copt_scan(vector<string> params) {
 
     print_MAP_density(cerr, comp_map_regions.get_regions(),
             comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
-    
-    
+
+
     cerr << "lP: " << online_comp->get_lP() << '\n';
     cerr << "lphi: " << online_comp->get_lphi() << '\n';
     cerr << "log couping: " << online_comp->get_log_coupling_prob() << '\n';
     out_file.close();
-    
+
     int idx = 1;
-    while((idx+window_size)<N){
+    while ((idx + window_size) < N) {
         // swap out the middle data point
-        
-        cerr << "idx: " << half_wind+idx << '\n';
-        
+
+        cerr << "idx: " << half_wind + idx << '\n';
+
         // [ add0,  del0,  add1,  del1]
-        uint32_t pts[4] = {half_wind+idx-1,uint32_t(idx-1),window_size+idx-1,half_wind+idx-1};
-        online_comp->update_points(data,pts,idx);
-                
+        uint32_t pts[4] = {half_wind + idx - 1, uint32_t(idx - 1), window_size + idx - 1, half_wind + idx - 1};
+        online_comp->update_points(data, pts, idx);
+        online_comp->prune_tree(data, pts, idx); // this must be run every iteration (not yet tested for other case)
 
-        online_comp->prune_tree(data,pts,idx);
-
-        
         // output the partition
-        map_tree comp_map_region_tree(N, dim);
-        opt_region_hash<uint32_t> comp_map_regions(15);
-        online_comp->construct_MAP_tree(comp_map_region_tree, comp_map_regions, window_size);
+        if ((idx + window_size) == (N - 1) || (idx % output_interval) == 0) {
+            map_tree comp_map_region_tree(N, dim);
+            opt_region_hash<uint32_t> comp_map_regions(15);
+            online_comp->construct_MAP_tree(comp_map_region_tree, comp_map_regions, window_size);
 
-        string temp = "partition_" + toStr<int>(half_wind+idx) + ".txt";
-        ofstream out_file(temp.c_str());
-        print_MAP_density(out_file, comp_map_regions.get_regions(),
-                comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
-        print_MAP_density(cerr, comp_map_regions.get_regions(),
-                comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
-        cerr << "lP: " << online_comp->get_lP() << '\n';
-        cerr << "lphi: " << online_comp->get_lphi() << '\n';
-        cerr << "log couping: " << online_comp->get_log_coupling_prob() << '\n';
-        out_file.close();
-        
-        
+            string temp = "partition_" + toStr<int>(half_wind + idx) + ".txt";
+            ofstream out_file(temp.c_str());
+            print_MAP_density(out_file, comp_map_regions.get_regions(),
+                    comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+            print_MAP_density(cerr, comp_map_regions.get_regions(),
+                    comp_map_region_tree.get_ra(), comp_map_region_tree.get_num_points());
+            cerr << "lP: " << online_comp->get_lP() << '\n';
+            cerr << "lphi: " << online_comp->get_lphi() << '\n';
+            cerr << "log couping: " << online_comp->get_log_coupling_prob() << '\n';
+            out_file.close();
+        }
+
         idx = idx + 1;
     }
-    
+
+    cerr.unsetf(ios::scientific);
     cerr << "Total time: " << mt.elapsed_time() << "s\n";
     delete online_comp;
 
 
     return 0;
 }
-
-
 
 int print_partitions(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
@@ -1385,10 +1383,10 @@ int print_partitions(vector<string> params) {
         cerr << usage_text << endl;
         return 3;
     }
-    
+
     bool output_file = false;
     string out_prefix = "";
-    if(params.size() == 2){
+    if (params.size() == 2) {
         out_prefix = params[1];
         output_file = true;
     }
@@ -1397,9 +1395,9 @@ int print_partitions(vector<string> params) {
     density_store dens(params[0]);
 
     // print the densities
-    if(!output_file){
+    if (!output_file) {
         dens.print_density(cout);
-    }else{
+    } else {
         dens.print_density(out_prefix);
     }
 
@@ -1407,6 +1405,7 @@ int print_partitions(vector<string> params) {
 }
 
 // urgh, this benchmarking code can be improved
+
 int bench(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
             + " bench <num_points> <dim> \n"
@@ -1567,13 +1566,15 @@ int bench(vector<string> params) {
 void print_usage_and_exit() {
     cerr << "Usage: " + c::PROG_NAME + " <option>" << "\n";
     cerr << "Options:" << "\n";
-    cerr << "-== Density Estimation ==-" << '\n';
+    cerr << "-== Density Estimation and Related==-" << '\n';
     cerr << "  opt        -- MAP partitions from full OPT" << "\n";
     cerr << "  llopt      -- MAP partitions from LL-OPT" << "\n";
     //cerr << "  lsopt      -- MAP partitions from LL-sampled OPT [experimental]" << "\n";
     cerr << "  dfopt      -- MAP partitions from depth-first OPT" << "\n";
     //cerr << "  disopt     -- MAP partitions from discrepancy-LL-OPT [experimental]" << "\n";
-    cerr << "  copula     -- Perform copula transform with full OPT" << "\n";
+    cerr << "  copula     -- Copula transform with full OPT" << "\n";
+    cerr << "  copt       -- Two sample comparison with the full coupling OPT [beta]" << "\n";
+    cerr << "  copt_scan  -- Change-point detection with online full coupling OPT [beta]" << "\n";
     cerr << "\n";
     cerr << "-== Other tools ==-" << '\n';
     cerr << "  hell_dist  -- Compute sample Hellinger distance from a known density" << "\n";
