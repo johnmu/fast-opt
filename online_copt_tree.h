@@ -296,12 +296,6 @@ private:
             child_2_count[0] = abs(child_2_count[0]);
             child_2_count[1] = abs(child_2_count[1]);
 
-            if(child_1_count[0] < 0 || child_2_count[0] < 0
-                    || child_1_count[1] < 0 || child_2_count[1] < 0){
-                cerr << "cneg count!!! " << i << ',' << depth << '\n';
-                exit(2);
-            }
-
             double val = ld;
             val += ra[child_id[0]]->get_lP();
             val += ra[child_id[1]]->get_lP();
@@ -398,7 +392,7 @@ public:
             // check if current node is leaf or at end
             if(curr_node->is_leaf()
                     || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
-                    || (curr_count[0]<0 && curr_count[1]<0)
+                    || (curr_count[0]<=0 && curr_count[1]<=0)
                     || depth >= max_depth
                     || working_reg.full()){
                 // back up
@@ -559,7 +553,7 @@ public:
 
             // check leaf criteria
             if ((abs(curr_count[0]) + abs(curr_count[1])) <= count_lim
-                    || (curr_count[0] < 0 && curr_count[1] < 0)
+                    || (curr_count[0] <= 0 && curr_count[1] <= 0)
                     || depth >= max_depth
                     || working_reg.full()) {
                 // back up
@@ -611,7 +605,7 @@ public:
                                             int parent_count[2];
                                             ra[parent]->get_count(parent_count);
                                             if (!( (abs(parent_count[0]) + abs(parent_count[1])) <= count_lim
-                                                    || (parent_count[0]<0 && parent_count[1]<0) )) {
+                                                    || (parent_count[0]<=0 && parent_count[1]<=0) )) {
                                                 // don't delete because parent is not a leaf
                                                 delete_node = false;
                                             }
@@ -632,6 +626,8 @@ public:
                                     node_pile[edepth].dim = 0;
                                     node_pile[edepth].cut = 0;
                                     continue;
+                                }else{
+                                    cerr << "Error? not a leaf...\n";
                                 }
                             }
                             // uncut
@@ -852,7 +848,7 @@ public:
 
                 // check leaf criteria
                 if ((abs(curr_count[0]) + abs(curr_count[1])) <= count_lim
-                        || (curr_count[0] <0 && curr_count[1] <0)
+                        || (curr_count[0] <=0 && curr_count[1] <=0)
                         || depth >= max_depth
                         || working_reg.full()) {
                     // back up
@@ -937,7 +933,7 @@ public:
                                             }
 
                                         }
-                                        //if(delete_node) ra.delete_node(del_node);
+
                                     } else {
                                         edepth++;
                                         node_pile.push_back(epile_t<uint32_t>());

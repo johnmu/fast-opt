@@ -345,7 +345,7 @@ public:
             // check if current node is leaf or at end
             if(curr_node->is_leaf()
                     || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
-                    || (curr_count[0] < 0 && curr_count[1] < 0)
+                    || (curr_count[0] <= 0 && curr_count[1] <= 0)
                     || depth >= max_depth
                     || working_reg.full()){
                 // back up
@@ -422,7 +422,7 @@ public:
                 // kind of un-elegant that we need this...
                 if (!is_diff 
                         || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
-                        || (curr_count[0] < 0 && curr_count[1] < 0)
+                        || (curr_count[0] <= 0 && curr_count[1] <= 0)
                         || depth >= max_depth 
                         || working_reg.full()){
                     new_node.first = new ctree_node();
@@ -516,7 +516,7 @@ public:
             
             if (curr_node->is_leaf()
                     || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
-                    || (curr_count[0] < 0 && curr_count[1] < 0)
+                    || (curr_count[0] <= 0 && curr_count[1] <= 0)
                     || depth >= max_depth 
                     || working_reg.full()) {
                 // we are already at a uniform node
