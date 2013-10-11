@@ -625,8 +625,6 @@ public:
                             
 
                                 if (ra[del_node]->is_leaf()) {
-                                    if (delete_node) ra.delete_node(del_node);
-                                } else {
                                     edepth++;
                                     node_pile.push_back(epile_t<uint32_t>());
                                     if (delete_node)node_pile[edepth].node = del_node;
@@ -974,10 +972,10 @@ public:
 
                         }
    
-                        if(curr_node->data[0]->size() != abs(curr_count[0])){
+                        if((int)curr_node->data[0]->size() != abs(curr_count[0])){
                             cerr << "COUNT_ERROR 0: " << curr_node->data[0]->size() << "," << curr_count[0] << '\n';
                         }
-                        if(curr_node->data[1]->size() != abs(curr_count[1])){
+                        if((int)curr_node->data[1]->size() != abs(curr_count[1])){
                             cerr << "COUNT_ERROR 1: " << curr_node->data[1]->size() << "," << curr_count[1] << '\n';
                         }
                         
