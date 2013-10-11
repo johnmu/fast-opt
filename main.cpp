@@ -1180,6 +1180,8 @@ int copt_scan_old(vector<string> params) {
     int idx = 0;
     while ((idx + window_size) < N) {
         // this splitting is really inefficient
+        
+        mt.reset();
         vector<vector<double> > split_data[2] = {vector<vector<double> >(), vector<vector<double> >()};
         split_data[0].reserve(window_size / 2 + 1);
         split_data[1].reserve(window_size / 2 + 1);
@@ -1191,6 +1193,8 @@ int copt_scan_old(vector<string> params) {
                 split_data[1].push_back(data[idx + i]);
             }
         }
+        total_time += mt.elapsed_time();
+        mt.print_elapsed_time(cerr, "Split data");
 
         cerr << "idx: " << idx << " - " << idx + window_size << '\n';
 
