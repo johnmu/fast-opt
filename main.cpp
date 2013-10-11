@@ -1335,6 +1335,7 @@ int copt_scan(vector<string> params) {
     cerr << "lP: " << online_comp->get_lP() << '\n';
     cerr << "lphi: " << online_comp->get_lphi() << '\n';
     cerr << "log couping: " << online_comp->get_log_coupling_prob() << '\n';
+    cout << half_wind << " " online_comp->get_log_coupling_prob()  << '\n';
     out_file.close();
 
     int idx = 1;
@@ -1348,6 +1349,8 @@ int copt_scan(vector<string> params) {
         online_comp->update_points(data, pts, idx);
         online_comp->prune_tree(data, pts, idx); // this must be run every iteration (not yet tested for other case)
 
+        cout << half_wind + idx << " " online_comp->get_log_coupling_prob()  << '\n';
+        
         // output the partition
         if (((idx + window_size) == (N - 1)) || ((idx % output_interval) == 0)) {
             map_tree comp_map_region_tree(N, dim);
