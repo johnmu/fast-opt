@@ -628,6 +628,10 @@ public:
                                     continue;
                                 }else{
                                     cerr << "Error? not a leaf...\n";
+                                    cerr << "curr_count: " << curr_count[0] << "," << curr_count[1] << '\n';
+                                    int counts[2];
+                                    ra[del_node]->get_count(counts);
+                                    cerr << "count: " << counts[0] << "," << counts[1] << '\n';
                                 }
                             }
                             // uncut
@@ -902,36 +906,26 @@ public:
                                             // since this is a leaf, everything below must be a leaf
 
                                             for (int k = 0; k < 2; k++) {
- 
-                                                // if the sequence number is correct, simply insert it
-                                                //if (false && ra[del_node]->get_sequence_id() == seq_idx) {
-                                                if (false) {
-                                                    // before deleting children need to store children data within
-                                                    curr_node->data[k]->insert(curr_node->data[k]->end(),
-                                                            ra[del_node]->data[k]->begin(), ra[del_node]->data[k]->end());
-                                                } else {
-                                                    // if it is incorrect, we need to re-count it, urgh
 
-                                                    for (vector<uint32_t>::iterator it = ra[del_node]->data[k]->begin();
-                                                            it != ra[del_node]->data[k]->end(); it++) {
-                                                        // check each active pts to see which ones need to be skipped
-                                                        bool skip = false;
-                                                        for(int i = 0;i<2;i++){
-                                                            if(pile[depth].data[k][i]==1 && *it == pts[2*k+i]){
-                                                                skip = true;
-                                                                break;
-                                                            }
-                                                        }
-                                                        if(!skip){
-                                                            curr_node->data[k]->push_back(*it);
+                                                // if it is incorrect, we need to re-count it, urgh
 
+                                                for (vector<uint32_t>::iterator it = ra[del_node]->data[k]->begin();
+                                                        it != ra[del_node]->data[k]->end(); it++) {
+                                                    // check each active pts to see which ones need to be skipped
+                                                    bool skip = false;
+                                                    for (int i = 0; i < 2; i++) {
+                                                        if (pile[depth].data[k][i] == 1 && *it == pts[2 * k + i]) {
+                                                            skip = true;
+                                                            break;
                                                         }
+                                                    }
+                                                    if (!skip) {
+                                                        curr_node->data[k]->push_back(*it);
 
                                                     }
-
                                                 }
+                                                
                                             }
-
                                         }
 
                                     } else {
