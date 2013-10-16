@@ -90,6 +90,8 @@ int main(int argc, char** argv) {
         error_num = density_old(params);
     } else if (mode == "bench") {
         error_num = bench(params);
+    } else if (mode == "normalize") {
+        error_num = normalize(params);
     } else {
         print_usage_and_exit();
     }
@@ -920,6 +922,150 @@ int density(vector<string> params) {
     return 0;
 }
 
+
+int normalize(vector<string> params) {
+    string usage_text = "Usage: " + c::PROG_NAME
+            + " normalize <-n/-u> <sample_data> <prefix>\n"
+            + "            -n/-u -- Normalize/un-Normalize"
+            + "      sample_data -- Each row one data point\n "
+            + "           prefix -- [for -n] create <prefix>_norm.txt and create <prefix>_limits.txt\n "
+            + "                  -- [for -u] create <prefix>_orig.txt and read <prefix>_limits.txt\n "
+            + "Normalize data points to [0,1] cube\n";
+
+    if (params.size() != 3) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    bool run_norm = true; 
+    if(params[0] == "-n"){
+        run_norm = true;
+    }else if(params[0] == "-u"){
+        run_norm = false;
+    }else{
+        cerr << "Error: Unknown option\n";
+        cerr << usage_text << endl;
+        return 3;
+    }
+    
+    string prefix = params[2];
+    string temp = "";
+    
+    if(!run_norm){
+        // check for existence of limits file
+        temp = prefix+"_limits.txt";
+        ifstream infile(temp.c_str(),ios::in);
+        if(!infile.is_open()){
+            infile.close();
+            cerr << "Error: Cannot open limits file: " << temp <<"\n";
+            return 1;
+        }
+    }
+    
+    vector<vector<double> > data = read_data(params[1], false);
+
+    int N = (int) data.size();
+    int dim = (int) data[0].size();
+
+    cerr << N << " data points in " << dim << " dimensions.\n";
+
+    if (run_norm) {
+        // if normalize
+        // compute limits
+        vector<double> min_vals(dim,c::inf);
+        vector<double> max_vals(dim,-c::inf);
+        for (int i = 0;i < N;i++){
+            for (int j = 0;j < dim;j++){
+                if(min_vals[j] > data[i][j]){
+                    min_vals[j] = data[i][j];
+                }
+                if(max_vals[j] < data[i][j]){
+                    max_vals[j] = data[i][j];
+                }
+            }
+        }
+
+        // output limits
+        temp = prefix+"_limits.txt";
+        ofstream outfile;
+        outfile.open(temp.c_str(),ios::out);
+        
+        outfile << dim << '\n';
+        for(int i = 0;i<dim;i++){
+            outfile << min_vals[i] << " " << max_vals[i] << '\n';
+        }
+        
+        outfile.close();
+
+        // output normalized values
+        temp = prefix+"_norm.txt";
+        outfile.open(temp.c_str(), ios::out);
+        outfile << ios::scientific;
+        
+        for (int i = 0; i < N; i++) {
+
+            for (int j = 0; j < dim; j++) {
+                double norm_val = 0.0;
+                double diff = (max_vals[j] - min_vals[j]);
+                if (diff != 0) {
+                    norm_val = (data[i][j] - min_vals[j]) / diff;
+                } else {
+                    norm_val = (data[i][j] - min_vals[j]);
+                }
+                if(j != dim-1) outfile << norm_val << ' ';
+            }
+            if(i != N-1)outfile << '\n';
+        }
+        
+        outfile.close();
+
+    } else {
+        // if unnormalize
+        // read in limits
+        temp = prefix+"_limits.txt";
+        ifstream infile;
+        infile.open(temp.c_str(),ios::in);
+        int num_vals = 0;
+        infile >> num_vals;
+        
+        if(num_vals != dim){
+            cerr << "Error: Dimension mismatch: " << num_vals << ',' << dim <<  '\n';
+        }
+        
+        vector<double> min_vals(dim,c::inf);
+        vector<double> max_vals(dim,-c::inf);
+        
+        for(int i = 0;i<dim;i++){
+            infile >> min_vals[i] >> max_vals[i];
+        }
+        infile.close();
+
+        // output un-normalized values
+        temp = prefix + "_orig.txt";
+        ofstream outfile;
+        outfile.open(temp.c_str(), ios::out);
+        outfile << ios::scientific;
+
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < dim; j++) {
+                double orig_val = 0.0;
+                double diff = (max_vals[j] - min_vals[j]);
+                if (diff != 0) {
+                    orig_val = (data[i][j]*diff) + min_vals[j];
+                } else {
+                    orig_val = (data[i][j] + min_vals[j]);
+                }
+                if (j != dim - 1) outfile << orig_val << ' ';
+            }
+            if (i != N - 1)outfile << '\n';
+        }
+
+        outfile.close();
+    }
+    return 0;
+}
+
+
 int opt_comp(vector<string> params) {
 
     string usage_text = "Usage: " + c::PROG_NAME + " opt_comp <percent_points> <data_file_1> <data_file_2> <output_name>\n"
@@ -1590,6 +1736,7 @@ void print_usage_and_exit() {
     cerr << "  classify   -- Do classification with MAP partitions" << "\n";
     cerr << "  density    -- Get the density at particular points" << "\n";
     cerr << "  print      -- Print partitions from a .den file" << "\n";
+    cerr << "  normalize  -- Normalize data points to [0,1]" << "\n";
     //cerr << "  bench       -- Benchmark counting speed [temporary]" << "\n";
     exit(2);
 }
