@@ -92,6 +92,8 @@ int main(int argc, char** argv) {
         error_num = bench(params);
     } else if (mode == "normalize") {
         error_num = normalize(params);
+    } else if (mode == "demean") {
+        error_num = demean(params);
     } else {
         print_usage_and_exit();
     }
@@ -1012,7 +1014,8 @@ int normalize(vector<string> params) {
                 } else {
                     norm_val = (data[i][j] - min_vals[j]);
                 }
-                if(j != dim-1) outfile << norm_val << ' ';
+                outfile << norm_val;
+                if(j != dim-1) outfile  << ' ';
             }
             if(i != N-1)outfile << '\n';
         }
@@ -1055,7 +1058,8 @@ int normalize(vector<string> params) {
                 } else {
                     orig_val = (data[i][j] + min_vals[j]);
                 }
-                if (j != dim - 1) outfile << orig_val << ' ';
+                outfile << orig_val;
+                if (j != dim - 1) outfile << ' ';
             }
             if (i != N - 1)outfile << '\n';
         }
@@ -1076,13 +1080,39 @@ int demean(vector<string> params) {
         return 3;
     }
     
-    vector<vector<double> > data = read_data(params[0], false);
+    vector<vector<double> > data = read_data(params[0], false, true);
 
+    vector<string> ll = split(params[0],'.');
+    string prefix = ll[0];
+    
     int N = (int) data.size();
     int dim = (int) data[0].size();
 
     cerr << N << " data points in " << dim << " dimensions.\n";
 
+    vector<double> means(dim, 0);
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < dim; j++) {
+            means[j] += data[i][j]/N;
+        }
+    }
+
+    string temp = prefix + "_demean.txt";
+    ofstream outfile;
+    outfile.open(temp.c_str(), ios::out);
+    outfile << ios::scientific;
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < dim; j++) {
+            outfile << data[i][j]-means[j]; 
+            if (j != dim - 1) outfile  << ' ';
+        }
+        if (i != N - 1)outfile << '\n';
+    }
+
+    outfile.close();
+    
     return 0;
 }
 
@@ -1758,6 +1788,7 @@ void print_usage_and_exit() {
     cerr << "  density    -- Get the density at particular points" << "\n";
     cerr << "  print      -- Print partitions from a .den file" << "\n";
     cerr << "  normalize  -- Normalize data points to [0,1]" << "\n";
+    cerr << "  demean     -- Subtract mean from each column" << "\n";
     //cerr << "  bench       -- Benchmark counting speed [temporary]" << "\n";
     exit(2);
 }

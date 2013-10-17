@@ -868,6 +868,8 @@ public:
                         // check if it has children
                         // probably need to check all children :/
                         // also return the data
+                        // need to deal with negative counts [TODO]
+                        
 
                         vector<epile_t<uint32_t> > node_pile;
                         node_pile.push_back(epile_t<uint32_t>());
@@ -973,13 +975,11 @@ public:
                     curr_node->set_uniform(depth);
 
                 } else if (pile[depth].dim > num_children - 1) {
-
                     // reached end of node!! back up
 
                     back_up = true;
 
                     compute_lPs(working_reg, pile[depth].node, depth,seq_idx);
-
                 }
                 
             }
@@ -992,12 +992,10 @@ public:
                 
                 depth--;
                 pile.pop_back();
-                if(depth < 0) continue;
+                if(depth < 0) continue; // do we need this condition? [TODO]
                 
                 curr_reg.uncut(pile[depth].dim,pile[depth].cut);
                 working_reg.uncut(pile[depth].dim);
-
-
             }else{
                 // if sequence id is not reached check this
                 // check if current node includes any of the points (in the current pile)
@@ -1005,13 +1003,9 @@ public:
                 double lim = curr_reg.get_lim(curr_dim);
 
                 for (int i = 0; i < 4 && !point_included; i++) {
-
                     if (pile[depth].data[i / 2][i % 2] == 1) {
-
                         if (curr_cut == 0) {
-
                             if (all_data[pts[i]][curr_dim] < lim) {
-
                                 point_included = true;
                             }
                         } else if (curr_cut == 1) {
@@ -1023,17 +1017,14 @@ public:
                 }
 
                 if (!point_included) {
-
                     // test is the child exists
                     uint32_t child_id = get_child(working_reg, region_cache, curr_dim, curr_cut);
                     
                     if (child_id != c::ra_null_val) {
                         // if child exists, update sequence id
-
                         ra[child_id]->set_sequence_id(seq_idx);
                     } else {
                         // if child doesn't exist, treat as point included. 
-
                         point_included = true;
                     }
                 }
@@ -1064,11 +1055,9 @@ public:
 
             pair<uint32_t,bool> new_node = region_cache.find(working_reg,working_hash);
             
-            
             // In addition to checking if the new node exists we check the sequence number
             bool recount = false;
             if (!new_node.second){
-
                 recount = true;
             }else{
                 if(ra[new_node.first]->get_sequence_id()!=seq_idx){
@@ -1081,9 +1070,7 @@ public:
                 depth++;
                 pile[depth].dim = 0;
                 pile[depth].cut = 0;
-                
-                
-                
+
                 // determine which data points are active
                 double lim = curr_reg.get_lim(curr_dim);
 
@@ -1097,13 +1084,12 @@ public:
 
                                 if (!(all_data[pts[(2*k)+i]][curr_dim] < lim)) {
                                     pile[depth].data[k][i] = 0;
- 
+
                                 }
                             } else if (curr_cut == 1) {
  
                                 if (!(all_data[pts[(2*k)+i]][curr_dim] >= lim)) {
                                     pile[depth].data[k][i] = 0;
-
                                 }
                             }
                         }

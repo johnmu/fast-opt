@@ -147,6 +147,8 @@ int print_partitions(vector<string> params);
 int density_old(vector<string> params);
 int bench(vector<string> params);
 int normalize(vector<string> params);
+int demean(vector<string> params);
+
 
 void print_usage_and_exit();
 
