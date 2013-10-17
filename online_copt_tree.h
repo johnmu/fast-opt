@@ -35,9 +35,6 @@
 #ifndef ONLINE_COPT_TREE_H
 #define	ONLINE_COPT_TREE_H
 
-//#define DEBUG
-//#define DEBUG_MAP
-
 #include "general_utils.h"
 #include "gamma_table.h"
 #include "opt_utils.h"

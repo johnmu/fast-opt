@@ -51,7 +51,7 @@
 #include "map_tree.h"
 #include "density_store.h"
 
-inline vector<vector<double> > read_data(string filename, bool end_line) {
+inline vector<vector<double> > read_data(string filename, bool end_line = false, bool general = false) {
     int dim = 0;
 
     ifstream infile(filename.c_str());
@@ -101,6 +101,7 @@ inline vector<vector<double> > read_data(string filename, bool end_line) {
         bool good_data = true;
         for (int i = 0; i < dim; i++) {
             d[i] = strTo<double>(ll[i]);
+            
             if (end_line) {
                 if ((i != (dim - 1)) && ((d[i] > 1.0) || (d[i] < 0))) {
                     good_data = false;
@@ -113,7 +114,7 @@ inline vector<vector<double> > read_data(string filename, bool end_line) {
                 }
             }
         }
-        if(good_data){
+        if(general || good_data){
             data.push_back(d);
         }else{
             cerr << "Warning: Data out of range("<< dim <<"): " << line << '\n';

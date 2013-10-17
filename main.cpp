@@ -922,7 +922,7 @@ int density(vector<string> params) {
     return 0;
 }
 
-
+        
 int normalize(vector<string> params) {
     string usage_text = "Usage: " + c::PROG_NAME
             + " normalize <-n/-u> <sample_data> <prefix>\n"
@@ -1062,6 +1062,27 @@ int normalize(vector<string> params) {
 
         outfile.close();
     }
+    return 0;
+}
+
+int demean(vector<string> params) {
+    string usage_text = "Usage: " + c::PROG_NAME
+            + " demean <sample_data>\n"
+            + "      sample_data -- Each row one data point\n "
+            + "Remove the mean from the data\n";
+
+    if (params.size() != 1) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+    
+    vector<vector<double> > data = read_data(params[0], false);
+
+    int N = (int) data.size();
+    int dim = (int) data[0].size();
+
+    cerr << N << " data points in " << dim << " dimensions.\n";
+
     return 0;
 }
 
