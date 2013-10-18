@@ -1560,34 +1560,34 @@ int copt_scan(vector<string> params) {
     out_file.close();
 
     int idx = 1;
-    bool any_diff = true;
+    //bool any_diff = true;
     uint32_t del_nodes[2] = {0,0};
     while ((idx + window_size) < N) {
         // swap out the middle data point
 
         cerr << "idx: " << half_wind + idx << '\n';
 
-        if(any_diff){
+        //if(any_diff){
             del_nodes[0] =  uint32_t(idx - 1);
             del_nodes[1] = half_wind + idx - 1;
-        }
+        //}
         
         // [ add0,  del0,  add1,  del1]
         uint32_t pts[4] = {half_wind + idx - 1, del_nodes[0], window_size + idx - 1, del_nodes[1]};
         
-        any_diff = false;
-        for(int i = 0;(!any_diff) && i<2;i++){
-            for(int j = 0;(!any_diff) && j<dim;j++){
-                if(data[pts[(2*i)+0]][j] != data[pts[(2*i)+1]][j]){
-                    any_diff = true;
-                }
-            }
-        }
+        //any_diff = false;
+        //for(int i = 0;(!any_diff) && i<2;i++){
+        //    for(int j = 0;(!any_diff) && j<dim;j++){
+        //        if(data[pts[(2*i)+0]][j] != data[pts[(2*i)+1]][j]){
+        //            any_diff = true;
+        //        }
+        //    }
+       // }
 
-        if (any_diff) {
+        //if (any_diff) {
             online_comp->update_points(data, pts, idx);
             online_comp->prune_tree(data, pts, idx); // this must be run every iteration (not yet tested for other case)
-        }
+        //}
         /*
         cerr << "partitions!!~!@~!\n";
         vector<pair<opt_region, uint32_t> > print_stuff = online_comp->get_region_cache()->get_regions();
