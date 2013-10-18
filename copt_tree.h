@@ -407,7 +407,8 @@ public:
                     }
                 }
                 
-                bool is_diff = is_diff_sep[0]||is_diff_sep[1];
+                //bool is_diff = is_diff_sep[0]||is_diff_sep[1];
+                bool is_diff = true;
 
                 curr_reg.cut(curr_dim, curr_cut);
 

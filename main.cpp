@@ -1396,7 +1396,7 @@ int copt_scan_old(vector<string> params) {
         cerr << "idx: " << idx << " - " << idx + window_size << '\n';
 
         mt.reset();
-        copt_tree opt_slow_comp(dim, stop_points, 1000);
+        copt_tree opt_slow_comp(dim, stop_points, 20);
         opt_slow_comp.construct_full_tree(split_data);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "coupling OPT tree");
@@ -1491,7 +1491,7 @@ int copt_scan(vector<string> params) {
 
     // run copt for the first window
     cerr << "idx: " << half_wind << '\n';
-    online_copt_tree* online_comp = new online_copt_tree(dim, stop_points, 31 * dim, window_size);
+    online_copt_tree* online_comp = new online_copt_tree(dim, stop_points, 20, window_size);
     uint32_t start_idx[2] = {0, half_wind};
     uint32_t end_idx[2] = {half_wind - 1, window_size - 1};
 
