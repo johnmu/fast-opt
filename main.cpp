@@ -1326,8 +1326,9 @@ int copt(vector<string> params) {
 
 int copt_scan_old(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan_old <percent_points> <window_size> <scan_resolution> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan_old <percent_points> <max_depth> <window_size> <scan_resolution> <data_file>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
+            + "            max_depth -- Maximum depth in the tree, smallest region area will be 2^(-max_depth)\n"
             + "          window_size -- Size of window to scan for changes, break at window_size/2\n"
             + "      scan_resolution -- Number of data points to move each time\n"
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
@@ -1337,14 +1338,16 @@ int copt_scan_old(vector<string> params) {
             + "Runs full-OPT, uses a lot of memory for high dimensions. Not recommended for dimension \n"
             + "greater than 5. Best choice for 1 - 3 dimensional data.\n";
 
-    if (params.size() != 4) {
+    if (params.size() != 5) {
         cerr << usage_text << endl;
         return 3;
     }
+    
+    int max_depth = strTo<int>(params[1]);
 
-    int window_size = strTo<int>(params[1]);
-    int scan_res = strTo<int>(params[2]);
-    vector<vector<double> > data = read_data(params[3], false);
+    int window_size = strTo<int>(params[2]);
+    int scan_res = strTo<int>(params[3]);
+    vector<vector<double> > data = read_data(params[4], false);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -1396,7 +1399,7 @@ int copt_scan_old(vector<string> params) {
         cerr << "idx: " << idx << " - " << idx + window_size << '\n';
 
         mt.reset();
-        copt_tree opt_slow_comp(dim, stop_points, 20);
+        copt_tree opt_slow_comp(dim, stop_points, max_depth);
         opt_slow_comp.construct_full_tree(split_data);
         total_time += mt.elapsed_time();
         mt.print_elapsed_time(cerr, "coupling OPT tree");
@@ -1404,6 +1407,21 @@ int copt_scan_old(vector<string> params) {
         double coup_prob = opt_slow_comp.get_log_coupling_prob();
         cerr << "Log coupling prob: " << coup_prob << endl;
 
+        /*
+        cerr << "partitions!!~!@~!\n";
+        vector<pair<opt_region, ctree_node*> > print_stuff = opt_slow_comp.region_cache.get_regions();
+        for (int i = 0; i < (int) print_stuff.size(); i++) {
+            print_stuff[i].first.print_region_limits();
+            ctree_node* node = print_stuff[i].second;
+            int count[2];
+            node->get_count(count);
+            cerr << " ; " << print_stuff[i].second;
+            cerr << " : " << count[0] << "," << count[1];
+            cerr << " : " << node->get_lP() << " : " << node->get_lphi();
+            cerr << '\n';
+        }
+        */
+        
         cout << idx + window_size / 2 << "," << coup_prob << '\n';
 
         mt.reset();
@@ -1437,8 +1455,11 @@ int copt_scan_old(vector<string> params) {
 
 int copt_scan(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan <percent_points> <window_size> <output_interval> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan <percent_points> <max_depth> <window_size> <output_interval> <data_file>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
+            + "            max_depth -- Maximum depth in the tree, smallest region area will be 2^(-max_depth)\n"
+            + "          window_size -- Size of window to scan for changes, break at window_size/2\n"
+            + "      scan_resolution -- Number of data points to move each time\n"
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
             + "Log posterior coupling probability to STDOUT\n"
             + "Scans through data_file and runs a coupling OPT for each window with the split at window_size/2"
@@ -1446,26 +1467,29 @@ int copt_scan(vector<string> params) {
             + "Runs full-OPT, uses a lot of memory for high dimensions. Not recommended for dimension \n"
             + "greater than 5. Best choice for 1 - 3 dimensional data.\n";
 
-    if (params.size() != 4) {
+    if (params.size() != 5) {
         cerr << usage_text << endl;
         return 3;
     }
 
-    int window_size = strTo<int>(params[1]);
+    int window_size = strTo<int>(params[2]);
     int half_wind = (window_size / 2);
-    int output_interval = strTo<int>(params[2]);
+    int output_interval = strTo<int>(params[3]);
+    
+    int max_depth = strTo<int>(params[1]);
     
     if (half_wind <= 0) {
         cerr << "Error: window size too small\n";
         return 1;
     }
 
-    vector<vector<double> > data = read_data(params[3], false);
+    vector<vector<double> > data = read_data(params[4], false);
 
     int dim = (int) data[0].size();
     int N = data.size();
 
     cerr << "Running coupling OPT scan" << '\n';
+    cerr << "Maximum depth: " << max_depth << '\n';
     cerr << "Window size: " << window_size << '\n';
     cerr << "Half Window size: " << half_wind << '\n';
     cerr << "Data: " << N << " points in " << dim << " dimensions.\n";
@@ -1491,7 +1515,7 @@ int copt_scan(vector<string> params) {
 
     // run copt for the first window
     cerr << "idx: " << half_wind << '\n';
-    online_copt_tree* online_comp = new online_copt_tree(dim, stop_points, 20, window_size);
+    online_copt_tree* online_comp = new online_copt_tree(dim, stop_points, max_depth, window_size);
     uint32_t start_idx[2] = {0, half_wind};
     uint32_t end_idx[2] = {half_wind - 1, window_size - 1};
 
@@ -1511,8 +1535,8 @@ int copt_scan(vector<string> params) {
         cerr << " : " << count[0] << "," << count[1];
         cerr << " : " << node->get_lP() << " : " << node->get_lphi();
         cerr << '\n';
-    }
-     */
+    }*/
+     
 
     // output the partition
     // need to change to output immediately rather than store in hash table
@@ -1546,6 +1570,23 @@ int copt_scan(vector<string> params) {
         online_comp->update_points(data, pts, idx);
         online_comp->prune_tree(data, pts, idx); // this must be run every iteration (not yet tested for other case)
 
+        /*
+        cerr << "partitions!!~!@~!\n";
+        vector<pair<opt_region, uint32_t> > print_stuff = online_comp->get_region_cache()->get_regions();
+        region_allocator<online_ctree_node>* print_ra = online_comp->get_ra();
+        for (int i = 0; i < (int) print_stuff.size(); i++) {
+            print_stuff[i].first.print_region_limits();
+            online_ctree_node* node = (*print_ra)[print_stuff[i].second];
+            int count[2];
+            node->get_count(count);
+            cerr << " ; " << print_stuff[i].second;
+            cerr << " : " << node->get_sequence_id();
+            cerr << " : " << count[0] << "," << count[1];
+            cerr << " : " << node->get_lP() << " : " << node->get_lphi();
+            cerr << '\n';
+        }*/
+        
+        
         cout << half_wind + idx << " " << online_comp->get_log_coupling_prob()  << '\n';
         
         // output the partition

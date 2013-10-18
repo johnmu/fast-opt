@@ -460,7 +460,7 @@ public:
                     }
                 }
                 
-                bool is_diff = is_diff_sep[0]||is_diff_sep[1];
+                //bool is_diff = is_diff_sep[0]||is_diff_sep[1];
 
                 curr_reg.cut(curr_dim, curr_cut);
 
@@ -848,8 +848,8 @@ public:
             curr_node->get_count(curr_count);
             // work out what to count
             bool back_up = false;
-
-            if (curr_dim > num_children - 1) {
+            
+            if (curr_node->get_sequence_id() != seq_idx && curr_dim > num_children - 1) {
                 // all children have been processed, we can re-count the region
                 // re-count the region
                 online_ctree_node* new_ptr = curr_node;
@@ -867,11 +867,16 @@ public:
 
                     if (j == 0) {
                         if (count[k] >= 0) count[k]++;
-                        else count[k]--; // for this case we need to check the points in the region
+                        else{
+                            //count[k]--; // for this case we need to check the points in the region
+                            cerr << "negative count...\n";
+                        }
                     } else {
                         if (count[k] > 0) count[k]--; // for this case we need to check if the region count becomes negative
-                        else if ((count[k] < 0)) count[k]++;
-                        else {
+                        else if ((count[k] < 0)) {
+                            //count[k]++;
+                            cerr << "negativeee count...\n";
+                        }else {
                             cerr << "Error: Remove from zero?\n";
                             exit(1);
                         }
@@ -880,45 +885,7 @@ public:
 
                 new_ptr->set_count(count);
                 new_ptr->set_sequence_id(seq_idx);
-
-                if (new_ptr->is_leaf()) {
-                    // if the region is a leaf
-                    // modify the data points in the leaf
-
-                    for (int k = 0; k < 2; k++) {
-                        if (pile[depth].data[k][1] == 1) {
-                            // del
-                            vector<uint32_t>* data_ptr = new_ptr->data[k];
-                            uint32_t del_pt = pts[(2 * k) + 1];
-                            vector<uint32_t>::iterator del_it = data_ptr->end();
-                            for (vector<uint32_t>::iterator it = data_ptr->begin();
-                                    it != data_ptr->end(); it++) {
-                                if (*it == del_pt) {
-                                    del_it = it;
-                                    break;
-                                }
-                            }
-                            if (del_it != data_ptr->end()) {
-                                data_ptr->erase(del_it);
-                            } else {
-                                // error!!!
-                                cerr << "Del error!\n";
-                            }
-                        }
-
-                        // add
-                        if (pile[depth].data[k][0] == 1) {
-                            vector<uint32_t>* data_ptr = new_ptr->data[k];
-                            data_ptr->push_back(pts[2 * k]);
-                        }
-                    }
-
-                } else {
-                    // if the region is not a leaf
-                    // do nothing?
-                }
-
-
+                curr_node->get_count(curr_count);
             }
 
             // check if current node is leaf or at end
@@ -934,7 +901,6 @@ public:
                     back_up = true;
 
                     // check if this node is a leaf
-                    // If it is a leaf delete all children
 
                     bool is_leaf = curr_node->is_leaf();
                     if (!is_leaf) {
@@ -1187,7 +1153,7 @@ public:
                             is_diff_sep[k] = false;
                         }
                     }
-                    bool is_diff = is_diff_sep[0] || is_diff_sep[1];
+                    //bool is_diff = is_diff_sep[0] || is_diff_sep[1];
 
                     int curr_count[2];
                     //if (is_diff) {
@@ -1209,7 +1175,51 @@ public:
                     out.second->set_sequence_id(seq_idx);
                     
                     region_cache.insert(working_reg,new_node.first,working_hash);
-                } 
+                } else{
+                    // the region is found
+                    online_ctree_node* new_ptr = ra[new_node.first];
+
+                    // if it is a leaf we need to re-count it
+                    if (new_ptr->is_leaf()) {
+                        // if the region is a leaf
+                        // modify the data points in the leaf
+
+                        for (int k = 0; k < 2; k++) {
+                            if (pile[depth].data[k][1] == 1) {
+                                // del
+                                vector<uint32_t>* data_ptr = new_ptr->data[k];
+                                uint32_t del_pt = pts[(2 * k) + 1];
+                                vector<uint32_t>::iterator del_it = data_ptr->end();
+                                for (vector<uint32_t>::iterator it = data_ptr->begin();
+                                        it != data_ptr->end(); it++) {
+                                    if (*it == del_pt) {
+                                        del_it = it;
+                                        break;
+                                    }
+                                }
+                                if (del_it != data_ptr->end()) {
+                                    data_ptr->erase(del_it);
+                                } else {
+                                    // error!!!
+                                    cerr << "Del error!\n";
+                                }
+                            }
+
+                            // add
+                            if (pile[depth].data[k][0] == 1) {
+                                vector<uint32_t>* data_ptr = new_ptr->data[k];
+                                data_ptr->push_back(pts[2 * k]);
+                            }
+                        }
+                        int curr_count[2];
+                        curr_count[0] = new_ptr->data[0]->size();
+                        curr_count[1] = new_ptr->data[1]->size();
+                        new_ptr->set_count(curr_count);
+                        new_ptr->set_sequence_id(seq_idx);
+                    } 
+
+                    
+                }
                 
                 // cut after the counting
                 curr_reg.cut(curr_dim, curr_cut);
