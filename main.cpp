@@ -1576,7 +1576,7 @@ int copt_scan(vector<string> params) {
             }
         }
 
-        if (!any_diff) {
+        if (any_diff) {
             online_comp->update_points(data, pts, idx);
             online_comp->prune_tree(data, pts, idx); // this must be run every iteration (not yet tested for other case)
         }
