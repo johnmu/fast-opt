@@ -1897,7 +1897,6 @@ int vec_quant_sam_quals(vector<string> params) {
         }
 
         if (line[0] == '@') {
-            cout << line << '\n';
             continue;
         }
 
@@ -1905,7 +1904,6 @@ int vec_quant_sam_quals(vector<string> params) {
 
         if (line_list.size() < 10) {
             cerr << "Bad line: " << line << '\n';
-            cout << line << '\n';
             continue;
         }
 
