@@ -964,7 +964,7 @@ int normalize(vector<string> params) {
         }
     }
     
-    vector<vector<double> > data = read_data(params[1], false, false);
+    vector<vector<double> > data = read_data(params[1], false, true);
 
     int N = (int) data.size();
     int dim = (int) data[0].size();
