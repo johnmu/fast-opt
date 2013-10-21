@@ -994,7 +994,7 @@ int normalize(vector<string> params) {
         
         outfile << dim << '\n';
         for(int i = 0;i<dim;i++){
-            outfile << ios::scientific <<  min_vals[i] << " " << max_vals[i] << '\n';
+            outfile << std::scientific <<  min_vals[i] << " " << max_vals[i] << '\n';
         }
         
         outfile.close();
@@ -1002,7 +1002,7 @@ int normalize(vector<string> params) {
         // output normalized values
         temp = prefix+"_norm.txt";
         outfile.open(temp.c_str(), ios::out);
-        outfile << ios::scientific;
+        outfile << std::scientific;
         
         for (int i = 0; i < N; i++) {
 
@@ -1014,7 +1014,7 @@ int normalize(vector<string> params) {
                 } else {
                     norm_val = (data[i][j] - min_vals[j]);
                 }
-                outfile << ios::scientific << norm_val;
+                outfile << std::scientific << norm_val;
                 if(j != dim-1) outfile  << ' ';
             }
             if(i != N-1)outfile << '\n';
@@ -1047,7 +1047,7 @@ int normalize(vector<string> params) {
         temp = prefix + "_orig.txt";
         ofstream outfile;
         outfile.open(temp.c_str(), ios::out);
-        outfile << ios::scientific;
+        outfile << std::scientific;
 
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < dim; j++) {
@@ -1058,7 +1058,7 @@ int normalize(vector<string> params) {
                 } else {
                     orig_val = (data[i][j] + min_vals[j]);
                 }
-                outfile << orig_val;
+                outfile << std::scientific << orig_val;
                 if (j != dim - 1) outfile << ' ';
             }
             if (i != N - 1)outfile << '\n';
