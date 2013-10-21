@@ -150,7 +150,7 @@ int density_old(vector<string> params);
 int bench(vector<string> params);
 int normalize(vector<string> params);
 int demean(vector<string> params);
-
+int vec_quant_sam_quals(vector<string> params);
 
 void print_usage_and_exit();
 

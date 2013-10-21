@@ -94,6 +94,8 @@ int main(int argc, char** argv) {
         error_num = normalize(params);
     } else if (mode == "demean") {
         error_num = demean(params);
+    } else if (mode == "vec_quant_sam_quals") {
+        error_num = vec_quant_sam_quals(params);
     } else {
         print_usage_and_exit();
     }

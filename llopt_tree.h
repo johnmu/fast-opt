@@ -583,7 +583,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 total_area += exp(wu_it->working_reg.get_area() * c::l2);
                 if (floor(total_area * 100) >= prev_area_level) {
                     cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
-                    prev_area_level++;
+                    prev_area_level = floor(total_area * 100) + 1;
                 }
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
                         ra[wu_it->node_idx]->count, map_depth);
@@ -629,7 +629,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 total_area += exp(wu_it->working_reg.get_area() * c::l2);
                 if (floor(total_area * 100) >= prev_area_level) {
                     cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
-                    prev_area_level++;
+                    prev_area_level = floor(total_area * 100) + 1;
                 }
 
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
