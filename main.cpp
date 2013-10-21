@@ -964,7 +964,7 @@ int normalize(vector<string> params) {
         }
     }
     
-    vector<vector<double> > data = read_data(params[1], false);
+    vector<vector<double> > data = read_data(params[1], false, false);
 
     int N = (int) data.size();
     int dim = (int) data[0].size();
@@ -1560,7 +1560,7 @@ int copt_scan(vector<string> params) {
     out_file.close();
 
     int idx = 1;
-    //bool any_diff = true;
+    //bool any_diff = true; // need to keep a dequeue for this
     uint32_t del_nodes[2] = {0,0};
     while ((idx + window_size) < N) {
         // swap out the middle data point
@@ -1824,6 +1824,116 @@ int bench(vector<string> params) {
     }
     mt.print_elapsed_time(cerr, "single vector try 2");
 
+
+    return 0;
+}
+
+
+int vec_quant_sam_quals(vector<string> params) {
+    string usage_text = "Usage: " + c::PROG_NAME + " vec_quant_sam_quals <SAM_file> <offset> <transfomred_quals> <den_file>\n"
+            + "Offset typically 33 (illumina 1.8+,sanger) or 64 (illumina 1.3+)\n"
+            + "replace quals in SAM file with new quantized ones!";
+
+
+    if (params.size() != 3) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    string filename = params[0];
+    int offset = strTo<int>(params[1]);
+    
+    string quals_file = params[2];
+    string partitions = params[3];
+    
+    ifstream infile;
+
+    infile.open(filename.c_str(), ios::in);
+    if (!infile.is_open()) {
+        cerr << "Error: cannot open input file: " << filename << '\n';
+        return 3;
+    }
+    infile.close();
+    
+    infile.open(quals_file.c_str(), ios::in);
+    if (!infile.is_open()) {
+        cerr << "Error: cannot open quals file: " << quals_file << '\n';
+        return 3;
+    }
+    infile.close();
+    
+    infile.open(partitions.c_str(), ios::in);
+    if (!infile.is_open()) {
+        cerr << "Error: cannot open partition file: " << partitions << '\n';
+        return 3;
+    }
+    infile.close();
+    
+    // Read in transformed quals file
+    vector<vector<double> > quals = read_data(quals_file, false);
+
+    
+    // Read in partitions
+    density_store dens(partitions, "");
+
+    region_allocator<map_tree_node> map_ra;
+    opt_region_hash<uint32_t> region_cache(12);
+    
+
+    string line = "";
+
+    infile.open(filename.c_str(), ios::in);
+
+
+    while (!infile.eof()) {
+        getline(infile, line);
+
+        trim2(line);
+
+        if ((int) line.length() < 1) {
+            continue;
+        }
+
+        if (line[0] == '@') {
+            cout << line << '\n';
+            continue;
+        }
+
+        vector<string> line_list = split(line);
+
+        if (line_list.size() < 10) {
+            cerr << "Bad line: " << line << '\n';
+            cout << line << '\n';
+            continue;
+        }
+
+
+        // quantize
+        string new_quals = line_list[10];
+
+        int len = (int) new_quals.length();
+        for (int i = 0; i < len; i++) {
+            int qual = new_quals[i] - offset;
+
+        }
+
+
+        // print it out
+
+        line_list[10] = new_quals;
+
+        cout << line_list[0];
+
+        for (int i = 1; i < (int) line_list.size(); i++) {
+            cout << '\t' << line_list[i];
+        }
+
+        cout << "\n";
+
+
+    }
+
+    infile.close();
 
     return 0;
 }
