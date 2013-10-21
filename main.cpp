@@ -994,7 +994,7 @@ int normalize(vector<string> params) {
         
         outfile << dim << '\n';
         for(int i = 0;i<dim;i++){
-            outfile << min_vals[i] << " " << max_vals[i] << '\n';
+            outfile << ios::scientific <<  min_vals[i] << " " << max_vals[i] << '\n';
         }
         
         outfile.close();
@@ -1014,7 +1014,7 @@ int normalize(vector<string> params) {
                 } else {
                     norm_val = (data[i][j] - min_vals[j]);
                 }
-                outfile << norm_val;
+                outfile << ios::scientific << norm_val;
                 if(j != dim-1) outfile  << ' ';
             }
             if(i != N-1)outfile << '\n';
