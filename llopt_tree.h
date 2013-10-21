@@ -54,7 +54,7 @@ struct ll_tree_node_sparse{
                // the count is negative if we stop cutting
 
     void init(){
-        count = -1;
+        count = 0;
         lphi = -c::inf;
     }
 
@@ -70,7 +70,7 @@ struct ll_tree_node_sparse{
         if(count >= 0){
             return (count * depth * c::l2) - c::l2;
         }else{
-            return -c::inf;
+            return ((-count) * depth * c::l2) - c::l2;
         }
     }
 
@@ -306,20 +306,22 @@ public:
 
             bool backup = false;
 
-            //cerr << "----\nDEPTH("<< depth <<"): " << (depth + top_depth)
-            //        << " count: "<< curr_node.count << '\n';
+            //cerr << "----\nDEPTH("<< depth <<"): " << (depth + top_depth) << "maxd: " << max_depth
+            //        << " count: "<< curr_node.count <<" lim: " << count_lim <<'\n';
+            //working_reg.print_region(cerr);
+            //cerr << '\n';
             //cerr << "START dim:cut --- " << pile[depth].dim << ":" << pile[depth].cut << '\n';
 
 
-            if (curr_node.count <= count_lim
+            if (((depth != 0 ) && (curr_node.count <= count_lim
                     || (depth +top_depth) >= top_max_depth
-                    || (depth) >= max_depth
+                    || (depth) >= max_depth ))
                     || working_reg.full()) {
 
                 //cerr << "BOTTOM BACKUP\n";
-
+                
                 // make sure we at least cut once
-                if(depth != 0) backup = true;
+                backup = true;
             } else {
                 if ((depth == 0 && pile[depth].dim != start_dimension)
                         || pile[depth].dim > num_children - 1){
@@ -401,8 +403,6 @@ public:
             }
 
             if (backup) {
-
-
                 depth--;
                 pile.pop_back();
                 if (depth < 0) continue;
@@ -453,7 +453,7 @@ public:
         }
 
         for (int d = 0; d < num_children; d++) {
-
+            //cerr << "d=" << d << '\n';
             small_opt_thread((void*) &(params[d]));
             
         }
@@ -581,7 +581,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 //cerr << "mini-STOP count: " << ra[wu_it->node_idx]->count << '\n';
 
                 total_area += exp(wu_it->working_reg.get_area() * c::l2);
-                if (floor(total_area * 20) >= prev_area_level) {
+                if (floor(total_area * 100) >= prev_area_level) {
                     cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
                     prev_area_level++;
                 }
@@ -627,7 +627,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 // STOP
 
                 total_area += exp(wu_it->working_reg.get_area() * c::l2);
-                if (floor(total_area * 20) >= prev_area_level) {
+                if (floor(total_area * 100) >= prev_area_level) {
                     cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
                     prev_area_level++;
                 }

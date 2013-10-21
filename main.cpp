@@ -1871,19 +1871,19 @@ int vec_quant_sam_quals(vector<string> params) {
     
     // Read in transformed quals file
     vector<vector<double> > quals = read_data(quals_file, false);
-
     
     // Read in partitions
     density_store dens(partitions, "");
-
-    region_allocator<map_tree_node> map_ra;
-    opt_region_hash<uint32_t> region_cache(12);
     
-
+    
+    // Read in quals from SAM file
+    cerr << "Reading quals...\n";
+    vector<vector<double> > sam_quals;
+    
     string line = "";
 
     infile.open(filename.c_str(), ios::in);
-
+    int idx = 0;
 
     while (!infile.eof()) {
         getline(infile, line);
@@ -1907,16 +1907,138 @@ int vec_quant_sam_quals(vector<string> params) {
             continue;
         }
 
-
-        // quantize
+        // read in quals, need to invert
+        
+        // get flag
+        int flag = strTo<int>(line_list[1]);
+        
         string new_quals = line_list[10];
+        
 
-        int len = (int) new_quals.length();
-        for (int i = 0; i < len; i++) {
-            int qual = new_quals[i] - offset;
+        // invert if necessary
+        bool invert = false;
+
+        if (!((flag & 4) && (flag & 8))) {
+            // at least on read is mapped
+            if (flag & 64) {
+                // first in pair
+                invert = flag & 16;
+            } else if (flag & 128) {
+                // second in pair
+                invert = (!(flag & 16));
+            }
 
         }
 
+        if (invert) {
+            reverse(new_quals.begin(), new_quals.end());
+        }
+        
+        sam_quals.push_back(vector<double>(new_quals.length()));
+        
+        int len = (int) new_quals.length();
+        for (int i = 0; i < len; i++) {
+            sam_quals[idx][i] = (double)(new_quals[i] - offset);
+        }
+        idx++;
+    }
+
+    infile.close();
+
+    cerr << "Assigning quals to regions...\n";
+    vector<uint32_t> indexes(sam_quals.size());
+    vector<vector<vector<double> > > regions;
+    opt_region_hash<uint32_t> region_cache(12);
+    
+    uint32_t curr_idx = 0;
+    for(size_t i = 0;i < quals.size();i++){
+        opt_region reg = dens.find_region(quals[i]);
+        pair<uint32_t,bool> out = region_cache.find(reg);
+        if(!out.second){
+            regions.push_back(vector<vector<double> >());
+            regions[curr_idx].push_back(sam_quals[i]);
+            region_cache.insert(reg,curr_idx);
+            indexes[i] = curr_idx;
+            curr_idx++;
+        }else{
+            regions[out.first].push_back(sam_quals[i]);
+            indexes[i] = out.first;
+        }
+    }
+    
+    
+    cerr << "Computing means...\n";
+    // compute medians or means or etc...
+    vector<vector<double> > quantizers(regions.size());
+    int dim = (int)regions[0][0].size();
+    for(size_t i = 0;i<regions.size();i++){
+        quantizers[i] = vector<double>(dim);
+        int num_values = (int) regions[i].size();
+        for(int j = 0;j<num_values;j++){
+            for(int k=0;k<dim;k++){
+                quantizers[i][k] += ((double)regions[i][j][k]/ num_values);
+            }
+        }
+    }
+
+    line = "";
+
+    infile.open(filename.c_str(), ios::in);
+    idx = 0;
+    cerr << "outputting samfile with new quals...\n";
+    while (!infile.eof()) {
+        getline(infile, line);
+
+        trim2(line);
+
+        if ((int) line.length() < 1) {
+            continue;
+        }
+
+        if (line[0] == '@') {
+            cout << line << '\n';
+            continue;
+        }
+
+        vector<string> line_list = split(line);
+
+        if (line_list.size() < 10) {
+            cerr << "Bad line: " << line << '\n';
+            cout << line << '\n';
+            continue;
+        }
+
+
+        // get flag
+        int flag = strTo<int>(line_list[1]);
+        
+        string new_quals = line_list[10];
+        
+        // Replace the quals
+        int len = (int) new_quals.length();
+        for (int i = 0; i < len; i++) {
+            new_quals[i] = (double)(quantizers[indexes[idx]][i] + offset);
+        }
+        idx++;
+        
+        // invert if necessary
+        bool invert = false;
+
+        if (!((flag & 4) && (flag & 8))) {
+            // at least on read is mapped
+            if (flag & 64) {
+                // first in pair
+                invert = flag & 16;
+            } else if (flag & 128) {
+                // second in pair
+                invert = (!(flag & 16));
+            }
+
+        }
+
+        if (invert) {
+            reverse(new_quals.begin(), new_quals.end());
+        }
 
         // print it out
 
@@ -1929,8 +2051,6 @@ int vec_quant_sam_quals(vector<string> params) {
         }
 
         cout << "\n";
-
-
     }
 
     infile.close();
