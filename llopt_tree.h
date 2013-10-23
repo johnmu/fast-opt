@@ -430,7 +430,12 @@ public:
             int64_t &num_nodes, int64_t &num_zero_nodes, int start_depth,
             int top_count_lim) {
 
-        int count_lim = (int)floor(w.data.size()*count_ratio);
+        int count_lim = 0;
+        if (count_ratio < 1) {
+            count_lim = (int) floor(w.data.size() * count_ratio);
+        } else {
+            count_lim = (int) count_ratio;
+        }
         if(count_lim < top_count_lim) count_lim = top_count_lim;
 
         ll_mouse_params_t* params = new ll_mouse_params_t[num_children];
