@@ -1832,7 +1832,7 @@ int bench(vector<string> params) {
 
 
 int vec_quant_sam_quals(vector<string> params) {
-    string usage_text = "Usage: " + c::PROG_NAME + " vec_quant_sam_quals <SAM_file> <offset> <transfomred_quals> <den_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " vec_quant_sam_quals <SAM/qual_file> <offset> <transfomred_quals> <den_file>\n"
             + "Offset typically 33 (illumina 1.8+,sanger) or 64 (illumina 1.3+)\n"
             + "replace quals in SAM file with new quantized ones!";
 
@@ -1850,10 +1850,35 @@ int vec_quant_sam_quals(vector<string> params) {
     
     ifstream infile;
 
+    int file_type = 2; // 1 is sam file, 2 is quals file
+    
     infile.open(filename.c_str(), ios::in);
     if (!infile.is_open()) {
         cerr << "Error: cannot open input file: " << filename << '\n';
         return 3;
+    }else{
+        // determine file type
+        // read a few lines from the file and if there are no '@' we will assume it is a quals file
+        string line = "";
+        int count = 1;
+        while (!infile.eof()) {
+            getline(infile, line);
+
+            trim2(line);
+
+            if ((int) line.length() < 1) {
+                continue;
+            }
+
+            if (line[0] == '@') {
+                file_type = 1;
+                break;
+            }
+            if(count > 10){
+                break;
+            }
+            count++;
+        }
     }
     infile.close();
     
@@ -1896,49 +1921,57 @@ int vec_quant_sam_quals(vector<string> params) {
             continue;
         }
 
-        if (line[0] == '@') {
+        if (file_type == 1 && line[0] == '@') {
             continue;
         }
 
         vector<string> line_list = split(line);
 
-        if (line_list.size() < 10) {
-            cerr << "Bad line: " << line << '\n';
-            continue;
-        }
-
-        // read in quals, need to invert
-        
-        // get flag
-        int flag = strTo<int>(line_list[1]);
-        
-        string new_quals = line_list[10];
-        
-
-        // invert if necessary
-        bool invert = false;
-
-        if (!((flag & 4) && (flag & 8))) {
-            // at least on read is mapped
-            if (flag & 64) {
-                // first in pair
-                invert = flag & 16;
-            } else if (flag & 128) {
-                // second in pair
-                invert = (!(flag & 16));
+        if (file_type == 1) {
+            if (line_list.size() < 10) {
+                cerr << "Bad line: " << line << '\n';
+                continue;
             }
 
-        }
+            // read in quals, need to invert
 
-        if (invert) {
-            reverse(new_quals.begin(), new_quals.end());
-        }
-        
-        sam_quals.push_back(vector<double>(new_quals.length()));
-        
-        int len = (int) new_quals.length();
-        for (int i = 0; i < len; i++) {
-            sam_quals[idx][i] = (double)(new_quals[i] - offset);
+            // get flag
+            int flag = strTo<int>(line_list[1]);
+
+            string new_quals = line_list[10];
+
+            // invert if necessary
+            bool invert = false;
+
+            if (!((flag & 4) && (flag & 8))) {
+                // at least on read is mapped
+                if (flag & 64) {
+                    // first in pair
+                    invert = flag & 16;
+                } else if (flag & 128) {
+                    // second in pair
+                    invert = (!(flag & 16));
+                }
+
+            }
+
+            if (invert) {
+                reverse(new_quals.begin(), new_quals.end());
+            }
+
+            sam_quals.push_back(vector<double>(new_quals.length()));
+
+            int len = (int) new_quals.length();
+            for (int i = 0; i < len; i++) {
+                sam_quals[idx][i] = (double) (new_quals[i] - offset);
+            }
+        } else {
+            sam_quals.push_back(vector<double>(line_list.size()));
+
+            int len = (int) line_list.size();
+            for (int i = 0; i < len; i++) {
+                sam_quals[idx][i] = strTo<double>(line_list[i]);
+            }
         }
         idx++;
     }
@@ -1981,79 +2014,89 @@ int vec_quant_sam_quals(vector<string> params) {
         }
     }
 
-    line = "";
+    if (file_type == 1) {
+        line = "";
 
-    infile.open(filename.c_str(), ios::in);
-    idx = 0;
-    cerr << "outputting samfile with new quals...\n";
-    while (!infile.eof()) {
-        getline(infile, line);
+        infile.open(filename.c_str(), ios::in);
+        idx = 0;
+        cerr << "outputting samfile with new quals...\n";
+        while (!infile.eof()) {
+            getline(infile, line);
 
-        trim2(line);
+            trim2(line);
 
-        if ((int) line.length() < 1) {
-            continue;
-        }
-
-        if (line[0] == '@') {
-            cout << line << '\n';
-            continue;
-        }
-
-        vector<string> line_list = split(line);
-
-        if (line_list.size() < 10) {
-            cerr << "Bad line: " << line << '\n';
-            cout << line << '\n';
-            continue;
-        }
-
-
-        // get flag
-        int flag = strTo<int>(line_list[1]);
-        
-        string new_quals = line_list[10];
-        
-        // Replace the quals
-        int len = (int) new_quals.length();
-        for (int i = 0; i < len; i++) {
-            new_quals[i] = (double)(quantizers[indexes[idx]][i] + offset);
-        }
-        idx++;
-        
-        // invert if necessary
-        bool invert = false;
-
-        if (!((flag & 4) && (flag & 8))) {
-            // at least on read is mapped
-            if (flag & 64) {
-                // first in pair
-                invert = flag & 16;
-            } else if (flag & 128) {
-                // second in pair
-                invert = (!(flag & 16));
+            if ((int) line.length() < 1) {
+                continue;
             }
 
+            if (line[0] == '@') {
+                cout << line << '\n';
+                continue;
+            }
+
+            vector<string> line_list = split(line);
+
+            if (line_list.size() < 10) {
+                cerr << "Bad line: " << line << '\n';
+                cout << line << '\n';
+                continue;
+            }
+
+
+            // get flag
+            int flag = strTo<int>(line_list[1]);
+
+            string new_quals = line_list[10];
+
+            // Replace the quals
+            int len = (int) new_quals.length();
+            for (int i = 0; i < len; i++) {
+                new_quals[i] = (char) (quantizers[indexes[idx]][i] + offset);
+            }
+            idx++;
+
+            // invert if necessary
+            bool invert = false;
+
+            if (!((flag & 4) && (flag & 8))) {
+                // at least on read is mapped
+                if (flag & 64) {
+                    // first in pair
+                    invert = flag & 16;
+                } else if (flag & 128) {
+                    // second in pair
+                    invert = (!(flag & 16));
+                }
+
+            }
+
+            if (invert) {
+                reverse(new_quals.begin(), new_quals.end());
+            }
+
+            // print it out
+
+            line_list[10] = new_quals;
+
+            cout << line_list[0];
+
+            for (int i = 1; i < (int) line_list.size(); i++) {
+                cout << '\t' << line_list[i];
+            }
+
+            cout << "\n";
         }
 
-        if (invert) {
-            reverse(new_quals.begin(), new_quals.end());
+        infile.close();
+    }else{
+        for(size_t i = 0;i<indexes.size();i++){
+            for(int j = 0;j<dim;j++){
+                cout << floor(quantizers[indexes[i]][j]);
+                if(j!=dim) cout << ' ';
+            }
+            cout << "\n";
         }
-
-        // print it out
-
-        line_list[10] = new_quals;
-
-        cout << line_list[0];
-
-        for (int i = 1; i < (int) line_list.size(); i++) {
-            cout << '\t' << line_list[i];
-        }
-
-        cout << "\n";
     }
-
-    infile.close();
 
     return 0;
 }
