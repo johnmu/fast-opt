@@ -2035,7 +2035,9 @@ int vec_quant_sam_quals(vector<string> params) {
         outfile.open(temp.c_str(), ios::out);
 
         for (size_t i = 0; i < indexes.size(); i++) {
-            outfile.write((char*)&(indexes[i]),3);
+            outfile.put((char)(indexes[i]));
+            outfile.put((char)(indexes[i]>>8));
+            outfile.put((char)(indexes[i]>>16));
         }
 
         outfile.close();
