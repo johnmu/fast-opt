@@ -1999,7 +1999,7 @@ int vec_quant_sam_quals(vector<string> params) {
         }
     }
     
-    cerr << "Number of regions: " << regions << '\n';
+    cerr << "Number of regions: " << regions.size() << '\n';
     
     
     cerr << "Computing means...\n";
