@@ -2015,6 +2015,64 @@ int vec_quant_sam_quals(vector<string> params) {
             }
         }
     }
+    
+    cerr << "output the quantizers and indexes...\n";
+    {
+        string temp = quals_file + "_quant.txt";
+        ofstream outfile(temp.c_str(), ios::out);
+
+        for (size_t i = 0; i < quantizers.size(); i++) {
+            for (int k = 0; k < dim; k++) {
+                outfile << (char)((int)quantizers[i][k] + 33);
+            }
+            outfile << '\n';
+        }
+
+        outfile.close();
+        
+        
+        temp = quals_file + "_idx.txt";
+        outfile.open(temp.c_str(), ios::out);
+
+        for (size_t i = 0; i < indexes.size(); i++) {
+            outfile.write((char*)&(indexes[i]),sizeof(uint32_t));
+        }
+
+        outfile.close();
+    }
+    
+    cerr << "output the original quals in 2-bit encoding...\n";
+    {
+        string temp = filename + "_2bit.txt";
+        ofstream outfile(temp.c_str(), ios::out);
+        
+        for(int i = 0;i<(int)sam_quals.size();i++){
+            char val = 0;
+            for (int k = 0; k < dim; k++) {
+                int qual = (int) sam_quals[i][k];
+                int shift = 2 * (k % 4);
+                if (qual < 10) {
+                    val += 0 << shift;
+                } else if (qual < 20) {
+                    val += 1 << shift;
+                } else if (qual < 30) {
+                    val += 2 << shift;
+                } else {
+                    val += 3 << shift;
+                }
+
+                if (k % 4 == 3) {
+                    outfile.put(val);
+                }
+            }
+            if(dim%4 != 0){
+                outfile.put(val);
+            }
+        }
+        
+        outfile.close();
+    }
+    
 
     if (file_type == 1) {
         line = "";
