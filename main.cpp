@@ -1999,6 +1999,8 @@ int vec_quant_sam_quals(vector<string> params) {
         }
     }
     
+    cerr << "Number of regions: " << regions << '\n';
+    
     
     cerr << "Computing means...\n";
     // compute medians or means or etc...
