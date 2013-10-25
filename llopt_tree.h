@@ -235,7 +235,7 @@ public:
             double val = ld;
             val += ra[child_id[0]]->get_lphi2(depth + 1);
             val += ra[child_id[1]]->get_lphi2(depth + 1);
-            val += gt.compute_lD2(ra[curr_node]->count, child_1_count, child_2_count);
+            val += gt.compute_lD2(abs(ra[curr_node]->count), child_1_count, child_2_count);
 
             lphi_list.push_back(val);
 
@@ -490,8 +490,21 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
         double max_post_prob = -c::inf;
 
         for (int i = 0; i < num_children; i++) {
-            double post_prob = gt.compute_lD2(ra[w.node_idx]->count
-                    , ra[child_idx_0[i]]->count, ra[child_idx_1[i]]->count);
+            
+            // need to deal with negative count here
+            int child_1_count = ra[child_idx_0[i]]->count;
+            int child_2_count = ra[child_idx_1[i]]->count;
+
+            if(child_1_count < 0){
+                child_1_count = -child_1_count;
+            }
+            
+            if(child_2_count < 0){
+                child_2_count = -child_2_count;
+            }
+            
+            double post_prob = gt.compute_lD2(abs(ra[w.node_idx]->count)
+                    , child_1_count, child_2_count);
             post_prob += ra[child_idx_0[i]]->get_lphi2(map_depth + 1);
             post_prob += ra[child_idx_1[i]]->get_lphi2(map_depth + 1);
 
