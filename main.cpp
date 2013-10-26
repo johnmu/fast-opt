@@ -2076,6 +2076,48 @@ int vec_quant_sam_quals(vector<string> params) {
         outfile.close();
     }
     
+    // 4 9 14 19 24 29 34 41
+    cerr << "output the original quals in 3-bit encoding...\n";
+    {
+        string temp = filename + "_3bit.txt";
+        ofstream outfile(temp.c_str(), ios::out);
+        
+        for(int i = 0;i<(int)sam_quals.size();i++){
+            char val = 0;
+            for (int k = 0; k < dim; k++) {
+                int qual = (int) sam_quals[i][k];
+                int shift = 3 * (k % 2);
+                if (qual < 5) {
+                    val += 0 << shift;
+                } else if (qual < 10) {
+                    val += 1 << shift;
+                } else if (qual < 15) {
+                    val += 2 << shift;
+                } else if (qual < 20) {
+                    val += 3 << shift;
+                } else if (qual < 25) {
+                    val += 4 << shift;
+                } else if (qual < 30) {
+                    val += 5 << shift;
+                } else if (qual < 35) {
+                    val += 6 << shift;
+                } else {
+                    val += 7 << shift;
+                }
+
+                if (k % 2 == 1) {
+                    outfile.put(val);
+                    val = 0;
+                }
+            }
+            if(dim%2 != 0){
+                outfile.put(val);
+            }
+        }
+        
+        outfile.close();
+    }
+    
 
     if (file_type == 1) {
         line = "";
