@@ -339,8 +339,9 @@ public:
     }
 
     // start and end are inclusive
+    // this is run once to initialize the tree. 
     void construct_full_tree(vector<vector<double> > &all_data, uint32_t start[2], uint32_t end[2]){
-        int64_t num_nodes = 0;
+        int64_t num_nodes = 0; // stores number of nodes created
 
         for (int k = 0; k < 2; k++) {
             if(start[k] > end[k]){
@@ -356,7 +357,7 @@ public:
 
         vector<cpile_t<uint32_t,uint32_t > > pile(1);
         
-        
+        // load data indexes
         for (int k = 0; k < 2; k++) {
             pile[0].data[k].resize(N[k]);
             int idx = 0;
@@ -366,6 +367,7 @@ public:
             }
         }
         
+        // Initialize stack
         pile[0].node = root;
         pile[0].dim  = 0;
         pile[0].cut  = 0;
@@ -373,10 +375,12 @@ public:
         current_region curr_reg(num_children);
         opt_region working_reg(num_children);
         
+        // Insert root node into the cache
         region_cache.insert(working_reg,root);
 
         int depth = 0;
         
+        // while stack is not empty
         bool done = false;
         while (!done){
 
@@ -385,24 +389,26 @@ public:
                 continue;
             }
 
+            // Get current node details from stack
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
             online_ctree_node* curr_node = ra[pile[depth].node];
-
             int curr_count[2];
             curr_node->get_count(curr_count);
-            // work out what to count
+            
 
             bool back_up = false;
-            // check if current node is leaf or at end
+            // Check leaf criteria
             if(curr_node->is_leaf()
                     || (abs(curr_count[0])+abs(curr_count[1])) <= count_lim
                     || (curr_count[0]<=0 && curr_count[1]<=0)
                     || depth >= max_depth
                     || working_reg.full()){
-                // back up
+                
+                // set  back up flag
                 back_up = true;
-
+                
+                // set the P and lPhi to be uniform
                 curr_node->set_uniform(depth);
                 
                 // save data in the leaf nodes
@@ -410,21 +416,27 @@ public:
                 curr_node->data[1] = new vector<uint32_t>(pile[depth].data[1]);
 
             } else if (curr_dim > num_children - 1) {
-                // reached end of node!! back up
+                // Otherwise if not a leaf and we have gone beyond the last dimension
+                
+                // Set backup flag
                 back_up = true;
 
+                // Compute the P and lPhi according to the recursive formula
                 compute_lPs(working_reg, pile[depth].node, depth,0);
-
             }
 
+            
             if (back_up) {
+                // Performed if backup flag is set
+                
+                // Go back to parent of current node
                 depth--;
                 pile.pop_back();
                 if (depth < 0) continue;
-                
                 curr_reg.uncut(pile[depth].dim,pile[depth].cut);
                 working_reg.uncut(pile[depth].dim);
 
+                // Move to next region
                 if(pile[depth].cut < c::cuts - 1){
                     pile[depth].cut++;
                 }else if(pile[depth].dim <= num_children - 1){
@@ -439,17 +451,18 @@ public:
             curr_cut = pile[depth].cut;
 
             // do the counting
-
             working_reg.cut(curr_dim,curr_cut);
-            uint32_t working_hash = region_cache.hash(working_reg);
             
+            // Look for the current node in the hash
+            uint32_t working_hash = region_cache.hash(working_reg);
             pair<uint32_t,bool> new_node = region_cache.find(working_reg,working_hash);
 
             if (!new_node.second) {
-
+                // if the node is not found we create it and add to stack
                 pile.push_back(cpile_t<uint32_t,uint32_t>());
                 depth++;
 
+                // count the data points in the new node
                 bool is_diff_sep[2] = {true, true};
                 for (int k = 0; k < 2; k++) {
                     if(pile[depth-1].data[k].size() > 0){
@@ -476,26 +489,24 @@ public:
                 //    curr_count[1] = -pile[depth].data[1].size();
                 //}
                 
-
+                // Create the new node and assign counts to it
                 pair<uint32_t, online_ctree_node*> out = ra.create_node();
                 new_node.first = out.first;
 
                 out.second->set_count(curr_count);
 
-                num_nodes++;
-                
                 pile[depth].node = new_node.first;
                 region_cache.insert(working_reg,new_node.first,working_hash);
 
+                num_nodes++;
                 if (num_nodes % 1000000 == 0) {
-                    cerr << "Nodes(" <<pile[0].dim << "):"
-                            << num_nodes <<'\n';
+                    cerr << "Nodes(" <<pile[0].dim << "):" << num_nodes <<'\n';
                 }
-
             } else {
-
+                // If the node is already found go to parent
                 working_reg.uncut(curr_dim);
                 
+                // Go to next node
                 if(pile[depth].cut < c::cuts - 1){
                     pile[depth].cut++;
                 }else if(pile[depth].dim <= num_children - 1){
@@ -509,8 +520,8 @@ public:
     }
 
     // Remove the leaf nodes with children that are not needed anymore
+    // That is, nodes where *all* parents are leafs
     // [ add0,  del0,  add1,  del1]
-    
     void prune_tree(vector<vector<double> > &all_data, uint32_t pts[4],int seq_idx){
 
         int N[2] = {0,0};
@@ -526,6 +537,7 @@ public:
         pile[0].data[1].push_back(1); //add
         pile[0].data[1].push_back(1); //del
         
+        // Initialize the stack
         pile[0].node = root;
         pile[0].dim  = 0;
         pile[0].cut  = 0;
@@ -537,25 +549,20 @@ public:
         
         bool done = false;
         while (!done){
-
             if(pile.size() == 0){
                 done = true;
                 continue;
             }
 
+            // Get current node in the stack
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
             online_ctree_node* curr_node = ra[pile[depth].node];
-
             int curr_count[2];
             curr_node->get_count(curr_count);
-            // work out what to count
 
             bool back_up = false;
-
-            // check if current node is leaf or at end
-            // do this check if the sequence id is reached
-
+            
             // check leaf criteria
             if ((abs(curr_count[0]) + abs(curr_count[1])) <= count_lim
                     || (curr_count[0] <= 0 && curr_count[1] <= 0)
@@ -566,7 +573,6 @@ public:
 
                 // check if this node is a leaf
                 // If it is a leaf delete all children
-
                 bool is_leaf = curr_node->is_leaf();
                 if (is_leaf) {
 
@@ -588,29 +594,28 @@ public:
                         if (edim < num_children) {
                             working_reg.cut(edim, ecut);
 
-                            //uint32_t del_node = region_cache.erase(working_reg);
                             uint32_t reg_hash = region_cache.hash(working_reg);
                             pair<uint32_t, bool> out = region_cache.find(working_reg, reg_hash);
                             uint32_t del_node = out.first;
                             bool delete_node = true;
+
                             if (out.second) {
+                                // If the node exists, child of leaf we need to see if it can be deleted
                                 if (abs(ra[out.first]->get_sequence_id()) == seq_idx) {
                                     // don't delete
-
                                     delete_node = false;
                                 } else {
-                                    // check other criteria for not deleting
-                                    // ie. any parent is not a leaf
-                                    
-                                    for(int k = 0;k<num_children;k++){
-                                        uint32_t parent = get_parent(working_reg, region_cache,k);
-                                        if(parent == c::ra_null_val){
+                                    // Check if any parent is not a leaf
+                                    // The are at most num_children parents
+                                    for (int k = 0; k < num_children; k++) {
+                                        uint32_t parent = get_parent(working_reg, region_cache, k);
+                                        if (parent == c::ra_null_val) {
                                             continue;
-                                        }else{
+                                        } else {
                                             int parent_count[2];
                                             ra[parent]->get_count(parent_count);
-                                            if (!( (abs(parent_count[0]) + abs(parent_count[1])) <= count_lim
-                                                    || (parent_count[0]<=0 && parent_count[1]<=0) )) {
+                                            if (!((abs(parent_count[0]) + abs(parent_count[1])) <= count_lim
+                                                    || (parent_count[0] <= 0 && parent_count[1] <= 0))) {
                                                 // don't delete because parent is not a leaf
                                                 delete_node = false;
                                             }
@@ -618,20 +623,25 @@ public:
                                     }
 
                                     if (delete_node) {
+                                        // delete node from the hash
                                         region_cache.erase(working_reg, reg_hash);
                                     }
                                 }
-                            
+
 
                                 if (ra[del_node]->is_leaf()) {
+                                    // All children of leafs should be leafs
                                     edepth++;
                                     node_pile.push_back(epile_t<uint32_t>());
+
+                                    // if the node is to be deleted we need to remember it
                                     if (delete_node)node_pile[edepth].node = del_node;
                                     else node_pile[edepth].node = c::ra_null_val;
+                                    
                                     node_pile[edepth].dim = 0;
                                     node_pile[edepth].cut = 0;
                                     continue;
-                                }else{
+                                } else {
                                     cerr << "Error? not a leaf...\n";
                                     cerr << "curr_count: " << curr_count[0] << "," << curr_count[1] << '\n';
                                     int counts[2];
@@ -644,15 +654,21 @@ public:
                         }
 
                         if (node_pile[edepth].dim == num_children) {
+                            
+                            // delete the node if it is marked to be deleted
                             if (edepth != 0) {
                                 if (node_pile[edepth].node != c::ra_null_val)ra.delete_node(node_pile[edepth].node);
                             }
+                            
+                            // Go to parent
                             node_pile.pop_back();
                             edepth--;
                             if(edepth>=0){
                                 working_reg.uncut(node_pile[edepth].dim);
                             }
                         }
+                        
+                        // go to next child
                         if (edepth >= 0) {
                             if (node_pile[edepth].cut < c::cuts - 1) {
                                 node_pile[edepth].cut++;
@@ -730,17 +746,13 @@ public:
             curr_cut = pile[depth].cut;
 
             // do the counting
-
-            // determine if current node is a leaf
-            // if it is a leaf we may need to delete the node or create new nodes
-            // at most create one new level
-            
             working_reg.cut(curr_dim,curr_cut);
             uint32_t working_hash = region_cache.hash(working_reg);
 
             pair<uint32_t,bool> new_node = region_cache.find(working_reg,working_hash);
             
             // In addition to checking if the new node exists we check the sequence number
+            // This sequence number is for the pruning, we use negative
             bool recount = false;
             if (!new_node.second){
                 exit(1); // should always find
@@ -751,20 +763,17 @@ public:
             }
             
             if (recount){
-
                 pile.push_back(cpile_t<uint32_t, uint32_t >());
                 depth++;
                 pile[depth].dim = 0;
                 pile[depth].cut = 0;
                 pile[depth].node = new_node.first;
 
-                // determine which data points are active
+                // determine which data points are active, counting
                 double lim = curr_reg.get_lim(curr_dim);
                 for (int k = 0; k < 2; k++) {
-
                     pile[depth].data[k] = pile[depth-1].data[k];
                     for (int i = 0; i < 2; i++) {
-
                         if (pile[depth - 1].data[k][i] == 1) {
                             if (curr_cut == 0) {
                                 if (!(all_data[pts[(2*k)+i]][curr_dim] < lim)) {
@@ -772,7 +781,6 @@ public:
 
                                 }
                             } else if (curr_cut == 1) {
-
                                 if (!(all_data[pts[(2*k)+i]][curr_dim] >= lim)) {
                                     pile[depth].data[k][i] = 0;
 
@@ -791,6 +799,7 @@ public:
             } else {
                 working_reg.uncut(curr_dim);
                 
+                // Go to next child of parent
                 if(pile[depth].cut < c::cuts - 1){
                     pile[depth].cut++;
                 }else if(pile[depth].dim <= num_children - 1){
@@ -943,15 +952,12 @@ public:
                                 uint32_t del_node = out.first;
                                 
                                 if (out.second) {
-
                                     if (ra[del_node]->is_leaf()) {
                                         if (node_pile[edepth].insert) {
                                             // since this is a leaf, everything below must be a leaf
-
                                             for (int k = 0; k < 2; k++) {
 
                                                 // if it is incorrect, we need to re-count it, urgh
-
                                                 for (vector<uint32_t>::iterator it = ra[del_node]->data[k]->begin();
                                                         it != ra[del_node]->data[k]->end(); it++) {
                                                     // check each active pts to see which ones need to be skipped
@@ -1123,13 +1129,11 @@ public:
 
                         if (pile[depth - 1].data[k][i] == 1) {
                             if (curr_cut == 0) {
-
                                 if (!(all_data[pts[(2*k)+i]][curr_dim] < lim)) {
                                     pile[depth].data[k][i] = 0;
 
                                 }
                             } else if (curr_cut == 1) {
- 
                                 if (!(all_data[pts[(2*k)+i]][curr_dim] >= lim)) {
                                     pile[depth].data[k][i] = 0;
                                 }
@@ -1217,8 +1221,6 @@ public:
                         new_ptr->set_count(curr_count);
                         new_ptr->set_sequence_id(seq_idx);
                     } 
-
-                    
                 }
                 
                 // cut after the counting
