@@ -51,11 +51,10 @@
 #include "map_tree.h"
 #include "density_store.h"
 
-<<<<<<< HEAD
-inline void read_data(string filename, bool end_line, vector<vector<double> > &data, vector<uint32_t> &skipped) {
-=======
-inline vector<vector<double> > read_data(string filename, bool end_line = false, bool general = false) {
->>>>>>> fun
+
+inline void read_data(string filename,vector<vector<double> > &data, vector<uint32_t> &skipped,
+        bool end_line = false, bool general = false) {
+
     int dim = 0;
 
     ifstream infile(filename.c_str());

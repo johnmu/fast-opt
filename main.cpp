@@ -123,7 +123,7 @@ int opt(vector<string> params) {
 
     vector<vector<double> > data;
     vector<uint32_t> skipped; 
-    read_data(params[1], false,data,skipped);
+    read_data(params[1],data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -212,7 +212,7 @@ int llopt(vector<string> params) {
 
     vector<vector<double> > data;
     vector<uint32_t> skipped; 
-    read_data(params[params_offset + 3], false,data,skipped);
+    read_data(params[params_offset + 3],data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -286,7 +286,7 @@ int lsopt(vector<string> params) {
     
     vector<vector<double> > data;
     vector<uint32_t> skipped;
-    read_data(params[5], false,data,skipped);
+    read_data(params[5],data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -342,7 +342,7 @@ int dfopt(vector<string> params) {
 
     vector<vector<double> > data;
     vector<uint32_t> skipped;
-    read_data(params[3], false,data,skipped);
+    read_data(params[3],data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -420,7 +420,7 @@ int disopt(vector<string> params) {
 
     vector<vector<double> > data;
     vector<uint32_t> skipped;
-    read_data(params[params_offset + 3], false,data,skipped);
+    read_data(params[params_offset + 3],data,skipped);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -471,7 +471,7 @@ int copula(vector<string> params) {
 
     vector<vector<double> > data;
     vector<uint32_t> skipped;
-    read_data(data_file, false,data,skipped);
+    read_data(data_file,data,skipped);
 
     int dim = (int) data[0].size();
     uint32_t N = (uint32_t) data.size();
@@ -592,7 +592,7 @@ int hell_dist(vector<string> params) {
 
     vector<vector<double> > true_samples;
     vector<uint32_t> skipped;
-    read_data(params[0], true, true_samples, skipped);
+    read_data(params[0], true_samples, skipped);
 
     int true_N = (int) true_samples.size();
     int dim = (int) true_samples[0].size() - 1;
@@ -670,17 +670,13 @@ int hell_dist(vector<string> params) {
         double true_den = true_samples[i][dim];
         double map_den = 0.0;
 
-<<<<<<< HEAD
         if(!den_list) {
             vector<double> point(true_samples[i].begin(), true_samples[i].end() - 1);
             map_den = dens.compute_density(point, 0);
         } else {
             map_den = density_list[i];
         }
-=======
-        vector<double> point(true_samples[i].begin(), true_samples[i].end() - 1);
-        map_den = dens.compute_density(point, 0);
->>>>>>> fun
+
         val += sqrt(map_den / true_den); // importance sample
     }
 
@@ -737,7 +733,7 @@ int classify(vector<string> params) {
 
     vector<vector<double> > test_data;
     vector<uint32_t> skipped;
-    read_data(params[0 + param_offset], confusion,test_data,skipped);
+    read_data(params[0 + param_offset],test_data,skipped,confusion);
 
     int test_N = (int) test_data.size();
     int dim = (int) test_data[0].size() - param_offset;
@@ -911,7 +907,7 @@ int density_old(vector<string> params) {
 
     vector<vector<double> > test_data;
     vector<uint32_t> test_skipped;
-    read_data(params[1], false,test_data,test_skipped);
+    read_data(params[1],test_data,test_skipped);
 
     int test_N = (int) test_data.size();
     int dim = (int) test_data[0].size();
@@ -920,7 +916,7 @@ int density_old(vector<string> params) {
 
     vector<vector<double> > MAP_dist;
     vector<uint32_t> MAP_skipped;
-    read_data(params[0], true,test_data,test_skipped);
+    read_data(params[0],MAP_dist,MAP_skipped,true);
 
     // Loop through the data
     // This should be changed to binary tree
@@ -972,7 +968,7 @@ int density(vector<string> params) {
     
     vector<vector<double> > test_data;
     vector<uint32_t> skipped;
-    read_data(params[0], false,test_data,skipped);
+    read_data(params[0],test_data,skipped);
     
     int test_N = (int) test_data.size();
     int dim = (int) test_data[0].size();
@@ -1048,7 +1044,9 @@ int normalize(vector<string> params) {
         }
     }
     
-    vector<vector<double> > data = read_data(params[1], false, true);
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    read_data(params[1],data,skipped, false, true);
 
     int N = (int) data.size();
     int dim = (int) data[0].size();
@@ -1164,7 +1162,9 @@ int demean(vector<string> params) {
         return 3;
     }
     
-    vector<vector<double> > data = read_data(params[0], false, true);
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    read_data(params[0],data,skipped, false, true);
 
     vector<string> ll = split(params[0],'.');
     string prefix = ll[0];
@@ -1219,8 +1219,13 @@ int opt_comp(vector<string> params) {
 
     string out_filename = params[3];
 
-    vector<vector<double> > data_1 = read_data(params[1], false);
-    vector<vector<double> > data_2 = read_data(params[2], false);
+    vector<vector<double> > data_1;
+    vector<uint32_t> skipped_1;
+    read_data(params[1],data_1,skipped_1, false);
+    
+    vector<vector<double> > data_2;
+    vector<uint32_t> skipped_2;
+    read_data(params[2],data_2,skipped_2, false);
 
     int dim = (int) data_1[0].size();
 
@@ -1353,8 +1358,12 @@ int coopt(vector<string> params) {
 
     string out_filename = params[3];
 
-    vector<vector<double> > data[2] = {read_data(params[1], false), read_data(params[2], false)};
-
+    vector<vector<double> > data[2] = {vector<vector<double> >(),vector<vector<double> >()};
+    vector<uint32_t> skipped[2] = {vector<uint32_t>() ,vector<uint32_t>() };
+    
+    read_data(params[1], data[0],skipped[0],false);
+    read_data(params[2], data[1],skipped[1],false);
+            
     int dim = (int) data[0][0].size();
 
     if (dim != (int) data[1][0].size()) {
@@ -1431,7 +1440,10 @@ int coopt_scan_old(vector<string> params) {
 
     int window_size = strTo<int>(params[2]);
     int scan_res = strTo<int>(params[3]);
-    vector<vector<double> > data = read_data(params[4], false);
+    
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    read_data(params[4],data,skipped, false);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -1566,8 +1578,10 @@ int coopt_scan(vector<string> params) {
         cerr << "Error: window size too small\n";
         return 1;
     }
-
-    vector<vector<double> > data = read_data(params[4], false);
+    
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    read_data(params[4],data,skipped, false);
 
     int dim = (int) data[0].size();
     int N = data.size();
@@ -1979,7 +1993,9 @@ int vec_quant_sam_quals(vector<string> params) {
     infile.close();
     
     // Read in transformed quals file
-    vector<vector<double> > quals = read_data(quals_file, false);
+    vector<vector<double> > quals;
+    vector<uint32_t> skipped_quals;
+    read_data(quals_file, quals,skipped_quals,false);
     
     // Read in partitions
     density_store dens(partitions, "");
