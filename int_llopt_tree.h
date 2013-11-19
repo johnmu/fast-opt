@@ -43,7 +43,7 @@
 #include "opt_utils.h"
 #include "gamma_table.h"
 #include "opt_tree.h"
-#include "2d_data.h"
+#include "data2d.h"
 
 
 

@@ -1,5 +1,5 @@
 /* 
- * File:   2d_data.h
+ * File:   data2d.h
  * Author: johnmu
  *
  * Created on November 19, 2013, 12:28 PM
@@ -32,13 +32,18 @@
  */
 
 
-#ifndef 2D_DATA_H
-#define	2D_DATA_H
+#ifndef DATA2D_H
+#define	DATA2D_H
 
 // Defines a structure that stores a matrix of fixed size
-class 2d_data{
+
+template <class T>
+class data2d{
+private:
+    T* data;
+public:
     
 };
 
-#endif	/* 2D_DATA_H */
+#endif	/* DATA2D_H */
 
