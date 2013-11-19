@@ -17,10 +17,10 @@
    distribute, sublicense, and/or sell copies of the Software, and to
    permit persons to whom the Software is furnished to do so, subject to
    the following conditions:
-
+   
    The above copyright notice and this permission notice shall be
    included in all copies or substantial portions of the Software.
-
+   
    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -654,7 +654,6 @@ public:
                         }
 
                         if (node_pile[edepth].dim == num_children) {
-                            
                             // delete the node if it is marked to be deleted
                             if (edepth != 0) {
                                 if (node_pile[edepth].node != c::ra_null_val)ra.delete_node(node_pile[edepth].node);
@@ -812,19 +811,18 @@ public:
     }
     
     
-    
+    // This is the main function of interest
     // add and delete 1 point from each of the datasets
     // used to shift the window 
-    // [ add0,  del0,  add1,  del1]
-    
+    // pts: [ add0,  del0,  add1,  del1]
     void update_points(vector<vector<double> > &all_data, uint32_t pts[4],int seq_idx){
 
         int N[2] = {0,0};
         ra[root]->get_count(N);
 
+        // Initialize the stack
         vector<cpile_t<uint32_t,uint32_t> > pile;
         pile.push_back(cpile_t<uint32_t,uint32_t>());
-        
         // here we use data to store which points are still active
         // 1 = active, 0 = inactive
         pile[0].data[0].push_back(1); //add
@@ -841,6 +839,7 @@ public:
 
         int depth = 0;
         
+        // While the stack is not empty
         bool done = false;
         while (!done){
 
@@ -849,21 +848,23 @@ public:
                 continue;
             }
 
+            // Get the current node from stack
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
             online_ctree_node* curr_node = ra[pile[depth].node];
 
             int curr_count[2];
             curr_node->get_count(curr_count);
-            // work out what to count
+            
             bool back_up = false;
             
+            // If sequence id different and node beyond last child
             if (curr_node->get_sequence_id() != seq_idx && curr_dim > num_children - 1) {
                 // all children have been processed, we can re-count the region
                 // re-count the region
                 online_ctree_node* new_ptr = curr_node;
 
-                // modify counts here 
+                // modify region counts here
                 int count[2];
                 new_ptr->get_count(count);
 
@@ -922,7 +923,6 @@ public:
                         // probably need to check all children :/
                         // also return the data
                         // need to deal with negative counts [TODO]
-                        
 
                         vector<epile_t<uint32_t> > node_pile;
                         node_pile.push_back(epile_t<uint32_t>());

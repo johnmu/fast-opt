@@ -62,12 +62,12 @@ int main(int argc, char** argv) {
         error_num = opt(params);
     } else if (mode == "opt_comp") {
         error_num = opt_comp(params);
-    } else if (mode == "copt") {
-        error_num = copt(params);
-    } else if (mode == "copt_scan_old") {
-        error_num = copt_scan_old(params);
-    } else if (mode == "copt_scan") {
-        error_num = copt_scan(params);
+    } else if (mode == "coopt") {
+        error_num = coopt(params);
+    } else if (mode == "coopt_scan_old") {
+        error_num = coopt_scan_old(params);
+    } else if (mode == "coopt_scan") {
+        error_num = coopt_scan(params);
     } else if (mode == "llopt") {
         error_num = llopt(params);
     } else if (mode == "lsopt") {
@@ -1253,15 +1253,15 @@ int opt_comp(vector<string> params) {
     return 0;
 }
 
-int copt(vector<string> params) {
+int coopt(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " copt <percent_points> <data_file_1> <data_file_2> <output_name>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " coopt <percent_points> <data_file_1> <data_file_2> <output_name>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
             + "            data_file -- One sample each row (Restricted to [0,1] cube)\n"
             + "          output_name -- Result output to <output_name>.den\n"
             + "Log output to STDERR \n"
-            + "Run full-OPT, very fast but uses a lot of memory. If dimension \n"
-            + "greater than 4 use the other methods. Best choice for 1 or 2 dimensional data.\n"
+            + "Run full co-OPT, very fast but uses a lot of memory. If dimension \n"
+            + "greater than 4 use the other methods. Best choice for 1-3 dimensional data.\n"
             + "Recommend always stopping at 2 points.\n";
 
     if (params.size() != 4) {
@@ -1326,9 +1326,9 @@ int copt(vector<string> params) {
     return 0;
 }
 
-int copt_scan_old(vector<string> params) {
+int coopt_scan_old(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan_old <percent_points> <max_depth> <window_size> <scan_resolution> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " coopt_scan_old <percent_points> <max_depth> <window_size> <scan_resolution> <data_file>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
             + "            max_depth -- Maximum depth in the tree, smallest region area will be 2^(-max_depth)\n"
             + "          window_size -- Size of window to scan for changes, break at window_size/2\n"
@@ -1455,9 +1455,9 @@ int copt_scan_old(vector<string> params) {
     return 0;
 }
 
-int copt_scan(vector<string> params) {
+int coopt_scan(vector<string> params) {
 
-    string usage_text = "Usage: " + c::PROG_NAME + " copt_scan <percent_points> <max_depth> <window_size> <output_interval> <data_file>\n"
+    string usage_text = "Usage: " + c::PROG_NAME + " coopt_scan <percent_points> <max_depth> <window_size> <output_interval> <data_file>\n"
             + "       percent_points -- Ratio of total data to stop at (0.01 = 1%, or 2 = 2 points)\n"
             + "            max_depth -- Maximum depth in the tree, smallest region area will be 2^(-max_depth)\n"
             + "          window_size -- Size of window to scan for changes, break at window_size/2\n"
@@ -2209,15 +2209,17 @@ int vec_quant_sam_quals(vector<string> params) {
 void print_usage_and_exit() {
     cerr << "Usage: " + c::PROG_NAME + " <option>" << "\n";
     cerr << "Options:" << "\n";
-    cerr << "-== Density Estimation and Related==-" << '\n';
+    cerr << "-== Density Estimation and Related ==-" << '\n';
     cerr << "  opt        -- MAP partitions from full OPT" << "\n";
     cerr << "  llopt      -- MAP partitions from LL-OPT" << "\n";
     //cerr << "  lsopt      -- MAP partitions from LL-sampled OPT [experimental]" << "\n";
     cerr << "  dfopt      -- MAP partitions from depth-first OPT" << "\n";
     //cerr << "  disopt     -- MAP partitions from discrepancy-LL-OPT [experimental]" << "\n";
     cerr << "  copula     -- Copula transform with full OPT" << "\n";
-    cerr << "  copt       -- Two sample comparison with the full coupling OPT [beta]" << "\n";
-    cerr << "  copt_scan  -- Change-point detection with online full coupling OPT [beta]" << "\n";
+    cerr << "\n";
+    cerr << "-== Two sample comparison ==-" << '\n';
+    cerr << "  coopt       -- Two sample comparison with the full co-OPT [experimental]" << "\n";
+    cerr << "  coopt_scan  -- Change-point detection with online full co-OPT [experimental]" << "\n";
     cerr << "\n";
     cerr << "-== Other tools ==-" << '\n';
     cerr << "  hell_dist  -- Compute sample Hellinger distance from a known density" << "\n";
