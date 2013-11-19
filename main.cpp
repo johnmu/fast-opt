@@ -592,7 +592,7 @@ int hell_dist(vector<string> params) {
 
     vector<vector<double> > true_samples;
     vector<uint32_t> skipped;
-    read_data(params[0], true_samples, skipped);
+    read_data(params[0], true_samples, skipped,true);
 
     int true_N = (int) true_samples.size();
     int dim = (int) true_samples[0].size() - 1;
@@ -2050,7 +2050,6 @@ int vec_quant_sam_quals(vector<string> params) {
                     // second in pair
                     invert = (!(flag & 16));
                 }
-
             }
 
             if (invert) {
