@@ -45,6 +45,7 @@
 #include "copt_tree.h"
 #include "online_copt_tree.h"
 #include "llopt_tree.h"
+#include "int_llopt_tree.h"
 #include "disopt_tree.h"
 #include "lsopt_tree.h"
 #include "dfopt.h"
