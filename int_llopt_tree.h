@@ -43,7 +43,7 @@
 #include "opt_utils.h"
 #include "gamma_table.h"
 #include "opt_tree.h"
-
+#include "2d_data.h"
 
 
 
@@ -91,13 +91,13 @@ struct int_ll_working_unit_t{
     uint32_t node_idx;
 
 
-    ll_working_unit_t(int num_children){
+    int_ll_working_unit_t(int num_children){
         curr_reg.init(num_children);
         working_reg.init(num_children);
         node_idx = c::ra_null_val;
     }
 
-    ll_working_unit_t(vector<uint32_t > &data, current_region &curr_reg
+    int_ll_working_unit_t(vector<uint32_t > &data, current_region &curr_reg
         , opt_region &working_reg, uint32_t node_idx){
 
 
@@ -110,7 +110,7 @@ struct int_ll_working_unit_t{
 
 
 struct int_ll_pile_t{
-    vector<ll_working_unit_t> good_regions;
+    vector<int_ll_working_unit_t> good_regions;
     vector<uint32_t> map_nodes;
 };
 
@@ -123,10 +123,10 @@ struct int_ll_mouse_params_t{
     int top_count_lim;
     int max_depth;
     int top_max_depth;
-    ll_working_unit_t* wup;
+    int_ll_working_unit_t* wup;
     opt_region_hash<uint32_t>* region_cache;
     gamma_table *gt;
-    region_allocator<ll_tree_node_sparse> *ra;
+    region_allocator<int_ll_tree_node_sparse> *ra;
     int64_t *num_nodes;
     int64_t *num_zero_nodes;
     
@@ -139,7 +139,7 @@ struct int_ll_mouse_params_t{
 
 class int_llopt_tree{
 private:
-    region_allocator<ll_tree_node_sparse> ra;
+    region_allocator<int_ll_tree_node_sparse> ra;
     uint32_t root;
     int num_children;
 
@@ -151,7 +151,7 @@ private:
     void init(int num_children, double count_ratio, double top_count_ratio,
                 int max_depth, int top_max_depth) {
         this->num_children = num_children;
-        pair<uint32_t,ll_tree_node_sparse*> out = ra.create_node(num_children);
+        pair<uint32_t,int_ll_tree_node_sparse*> out = ra.create_node(num_children);
         root = out.first;
         this->count_ratio = count_ratio;
         this->top_count_ratio = top_count_ratio;
@@ -161,12 +161,12 @@ private:
 
 public:
 
-    llopt_tree(int num_children, double count_ratio,double top_count_ratio,
+    int_llopt_tree(int num_children, double count_ratio,double top_count_ratio,
                     int max_depth, int top_max_depth) {
         init(num_children, count_ratio, top_count_ratio, max_depth,top_max_depth);
     }
 
-    llopt_tree(int num_children) {
+    int_llopt_tree(int num_children) {
 
         init(num_children, 0.01, 0.001 , 3,num_children*20);
 
@@ -205,7 +205,7 @@ public:
     }
 
 
-    static void compute_lphi(region_allocator<ll_tree_node_sparse> &ra,opt_region &working_reg,
+    static void compute_lphi(region_allocator<int_ll_tree_node_sparse> &ra,opt_region &working_reg,
             opt_region_hash<uint32_t> &region_cache,
             uint32_t curr_node, int depth, gamma_table &gt, int calling_loc,int num_children) {
 
@@ -258,7 +258,7 @@ public:
 
     static void* small_opt_thread(void* params) {
 
-        ll_mouse_params_t* p = (ll_mouse_params_t*)params;
+        int_ll_mouse_params_t* p = (int_ll_mouse_params_t*)params;
 
         int start_dimension = p->start_dimension;
         int top_depth = p->top_depth;
@@ -266,10 +266,10 @@ public:
         int count_lim = p->count_lim;
         int max_depth = p->max_depth;
         int top_max_depth = p->top_max_depth;
-        ll_working_unit_t* wup = p->wup;
+        int_ll_working_unit_t* wup = p->wup;
         opt_region_hash<uint32_t>* region_cache = p->region_cache;
         gamma_table *gt = p->gt;
-        region_allocator<ll_tree_node_sparse> *ra = p->ra;
+        region_allocator<int_ll_tree_node_sparse> *ra = p->ra;
         int64_t *num_nodes = p->num_nodes;
         int64_t *num_zero_nodes = p->num_zero_nodes;
         //pthread_mutex_t* locker = p->locker;
@@ -301,7 +301,7 @@ public:
             uint32_t curr_node_idx = pile[depth].node;
 
             //pthread_mutex_lock(locker);
-            ll_tree_node_sparse curr_node = *((*ra)[curr_node_idx]);
+            int_ll_tree_node_sparse curr_node = *((*ra)[curr_node_idx]);
             //pthread_mutex_unlock(locker);
 
             bool backup = false;
@@ -372,7 +372,7 @@ public:
                 if (!new_node.second) {
                     // MUTEX
                     //pthread_mutex_lock(locker);
-                    pair<uint32_t, ll_tree_node_sparse*> out = ra->create_node();
+                    pair<uint32_t, int_ll_tree_node_sparse*> out = ra->create_node();
                     new_node.first = out.first;
                     
                     if(is_diff){
@@ -424,7 +424,7 @@ public:
     }
 
 
-    void do_small_opt(vector<vector<double> > *all_data, ll_working_unit_t &w,
+    void do_small_opt(vector<vector<double> > *all_data, int_ll_working_unit_t &w,
             opt_region_hash<uint32_t> &region_cache,gamma_table &gt,
             MT_random &rand_gen,
             int64_t &num_nodes, int64_t &num_zero_nodes, int start_depth,
@@ -438,7 +438,7 @@ public:
         }
         if(count_lim < top_count_lim) count_lim = top_count_lim;
 
-        ll_mouse_params_t* params = new ll_mouse_params_t[num_children];
+        int_ll_mouse_params_t* params = new int_ll_mouse_params_t[num_children];
 
         for (int d = 0; d < num_children; d++) {
             params[d].count_lim = count_lim;
@@ -466,7 +466,7 @@ public:
         delete [] params;
     }
 
-int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gamma_table &gt,
+int get_map_dim(int_ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gamma_table &gt,
                     int map_depth) {
         // Choose MAP dimension
 
@@ -559,10 +559,10 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
         opt_region     start_working(num_children);
 
 
-        vector<ll_pile_t> llpile;
-        llpile.push_back(ll_pile_t());
+        vector<int_ll_pile_t> llpile;
+        llpile.push_back(int_ll_pile_t());
 
-        llpile[0].good_regions.push_back(ll_working_unit_t(data,start_region,
+        llpile[0].good_regions.push_back(int_ll_working_unit_t(data,start_region,
                 start_working,root));
 
         llpile[0].map_nodes.push_back(map_region_tree.get_full_tree());
@@ -589,7 +589,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 continue;
             }
 
-            vector<ll_working_unit_t>::iterator wu_it = (llpile[map_depth].good_regions.end() - 1);
+            vector<int_ll_working_unit_t>::iterator wu_it = (llpile[map_depth].good_regions.end() - 1);
             vector<uint32_t>::iterator map_node_it = (llpile[map_depth].map_nodes.end() - 1);
 
             // if too deep we stop all the regions
@@ -695,17 +695,17 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
 
                     // after this point wu_it is invalid
-                    llpile.push_back(ll_pile_t());
+                    llpile.push_back(int_ll_pile_t());
                     map_depth++;
 
                     map_node_it = (llpile[map_depth - 1].map_nodes.end() - 1);
 
                     //cerr << "ADD PILE " << '\n';
 
-                    llpile[map_depth].good_regions.push_back(ll_working_unit_t(new_data_0,
+                    llpile[map_depth].good_regions.push_back(int_ll_working_unit_t(new_data_0,
                             next_curr_reg0, next_working_reg0, map_child_idx_0));
 
-                    llpile[map_depth].good_regions.push_back(ll_working_unit_t(new_data_1,
+                    llpile[map_depth].good_regions.push_back(int_ll_working_unit_t(new_data_1,
                             next_curr_reg1, next_working_reg1, map_child_idx_1));
 
                     pair<uint32_t, map_tree_node*> new_map_node0 = map_ra->create_node();
@@ -757,9 +757,9 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
 
                             bool is_child = false;
 
-                            for (vector<ll_pile_t>::iterator ls_it = llpile.begin();
+                            for (vector<int_ll_pile_t>::iterator ls_it = llpile.begin();
                                     ls_it != llpile.end() && !is_child; ls_it++) {
-                                for (vector<ll_working_unit_t>::iterator reg_it = ls_it->good_regions.begin();
+                                for (vector<int_ll_working_unit_t>::iterator reg_it = ls_it->good_regions.begin();
                                         reg_it != ls_it->good_regions.end() && !is_child; reg_it++) {
 
                                     if (reg_it->working_reg.is_child(it->first)) {
