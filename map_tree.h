@@ -100,22 +100,10 @@ public:
 
     // N is total number of points
     double get_density(int N,double pseudo_count, int num_regions){
-        
-        if(count<0){
-            cerr<< "get_density:neg_count\n";
-            exit(1);
-        }
-        
         return ((count+pseudo_count)/(double)(N+(num_regions*pseudo_count)))*exp(-(area*c::l2));
     }
     
     double get_prob(int N,double pseudo_count, int num_regions){
-        
-        if(count<0){
-            cerr<< "get_density:neg_count\n";
-            exit(1);
-        }
-        
         return ((count+pseudo_count)/((double)N+(num_regions*pseudo_count)));
     }
 
@@ -142,10 +130,6 @@ public:
         in.read((char*)&count,sizeof(count));
         in.read((char*)&area,sizeof(area));
         in.read((char*)&dim,sizeof(dim));
-        
-        //cerr << "count: " << count << '\n'; 
-        //cerr << "area: " << area << '\n';
-        //cerr << "dim: " << dim << '\n';
         
         children.load(in);
     }
@@ -234,6 +218,30 @@ public:
         }
 
         return ra[curr_node]->get_density(num_points,pseudo_count,num_regions);
+    }
+    
+    opt_region get_region(const vector<double> &data){
+        
+        if(num_children != (int)data.size()){
+            cerr << "Warning: wrong dimension(" << num_children << ")" << '\n';
+            return -c::inf;
+        }
+        
+        uint32_t curr_node = root;
+        
+        current_region curr_reg(num_children);
+        opt_region working_reg(num_children);
+        
+        while(!ra[curr_node]->is_leaf()){
+            int curr_dim = ra[curr_node]->get_dim();
+            int curr_cut = curr_reg.determine_cut(curr_dim,data[curr_dim]);
+            
+            curr_reg.cut(curr_dim,curr_cut);
+            working_reg.cut(curr_dim,curr_cut);
+            curr_node = ra[curr_node]->get_child(curr_cut);
+        }
+
+        return working_reg;
     }
 
     uint32_t get_num_points() const{

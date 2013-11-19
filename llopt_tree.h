@@ -54,15 +54,15 @@ struct ll_tree_node_sparse{
                // the count is negative if we stop cutting
 
     void init(){
-        count = -1;
+        count = 0;
         lphi = -c::inf;
     }
 
     ll_tree_node_sparse() {
         init();
     }
-
-    ll_tree_node_sparse(int a) {
+    
+    ll_tree_node_sparse(int num_children) {
         init();
     }
 
@@ -70,7 +70,7 @@ struct ll_tree_node_sparse{
         if(count >= 0){
             return (count * depth * c::l2) - c::l2;
         }else{
-            return -c::inf;
+            return ((-count) * depth * c::l2) - c::l2;
         }
     }
 
@@ -195,7 +195,6 @@ public:
             exit(2);
         }
 
-
         pair<uint32_t,bool> out = region_cache.find(working_reg);
 
         if(out.second){
@@ -210,20 +209,12 @@ public:
             opt_region_hash<uint32_t> &region_cache,
             uint32_t curr_node, int depth, gamma_table &gt, int calling_loc,int num_children) {
 
-        //cerr << "compute_lphi(" << depth << "): ";
-        //working_reg.print_region(cerr);
-        //cerr << '\n';
-
         vector<double> lphi_list; // should pre-allocate
         double max_val = (ra[curr_node]->count * depth * c::l2) - c::l2;
         lphi_list.push_back(max_val);
 
-        //if(calling_loc == 3) cerr << "max_val: " << max_val << '\n';
-
         double ld = -log(num_children) - c::lpi - c::l2;
-
-        //if(calling_loc == 3) cerr << "ld: " << ld << '\n';
-
+        
         for (int i = 0; i < num_children; i++) {
 
             uint32_t child_id[2];
@@ -241,18 +232,16 @@ public:
                 child_2_count = -child_2_count;
             }
             
-            
             double val = ld;
             val += ra[child_id[0]]->get_lphi2(depth + 1);
             val += ra[child_id[1]]->get_lphi2(depth + 1);
-            val += gt.compute_lD2(ra[curr_node]->count, child_1_count, child_2_count);
+            val += gt.compute_lD2(abs(ra[curr_node]->count), child_1_count, child_2_count);
 
             lphi_list.push_back(val);
 
             if (val > max_val) {
                 max_val = val;
             }
-
         }
 
         double lphi = max_val;
@@ -264,8 +253,6 @@ public:
         if (sum > 0) lphi += log(sum);
 
         ra[curr_node]->lphi = lphi;
-
-        //if(calling_loc == 3) cerr << "lphi: " << lphi << '\n';
     }
 
 
@@ -311,8 +298,6 @@ public:
                 done = true;
                 continue;
             }
-
-
             uint32_t curr_node_idx = pile[depth].node;
 
             //pthread_mutex_lock(locker);
@@ -321,20 +306,22 @@ public:
 
             bool backup = false;
 
-            //cerr << "----\nDEPTH("<< depth <<"): " << (depth + top_depth)
-            //        << " count: "<< curr_node.count << '\n';
+            //cerr << "----\nDEPTH("<< depth <<"): " << (depth + top_depth) << "maxd: " << max_depth
+            //        << " count: "<< curr_node.count <<" lim: " << count_lim <<'\n';
+            //working_reg.print_region(cerr);
+            //cerr << '\n';
             //cerr << "START dim:cut --- " << pile[depth].dim << ":" << pile[depth].cut << '\n';
 
 
-            if (curr_node.count <= count_lim
+            if (((depth != 0 ) && (curr_node.count <= count_lim
                     || (depth +top_depth) >= top_max_depth
-                    || (depth) >= max_depth
+                    || (depth) >= max_depth ))
                     || working_reg.full()) {
 
                 //cerr << "BOTTOM BACKUP\n";
-
+                
                 // make sure we at least cut once
-                if(depth != 0) backup = true;
+                backup = true;
             } else {
                 if ((depth == 0 && pile[depth].dim != start_dimension)
                         || pile[depth].dim > num_children - 1){
@@ -364,6 +351,7 @@ public:
                 pile.push_back(pile_t<uint32_t,uint32_t > ());
                 depth++;
 
+                // this should be moved inside the if statement!!!!
                 is_diff = cut_region_one(*all_data, pile[depth - 1].data, pile[depth].data,
                         curr_dim, curr_cut, curr_reg.get_lim(curr_dim));
 
@@ -382,12 +370,9 @@ public:
                 //pthread_mutex_unlock(locker);
 
                 if (!new_node.second) {
-
-                    //cerr << "not found: " << curr_count << "\n";
-
                     // MUTEX
                     //pthread_mutex_lock(locker);
-                    pair<uint32_t, ll_tree_node_sparse*> out = ra->create_node(num_children);
+                    pair<uint32_t, ll_tree_node_sparse*> out = ra->create_node();
                     new_node.first = out.first;
                     
                     if(is_diff){
@@ -409,7 +394,7 @@ public:
                     //pthread_mutex_unlock(locker);
 
                 } else {
-
+                    // do we really need to go down in this case?
                     pile[depth].node = new_node.first;
                     //cerr << "fUNCUT: " << curr_dim  << '\n';
 
@@ -418,8 +403,6 @@ public:
             }
 
             if (backup) {
-
-
                 depth--;
                 pile.pop_back();
                 if (depth < 0) continue;
@@ -427,17 +410,12 @@ public:
                 curr_reg.uncut(pile[depth].dim, pile[depth].cut);
                 working_reg.uncut(pile[depth].dim);
 
-                //working_reg.print_region();
-                //cerr << '\n';
-
                 if (pile[depth].cut < c::cuts - 1) {
                     pile[depth].cut++;
                 } else if (pile[depth].dim <= num_children - 1) {
                     pile[depth].dim++;
                     pile[depth].cut = 0;
                 }
-
-                //cerr << "AFTER dim:cut --- " << pile[depth].dim << ":" << pile[depth].cut << '\n';
 
                 continue;
             }
@@ -452,7 +430,12 @@ public:
             int64_t &num_nodes, int64_t &num_zero_nodes, int start_depth,
             int top_count_lim) {
 
-        int count_lim = (int)floor(w.data.size()*count_ratio);
+        int count_lim = 0;
+        if (count_ratio < 1) {
+            count_lim = (int) floor(w.data.size() * count_ratio);
+        } else {
+            count_lim = (int) count_ratio;
+        }
         if(count_lim < top_count_lim) count_lim = top_count_lim;
 
         ll_mouse_params_t* params = new ll_mouse_params_t[num_children];
@@ -475,7 +458,7 @@ public:
         }
 
         for (int d = 0; d < num_children; d++) {
-
+            //cerr << "d=" << d << '\n';
             small_opt_thread((void*) &(params[d]));
             
         }
@@ -507,8 +490,21 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
         double max_post_prob = -c::inf;
 
         for (int i = 0; i < num_children; i++) {
-            double post_prob = gt.compute_lD2(ra[w.node_idx]->count
-                    , ra[child_idx_0[i]]->count, ra[child_idx_1[i]]->count);
+            
+            // need to deal with negative count here
+            int child_1_count = ra[child_idx_0[i]]->count;
+            int child_2_count = ra[child_idx_1[i]]->count;
+
+            if(child_1_count < 0){
+                child_1_count = -child_1_count;
+            }
+            
+            if(child_2_count < 0){
+                child_2_count = -child_2_count;
+            }
+            
+            double post_prob = gt.compute_lD2(abs(ra[w.node_idx]->count)
+                    , child_1_count, child_2_count);
             post_prob += ra[child_idx_0[i]]->get_lphi2(map_depth + 1);
             post_prob += ra[child_idx_1[i]]->get_lphi2(map_depth + 1);
 
@@ -603,9 +599,9 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 //cerr << "mini-STOP count: " << ra[wu_it->node_idx]->count << '\n';
 
                 total_area += exp(wu_it->working_reg.get_area() * c::l2);
-                if (floor(total_area * 20) >= prev_area_level) {
+                if (floor(total_area * 100) >= prev_area_level) {
                     cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
-                    prev_area_level++;
+                    prev_area_level = floor(total_area * 100) + 1;
                 }
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
                         ra[wu_it->node_idx]->count, map_depth);
@@ -649,9 +645,9 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 // STOP
 
                 total_area += exp(wu_it->working_reg.get_area() * c::l2);
-                if (floor(total_area * 20) >= prev_area_level) {
+                if (floor(total_area * 100) >= prev_area_level) {
                     cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
-                    prev_area_level++;
+                    prev_area_level = floor(total_area * 100) + 1;
                 }
 
                 store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
@@ -751,7 +747,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 int64_t num_removed = 0;
                 int64_t total_nodes = 0;
 
-                for (uint32_t i = 0; i < region_cache.table_size; i++) {
+                for (uint32_t i = 0; i < region_cache.get_table_size(); i++) {
                     if (region_cache.map_table[i] != NULL) {
 
                         map<opt_region, uint32_t> *new_map = new map<opt_region, uint32_t > ();
@@ -791,6 +787,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
                 //if(total_nodes>0)cerr << "Removed " << num_removed << "/" << total_nodes
                 //        << "(" << (num_removed / (total_nodes / 100.0)) << "%)" << '\n';
             }
+
 
         }
 

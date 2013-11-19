@@ -42,6 +42,8 @@
 #include "stl.h"
 #include "general_utils.h"
 #include "opt_tree.h"
+#include "copt_tree.h"
+#include "online_copt_tree.h"
 #include "llopt_tree.h"
 #include "disopt_tree.h"
 #include "lsopt_tree.h"
@@ -49,7 +51,11 @@
 #include "map_tree.h"
 #include "density_store.h"
 
+<<<<<<< HEAD
 inline void read_data(string filename, bool end_line, vector<vector<double> > &data, vector<uint32_t> &skipped) {
+=======
+inline vector<vector<double> > read_data(string filename, bool end_line = false, bool general = false) {
+>>>>>>> fun
     int dim = 0;
 
     ifstream infile(filename.c_str());
@@ -100,19 +106,22 @@ inline void read_data(string filename, bool end_line, vector<vector<double> > &d
         bool good_data = true;
         for (int i = 0; i < dim; i++) {
             d[i] = strTo<double>(ll[i]);
-            if (end_line) {
-                if ((i != (dim - 1)) && ((d[i] > 1.0) || (d[i] < 0))) {
-                    good_data = false;
-                    break;
-                }
-            } else {
-                if (d[i] > 1.0 || d[i] < 0 ) {
-                    good_data = false;
-                    break;
+
+            if (!general) {
+                if (end_line) {
+                    if ((i != (dim - 1)) && ((d[i] > 1.0) || (d[i] < 0))) {
+                        good_data = false;
+                        break;
+                    }
+                } else {
+                    if (d[i] > 1.0 || d[i] < 0) {
+                        good_data = false;
+                        break;
+                    }
                 }
             }
         }
-        if(good_data){
+        if(general || good_data){
             data.push_back(d);
         }else{
             cerr << "Warning: Data out of range("<< dim <<"): " << line << '\n';
@@ -129,6 +138,10 @@ int llopt(vector<string> params);
 int lsopt(vector<string> params);
 int sopt(vector<string> params);
 int opt(vector<string> params);
+int coopt(vector<string> params);
+int coopt_scan_old(vector<string> params);
+int coopt_scan(vector<string> params);
+int opt_comp(vector<string> params);
 int dfopt(vector<string> params);
 int disopt(vector<string> params);
 int copula(vector<string> params);
@@ -139,6 +152,9 @@ int print_partitions(vector<string> params);
 
 int density_old(vector<string> params);
 int bench(vector<string> params);
+int normalize(vector<string> params);
+int demean(vector<string> params);
+int vec_quant_sam_quals(vector<string> params);
 
 void print_usage_and_exit();
 

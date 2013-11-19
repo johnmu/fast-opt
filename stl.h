@@ -65,7 +65,6 @@
 #include <zlib.h>
 
 
-
 // linux specific stuff
 #include <sys/time.h>
 #include <pthread.h>
@@ -81,7 +80,11 @@ namespace c{
     static const double inf = INFINITY;
     static const uint32_t ra_null_val = 4294967295u;
     static const string PROG_NAME = "fast-opt";
+<<<<<<< HEAD
     static const string BUILD = "0.6-r68";
+=======
+    static const string BUILD = "0.6-r80";
+>>>>>>> fun
     static const int MAX_COORD_DEPTH = 30;
     
     static const int magic = 1741324111; // for files created by this program

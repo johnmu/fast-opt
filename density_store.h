@@ -325,6 +325,14 @@ public:
 
         return total_density / rep;
     }
+opt_region find_region(const vector<double> &point) {
+        if (joint_loaded && !marginal_loaded) { // otherwise assume joint is uniform
+            return map_region_tree.get_region(point);
+        }else{
+            cerr << "Error, can only search for region in non-copula\n";
+            return opt_region(num_dim);
+        }
+    }
 
     void print_density(ostream &o) {
         if (joint_loaded) {

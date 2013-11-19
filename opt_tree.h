@@ -49,10 +49,16 @@ class tree_node
 private:
     int count; // number of points in this region, this is also the dimension
                 // to cut it is MAP tree.
+    
+    // this tree is designed so that it is a DAG
+    // It is possible for branches to merge if the partitions are the same
+    // pointer -> dimensions -> cuts (always 2 cuts for now)
     tree_node*** children;
 
+    // essentially the number of dimensions
     int num_children;
-    double lphi;  // this is also the density if MAP tree
+    
+    float lphi;  // this is also the density if MAP tree
 
     void init(){
         count = -1;
@@ -97,27 +103,43 @@ public:
         return children == NULL;
     }
 
-    void set_uniform(int depth){
-        lphi = count * depth * c::l2;
+    void set_uniform(int depth, double lphi0){
+        if (lphi0 == -c::inf){
+            if(count > 0){
+                lphi = count * depth * c::l2;
+            }else{
+                lphi = 0;
+            }
+        }else{
+            lphi = lphi0;
+            //cerr << "leaf Otherwise: " << count * depth * c::l2 << '\n';
+        }
     }
 
-    void compute_lphi(int depth, gamma_table& gt){
-        
-        //cerr << "lphi depth:" << depth << '\n';
-        //cerr << "count: " << count << '\n';
+    void compute_lphi(int depth, gamma_table& gt, double lphi0){
         
         vector<double> lphi_list;
-        double max_val = (count * depth*c::l2) - c::l2;
+        lphi_list.reserve(num_children+1);
+        
+        // Base measure
+        double max_val = 0.0;
+        if (lphi0 == -c::inf) {
+            //cerr << "depth: " << depth << '\n';
+            max_val = (count * depth * c::l2) - c::l2;
+        }else{
+            max_val = lphi0 - c::l2;
+        }
+        
         lphi_list.push_back (max_val);
 
-        //cerr << "max_val: " << max_val << '\n';
-        
+        // The random constants
+        // lambda, D([1/2,1/2]) and 1/2
         double ld = -log(num_children) - c::lpi - c::l2;
 
         for(int i = 0;i<num_children;i++){
             // check for null
             if(children[i][0] == NULL || children[i][1] == NULL){
-                cerr << "NULL child!!! " << i << ',' << depth << '\n';
+                cerr << "lphi NULL child!!! " << i << ',' << depth << '\n';
                 exit(2);
             }
 
@@ -142,8 +164,6 @@ public:
             val += children[i][1]->get_lphi();
             val += gt.compute_lD2(count,child_1_count,child_2_count);
 
-            //cerr << "val: " << val << '\n';
-            
             lphi_list.push_back(val);
 
             if(val > max_val){
@@ -155,6 +175,7 @@ public:
         lphi = max_val;
         double sum = 0;
         for(int i = 0;i<(num_children+1);i++){
+            //cerr << "lphi[" << i << "]: " << lphi_list[i] << '\n';
             sum += exp(lphi_list[i] - max_val);
         }
 
@@ -206,22 +227,29 @@ private:
 
     int count_lim;
     int max_depth;
+    
+    opt_tree* base_measure;
 
-    void init(int num_children, int count_lim, int max_depth){
+    void init(int num_children, int count_lim, int max_depth,opt_tree* base_measure){
         this->num_children = num_children;
         root = new tree_node(num_children);
         this->count_lim = count_lim;
         this->max_depth = max_depth;
+        this->base_measure = base_measure;
     }
 
 public:
 
+    opt_tree(int num_children, int count_lim, int max_depth,opt_tree* base_measure){
+        init(num_children,count_lim,max_depth,base_measure);
+    }
+    
     opt_tree(int num_children, int count_lim, int max_depth){
-        init(num_children,count_lim,max_depth);
+        init(num_children,count_lim,max_depth,NULL);
     }
 
     opt_tree(int num_children){
-        init(num_children,5,1000);
+        init(num_children,5,1000,NULL);
     }
 
     ~opt_tree(){
@@ -296,7 +324,23 @@ public:
                     || working_reg.full()){
                 // back up
                 back_up = true;
-                curr_node->set_uniform(depth);
+
+                double lphi0 = -c::inf;
+                if (!(base_measure == NULL)) {
+                    lphi0 = base_measure->get_reg_lphi(working_reg);
+                    if (lphi0 == -c::inf) {
+                        lphi0 = 0;
+                    }
+
+                    //cerr << "leaf found: " << base_measure->get_reg_lphi(working_reg) << '\n';
+                }
+
+                //working_reg.print_region();
+                //cerr << '\n';
+                
+                curr_node->set_uniform(depth,lphi0);
+                
+                //cerr << "leaf: " << curr_node->get_lphi() << '\n';
 #ifdef DEBUG
                 cerr << "BACKUP ZERO\n";
 #endif
@@ -317,7 +361,23 @@ public:
                 }else{
                     // reached end of node!! back up
                     back_up = true;
-                    curr_node->compute_lphi(depth,gt);
+                    
+                    double lphi0 = -c::inf;
+                    if(!(base_measure == NULL)){
+                        lphi0 = base_measure->get_reg_lphi(working_reg);
+                        if(lphi0 == -c::inf){
+                            lphi0 = 0;
+                        }
+                        
+                        //cerr << "found: " << base_measure->get_reg_lphi(working_reg) << '\n';
+                    }
+                    
+                    curr_node->compute_lphi(depth,gt,lphi0);
+                    
+                    //working_reg.print_region();
+                    //cerr << '\n';
+                    
+                    //cerr << "correct: " << curr_node->get_lphi() << '\n';
 #ifdef DEBUG
                     cerr << "BACKUP CHILD\n";
 #endif
@@ -329,11 +389,8 @@ public:
                 depth--;
                 pile.pop_back();
                 if(depth < 0) continue;
-
-                //lvolume = lvolume + c::l2;
-
+                
                 curr_reg.uncut(pile[depth].dim,pile[depth].cut);
-                //cerr << depth << " bUNCUT: " << curr_dim << '\n';
                 working_reg.uncut(pile[depth].dim);
 
                 continue;
@@ -372,7 +429,10 @@ public:
 
                 int curr_count = pile[depth].data.size();
 
-                if (!is_diff || curr_count <= count_lim || depth >= max_depth){
+                // must match the backup criteria
+                // kind of un-elegant that we need this...
+                if (!is_diff || curr_count <= count_lim 
+                        || depth >= max_depth || working_reg.full()){
                     new_node.first = new tree_node();
                 }else {
                     new_node.first = new tree_node(num_children);
@@ -398,7 +458,6 @@ public:
                 cerr << "found node: " << curr_dim << "," << curr_cut << '\n';
 #endif
                 curr_node->set_child(curr_dim, curr_cut, new_node.first);
-                //cerr << "fUNCUT: " << curr_dim  << '\n';
                 working_reg.uncut(curr_dim);
             }
         }
@@ -407,8 +466,7 @@ public:
                 << ", Zero nodes:" << num_zero_nodes
                 << ", Non-Zero nodes:" << (num_nodes-num_zero_nodes) <<'\n';
 
-        // print the regions
-        //region_cache.print_regions();
+
     }
 
 
@@ -417,8 +475,8 @@ public:
     // N is number of data points
     void construct_MAP_tree(map_tree &map_region_tree,opt_region_hash<uint32_t> &map_regions,int N){
 
-        // Check tree and region is empty
-
+        // Check if tree and region is empty
+        
         // copy the root over
 
         // the second part is actually not used :/
@@ -442,7 +500,6 @@ public:
         pile[0].dim  = -1;
         pile[0].cut  = -1;
 
-        //current_region curr_reg(num_children);
         opt_region working_reg(num_children);
 
         bool done = false;
@@ -474,7 +531,8 @@ public:
             int map_dim = -1;
 
             // work out whether we stop at this node
-            if (curr_node->is_leaf()|| curr_node->get_count() <= count_lim || depth >= max_depth) {
+            if (curr_node->is_leaf()|| curr_node->get_count() <= count_lim 
+                    || depth >= max_depth || working_reg.full()) {
                 // we are already at a uniform node
 
                 // add to regions
@@ -485,14 +543,25 @@ public:
 #endif
             } else if(curr_dim == -1){
                 double post_rho = -c::l2;
-                post_rho += depth * c::l2 * curr_node->get_count(); // phi_0
+                
+                // base measure
+                if(base_measure == NULL){
+                    post_rho += depth * c::l2 * curr_node->get_count(); // phi_0
+                }else{
+                    double lphi0 = base_measure->get_reg_lphi(working_reg);
+                    //cerr << "lphi0 = " << lphi0 << '\n';
+                    if(lphi0 != -c::inf){
+                        post_rho += lphi0;
+                    }
+                }
+                               
                 post_rho -= curr_node->get_lphi();
-#ifdef DEBUG_MAP
-                cerr << "get_lphi = " << curr_node->get_lphi() << '\n';
-                cerr << "post_rho = " << post_rho << '\n';
-#endif
-                if(post_rho>-c::l2){
 
+                
+                //cerr << "curr =     " << curr_node->get_lphi() << '\n';
+                //cerr << "post_rho = " << post_rho << '\n';
+                
+                if(post_rho>-c::l2){
                     // add to regions
                     add_region = true;
                     back_up = true;
@@ -600,6 +669,62 @@ public:
         }
     }
 
+    // search through tree to get the lphi of a particular region
+    // unless we reach a leaf.. then return -inf
+    // can only be used after the tree has been completed
+    double get_reg_lphi(opt_region &reg){
+        // start from root and work way down one dimension at a time
+        // it doesn't matter what order cause the multi-tree is already a DAG
+        
+        if(reg.num_children() != num_children){
+            cerr << "Error: get_lphi: dimension mismatch\n";
+            return -c::inf;
+        }
+        
+        tree_node* curr_node = root;
+        bool done = false;
+
+        // check if we reached the end
+        if (curr_node == NULL) {
+            done = true;
+        }
+        
+        int num_cuts = 0;
+        bool reach_end_cut = true;
+        bool reach_end_dim = true;
+        for (int d = 0; !done && d < num_children; d++) {
+            // for each dimension
+            reach_end_cut = false;
+            num_cuts = reg[d].size();
+            if(num_cuts == 0){
+                reach_end_cut = true;
+            }
+            
+            for (int i = 0;!done && i<num_cuts;i++){
+                int cut = (int)reg[d][i];
+                curr_node = curr_node->get_child(d,cut);
+                if(curr_node->is_leaf()){
+                    done = true;
+                }
+                if(i == num_cuts-1){
+                    reach_end_cut = true;
+                }
+            }
+            if(d == num_children -1){
+                reach_end_dim = true;
+            }
+        }
+        
+        //cerr << "end d: " << reach_end_dim << " c: " << reach_end_cut << '\n';
+        
+        if(reach_end_dim && reach_end_cut){
+            return curr_node->get_lphi();
+        }else{
+            return -c::inf;
+            //cerr << "not found!\n";
+        }
+        
+    }
 
     int get_num_children(){
         return num_children;

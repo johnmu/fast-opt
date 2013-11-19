@@ -44,7 +44,8 @@ private:
     vector<double> lgamma_vals_one;
     int max;
 public:
-    gamma_table(int max){
+    
+    void init(int max){
         this->max = max;
         lgamma_vals_half.resize(max+1);
         lgamma_vals_one.resize(max+1);
@@ -54,15 +55,19 @@ public:
             lgamma_vals_one[i]  = lgamma(i+1);
         }
     }
+    
+    gamma_table(){
+        
+    }
+    
+    gamma_table(int max){
+        init(max);
+    }
 
     // this is only for a special case of D
     double compute_lD2(int n, int n_j1, int n_j2){
         return lgamma_vals_half[n_j1] + lgamma_vals_half[n_j2] - lgamma_vals_one[n];
     }
-
-
-
-
 
 };
 
