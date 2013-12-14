@@ -172,12 +172,6 @@ public:
             int child_1_count = curr_pile.val[i].count[0];
             int child_2_count = curr_pile.val[i].count[1];
             
-            //cerr << "child_1_count(" << i <<"): " << child_1_count << '\n';
-            //cerr << "child_2_count(" << i <<"): " << child_2_count << '\n';
-
-            //cerr << "lphi0: " << curr_pile.val[i].lphi[0] << '\n';
-            //cerr << "lphi1: " << curr_pile.val[i].lphi[1] << '\n';
-            
             if (child_1_count < 0 || child_2_count < 0) {
                 cerr << "neg count!!! " << i << ',' << depth << '\n';
                 exit(2);
@@ -215,7 +209,6 @@ public:
 
     double compute_dflphi(df_working_unit_t& wu, int top_depth, gamma_table &gt,
             int64_t &num_nodes, int64_t &num_zero_nodes) {
-
 
         int N = wu.data.size();
 

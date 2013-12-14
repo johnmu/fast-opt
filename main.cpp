@@ -70,6 +70,8 @@ int main(int argc, char** argv) {
         error_num = coopt_scan(params);
     } else if (mode == "llopt") {
         error_num = llopt(params);
+    } else if (mode == "llcoopt") {
+        error_num = llcoopt(params);
     } else if (mode == "lsopt") {
         error_num = lsopt(params);
     } else if (mode == "dfopt") {
@@ -1416,6 +1418,84 @@ int coopt(vector<string> params) {
 
     return 0;
 }
+
+
+int llcoopt(vector<string> params) {
+
+    string usage_text = "Usage: " + c::PROG_NAME + " llcoopt <num_points> <levels> <top_num_points> "
+            + "<data_file_1> <data_file_2> <output_name>\n"
+            + "             num_points -- Number of points to stop at for each level\n"
+            + "                 levels -- Look-ahead levels\n"
+            + "         top_num_points -- Number of points to stop at overall\n"
+            + "            data_file_1 -- One sample each row (Restricted to [0,1] cube)\n"
+            + "            data_file_2 -- One sample each row (Restricted to [0,1] cube)\n"
+            + "          output_name -- Result output to <output_name>.den\n"
+            + "Log output to STDERR \n"
+            + "Run full limited lookahead co-OPT. No restriction on number of dimensions. \n"
+            + "This is constant space version, so not recommended to use look-ahead greater than 3.\n";
+
+    if (params.size() != 6) {
+        cerr << usage_text << endl;
+        return 3;
+    }
+
+    string out_filename = params[5];
+
+    vector<vector<double> > data;
+    vector<uint32_t> skipped;
+    
+    int N[2] = {0,0};
+    
+    read_data(params[3], data,skipped,false);
+    N[0] = data.size();
+    read_data(params[4], data,skipped,false);
+    N[1] = data.size()-N[0];
+    
+    int count_lim = strTo<int>(params[0]);
+    int top_count_lim = strTo<int>(params[2]);
+    
+    int ll_levels = strTo<int>(params[1]);
+            
+    int dim = (int) data[0].size();
+
+    if (dim != (int) data[N[0]].size()) {
+        cerr << "Error: dimension mismatch between data\n";
+    }
+
+    cerr << "Running Two Sample Comparison Full-OPT" << '\n';
+    cerr << "Data_1: " << N[0] << " points in " << dim << " dimensions.\n";
+    cerr << "Data_2: " << N[1] << " points in " << dim << " dimensions.\n";
+
+    cerr << "Look-ahead levels " << ll_levels << ".\n";
+    cerr << "Each look-ahead stopping at " << count_lim << " points.\n";
+    cerr << "Total stopping at " << top_count_lim << " points.\n";
+
+    mu_timer mt;
+
+    {
+        mu_timer mt;
+
+        llcopt_tree llcopt(dim, count_lim, top_count_lim, ll_levels, 12);
+        map_tree map_region_tree(N[0]+N[1], dim);
+        opt_region_hash<uint32_t> map_regions(16);
+
+        mt.reset();
+        llcopt.construct_llcopt_tree(&data, N[0], map_region_tree, map_regions);
+        mt.print_elapsed_time(cerr, "LLCOOPT(" + toStr<int>(ll_levels) + ") construction");
+
+        // write out the density to file
+        ofstream den_file;
+        init_file_out(den_file, out_filename + ".den", 1);
+
+        map_region_tree.save(den_file);
+        map_regions.save(den_file);
+
+        den_file.close();
+    }
+    
+    return 0;
+}
+
 
 int coopt_scan_old(vector<string> params) {
 

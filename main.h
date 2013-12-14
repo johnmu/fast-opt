@@ -45,6 +45,7 @@
 #include "copt_tree.h"
 #include "online_copt_tree.h"
 #include "llopt_tree.h"
+#include "llcopt_tree.h"
 #include "int_llopt_tree.h"
 #include "disopt_tree.h"
 #include "lsopt_tree.h"
@@ -83,7 +84,8 @@ inline void read_data(string filename,vector<vector<double> > &data, vector<uint
 
     infile.open(filename.c_str());
 
-    data.clear();
+    //let's append
+    //data.clear();
     uint32_t idx = 0;
 
     while (!infile.eof()) {
@@ -135,6 +137,7 @@ inline void read_data(string filename,vector<vector<double> > &data, vector<uint
 
 
 int llopt(vector<string> params);
+int llcoopt(vector<string> params);
 int lsopt(vector<string> params);
 int sopt(vector<string> params);
 int opt(vector<string> params);
