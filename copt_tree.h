@@ -335,11 +335,16 @@ public:
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
             ctree_node* curr_node = pile[depth].node;
-
+            
+            //cerr << "BLAH -- depth: " << depth << '\n';
+            //cerr << "dim: " << curr_dim << " cut: " << curr_cut << '\n';
+            //working_reg.print_region();
+            //cerr << '\n';
+            
             int curr_count[2];
             curr_node->get_count(curr_count);
             // work out what to count
-            
+            //cerr << "curr_count: " << curr_count[0] << ", " << curr_count[1] << '\n';
 
             bool back_up = false;
             // check if current node is leaf or at end
@@ -367,6 +372,12 @@ public:
 
                     back_up = true;
                     curr_node->compute_lPs(depth,gt);
+                    
+                    //cerr << "node: ";
+                    //working_reg.print_region();
+                    //cerr << '\n';
+                    //cerr << "lphi: " << curr_node->get_lphi() << '\n';
+                    //cerr << "lP: " << curr_node->get_lP() << '\n';
                 }
             }
 
@@ -408,7 +419,7 @@ public:
                 }
                 
                 //bool is_diff = is_diff_sep[0]||is_diff_sep[1];
-                bool is_diff = true;
+                bool is_diff = true; // don't do diff stuff
 
                 curr_reg.cut(curr_dim, curr_cut);
 

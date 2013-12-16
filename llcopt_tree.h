@@ -187,8 +187,12 @@ struct llc_working_unit_t{
 
 
 struct llc_pile_t{
-    vector<llc_working_unit_t> good_regions;
-    vector<uint32_t> map_nodes;
+    llc_working_unit_t good_region;
+    uint32_t map_node;
+    int map_depth;
+    
+    llc_pile_t(int num_children):good_region(num_children),map_node(c::ra_null_val),map_depth(0){
+    }
 };
 
 
@@ -203,6 +207,8 @@ struct llc_mouse_params_t{
     llc_working_unit_t* wup;
     
     vector<vector<double> > *all_data;
+    
+    vector<double> *cut_pen;
     
     llc_node_t *output;
 };
@@ -257,7 +263,7 @@ public:
 
 
     // compute lPhi and lP
-    void compute_lPs(llc_tree_node_sparse &self, vector<llc_node_t> &children,int depth) {
+    void compute_lPs(llc_tree_node_sparse &self, vector<llc_node_t> &children,int depth,vector<double> &cut_pen) {
 
         int num_children = children.size();
         
@@ -283,7 +289,8 @@ public:
             val += children[i].data[0].get_lphi();
             val += children[i].data[1].get_lphi();
             val += gt.compute_lD2(total_count,child_1_count,child_2_count);
-
+            val -= cut_pen[i];
+            
             lphi_list.push_back(val);
 
             if(val > max_val){
@@ -324,7 +331,8 @@ public:
             val += children[i].data[1].get_lP();
             val += gt.compute_lD2(count[0],child_1_count[0],child_2_count[0]);
             val += gt.compute_lD2(count[1],child_1_count[1],child_2_count[1]);
-
+            val -= cut_pen[i];
+            
             lphi_list[i+1] = val;
 
             if(val > max_val){
@@ -356,6 +364,7 @@ public:
         int top_max_depth = p->top_max_depth;
         llc_working_unit_t* wup = p->wup;
         llc_node_t* output = p->output;
+        vector<double>* cut_pen = p->cut_pen;
         
         vector<vector<double> > *all_data = p->all_data;
 
@@ -381,18 +390,19 @@ public:
             }
 
             // print the pile
-#ifdef DEBUG
-            cerr << "---- " << depth << " , " << pile.size() << " ---\n";
-            for (int i = 0; i < (int) pile.size(); i++) {
-                cerr << "Data size: " << pile[i].data.size() << '\n';
-                cerr << "Dim:       " << pile[i].dim << '\n';
-                cerr << "Cut:       " << pile[i].cut << '\n';
-                if(pile[i].data.size()<=3){
-                    print_data(pile[i].data);
-                }
-            }
-            cerr << "=====\n";
-#endif
+
+            //cerr << "---- " << depth << " , " << pile.size() << " ---\n";
+            //for (int i = 0; i < (int) pile.size(); i++) {
+            //    cerr << "Data[0] size: " << pile[i].data[0].size() << '\n';
+            //    cerr << "Data[1] size: " << pile[i].data[1].size() << '\n';
+            //    cerr << "Dim:       " << pile[i].dim << '\n';
+            //    cerr << "Cut:       " << pile[i].cut << '\n';
+            //}
+            //cerr << "Node: ";
+            //working_reg.print_region();
+            //cerr << '\n';
+            //cerr << "=====\n";
+
             int curr_dim = pile[depth].dim;
             int curr_cut = pile[depth].cut;
             
@@ -416,12 +426,19 @@ public:
                     // reached end of node!! back up
 
                     //cerr << "FULL depth:" << depth << " top_depth:" << top_depth << "\n";
-                  
+
+                    if (depth == 0) {
+                        //cerr << "BUT WE ARE DONE!" << '\n';
+                        
+                        *output = pile[0].nodes[start_dimension];
+                        pile.pop_back();
+                        continue;
+                    }
                     llc_tree_node_sparse self;
                     int prev_count[2] = {pile[depth].data[0].size(),pile[depth].data[1].size()};
                     self.set_count(prev_count);
                     
-                    compute_lPs(self,pile[depth].nodes,depth + top_depth);
+                    compute_lPs(self,pile[depth].nodes,depth + top_depth,*cut_pen);
 
                     if (depth > 0) {
                         int prev_dim = pile[depth - 1].dim;
@@ -429,7 +446,11 @@ public:
                         pile[depth - 1].nodes[prev_dim].data[prev_cut] = self;
                     }
 
-                    //cerr << "lphi_out: " << lphi_out << "\n";
+                    //cerr << "nnode: ";
+                    //working_reg.print_region();
+                    //cerr << '\n';
+                    //cerr << "lphi: " << self.get_lphi() << "\n";
+                    //cerr << "lP: " << self.get_lP() << "\n";
                     
                     //cerr << "BackUP\n";
 
@@ -460,13 +481,14 @@ public:
                 //cerr << "curr_reg.get_lim(curr_dim): " << curr_reg.get_lim(curr_dim) << '\n';
                 //cerr << "curr_reg.get_resolution(curr_dim): " << curr_reg.get_resolution(curr_dim) << '\n';
 
-                //cerr << "curr_count: " << curr_count << '\n';
+                
 
                 int curr_count[2];
                 curr_count[0] = new_data[0].size();
                 curr_count[1] = new_data[1].size();
                 pile[depth].nodes[curr_dim].data[curr_cut].set_count(curr_count);
 
+                //cerr << "curr_count: " << curr_count[0] << ", "  << curr_count[1] << '\n';
 
                 if ((abs(curr_count[0]) + abs(curr_count[1])) <= count_lim
                         || (curr_count[0] <=0 && curr_count[1] <=0)
@@ -483,6 +505,12 @@ public:
                     //cerr << "leaf lphi: " << curr_count * (depth + top_depth + 1) * c::l2 << '\n';
                     
                     pile[depth].nodes[curr_dim].data[curr_cut].set_uniform(depth + top_depth + 1);
+                    
+                    //cerr << "unnode: ";
+                    //working_reg.print_region();
+                    //cerr << '\n';
+                    //cerr << "lphi: " << pile[depth].nodes[curr_dim].data[curr_cut].get_lphi() << "\n";
+                    //cerr << "lP: " << pile[depth].nodes[curr_dim].data[curr_cut].get_lP() << "\n";
                 }else{
                     //cerr << "GO down\n";
 
@@ -515,7 +543,7 @@ public:
 
 
     void do_small_opt(vector<vector<double> > *all_data, llc_working_unit_t &w,
-            vector<llc_node_t> &nodes, MT_random &rand_gen,int start_depth){
+            vector<llc_node_t> &nodes, MT_random &rand_gen,int start_depth,vector<double> &cut_pen){
 
 
         llc_mouse_params_t* params = new llc_mouse_params_t[num_children];
@@ -528,13 +556,14 @@ public:
             params[d].num_children = num_children;
             params[d].start_dimension = d;
             params[d].top_depth = start_depth;
-            params[d].wup = &w;
+            params[d].wup = &w; 
             params[d].all_data = all_data;
+            params[d].cut_pen = &cut_pen;
             params[d].output = &nodes[d];
         }
 
         for (int d = 0; d < num_children; d++) {
-            //cerr << "d=" << d << '\n';
+            //cerr << "RUNNING d=" << d << '\n';
             small_opt_thread((void*) &(params[d]));
             
         }
@@ -542,7 +571,7 @@ public:
         delete [] params;
     }
 
-int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth) {
+int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,vector<double> &cut_pen) {
         // Choose MAP dimension
 
         int map_dim = 0;
@@ -564,7 +593,10 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth) {
             post_prob += gt.compute_lD2(curr_count[1], count0[1], count1[1]);
             post_prob += nodes[i].data[0].get_lP();
             post_prob += nodes[i].data[1].get_lP();
+            post_prob -= cut_pen[i];
 
+            cerr << "i=" << i << " : " << post_prob << '\n';
+            
             if (post_prob > max_post_prob) {
                 map_dim = i;
                 max_post_prob = post_prob;
@@ -605,13 +637,18 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth) {
         current_region start_region(num_children);
         opt_region     start_working(num_children);
 
-        vector<llc_pile_t> llpile;
-        llpile.push_back(llc_pile_t());
+        vector<int> cut_counter(num_children,0);
+        vector<int> last_cut_depth(num_children,0);
+        vector<double> cut_pen(num_children,0.0); // penalty for each dimension
+        int prev_map_depth = 0;
+        
+        deque<llc_pile_t> llpile;
+        llpile.push_back(llc_pile_t(num_children));
 
-        llpile[0].good_regions.push_back(llc_working_unit_t(data,start_region,start_working));
-        llpile[0].map_nodes.push_back(map_region_tree.get_full_tree());
+        llpile[0].good_region = llc_working_unit_t(data,start_region,start_working);
+        llpile[0].map_node = map_region_tree.get_full_tree();
+        llpile[0].map_depth = 0;
 
-        int map_depth = 0;
         double total_area = 0.0;
         int prev_area_level = 0;
 
@@ -626,34 +663,54 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth) {
                 done = true;
                 continue;
             }
-
-            if(llpile[map_depth].good_regions.size() == 0){
-                llpile.pop_back();
-                map_depth--;
-                continue;
-            }
-
-            vector<llc_working_unit_t>::iterator wu_it = (llpile[map_depth].good_regions.end() - 1);
-            vector<uint32_t>::iterator map_node_it = (llpile[map_depth].map_nodes.end() - 1);
-
-            // if too deep we stop all the regions
-            int curr_count[2] = {wu_it->data[0].size(),wu_it->data[1].size()};
             
-            if (map_depth >= top_max_depth || (curr_count[0]+curr_count[1]) <= count_lim
-                    || wu_it->working_reg.full()) {
+            cerr << "Cut counter: ";
+            for(int i = 0;i<num_children;i++){
+                cerr << cut_counter[i] << ',';
+            }
+            cerr << '\n';
+            cerr << "Cut pen: ";
+            for(int i = 0;i<num_children;i++){
+                cerr << cut_pen[i] << ',';
+            }
+            cerr << '\n';
+            
+            deque<llc_pile_t>::iterator pile_top = llpile.begin();
+            
+            if(pile_top->map_depth > prev_map_depth){
+                prev_map_depth = pile_top->map_depth;
+                // recompute cut pens
+                for(int i = 0;i<num_children;i++){
+                    if(cut_counter[i] == 0){
+                        cut_pen[i] = (13)*(pile_top->map_depth-last_cut_depth[i]);
+                    }else{
+                        cut_pen[i] = 0.0;
+                    }
+                }
+            }
+            
+            // if too deep we stop all the regions
+            int curr_count[2] = {pile_top->good_region.data[0].size(),pile_top->good_region.data[1].size()};
+            
+            //cerr << "==== START \n";
+            //wu_it->working_reg.print_region();
+            //cerr << '\n';
+            //cerr << "Count: " << curr_count[0] << ", " << curr_count[1] << '\n';
+            
+            if (pile_top->map_depth >= top_max_depth || (curr_count[0]+curr_count[1]) <= count_lim
+                    || pile_top->good_region.working_reg.full()) {
 
-                //cerr << "mini-STOP count: " << ra[wu_it->node_idx]->count << '\n';
+                //cerr << "mini-STOP count: " << curr_count[0]+curr_count[1] << '\n';
 
-                total_area += exp(wu_it->working_reg.get_area() * c::l2);
+                total_area += exp(pile_top->good_region.working_reg.get_area() * c::l2);
                 if (floor(total_area * 100) >= prev_area_level) {
-                    cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
+                    cerr << "Depth(" << pile_top->map_depth << "):Area(" << 100 * total_area << "%)\n";
                     prev_area_level = floor(total_area * 100) + 1;
                 }
-                store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
-                        curr_count[0]-curr_count[1], map_depth);
+                store_region(pile_top->map_node, map_regions, map_ra, pile_top->good_region.working_reg,
+                        curr_count[0]-curr_count[1], pile_top->map_depth);
 
-                llpile[map_depth].good_regions.pop_back();
-                llpile[map_depth].map_nodes.pop_back();
+                llpile.pop_front();
                 count++;
 
                 continue;
@@ -663,12 +720,12 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth) {
 
             //cerr << "Good [" << map_depth << "](" << count << "/"
             //        << llpile[map_depth].good_regions.size()
-            //        << "), Data size: " << curr_data_size << '\n';
+            //        << "), Data size: " << curr_count[0] << ", " << curr_count[1] << '\n';
 
             // do a smaller OPT for the good region to determine which
             // dimension to cut
-            vector<llc_node_t> nodes;
-            do_small_opt(all_data, *wu_it,nodes,rand_gen, map_depth);
+            vector<llc_node_t> nodes(num_children);
+            do_small_opt(all_data, pile_top->good_region,nodes,rand_gen, pile_top->map_depth,cut_pen);
 
             //cerr << "\nNodes:" << num_nodes
             //        << " : " << num_zero_nodes
@@ -676,8 +733,10 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth) {
 
             llc_tree_node_sparse self;
             self.set_count(curr_count);
-            compute_lPs(self, nodes,map_depth);
+            compute_lPs(self, nodes,pile_top->map_depth,cut_pen);
 
+            //cerr << "lphi: " << self.get_lphi() << ", lP: " << self.get_lP() << '\n';
+            
             // compute the posterior pho and decide if we stop
             double post_rho = -c::l2;
 
@@ -685,82 +744,81 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth) {
             post_rho += self.get_lphi();
             post_rho -= self.get_lP();
 
+            //cerr << "post_rho: " << post_rho << '\n';
+                    
             // if not stop we split and add the two regions to the good region list
             if (post_rho>-c::l2) {
                 // STOP
 
-                total_area += exp(wu_it->working_reg.get_area() * c::l2);
+                //cerr << "STOPPED\n";
+                
+                total_area += exp(pile_top->good_region.working_reg.get_area() * c::l2);
                 if (floor(total_area * 100) >= prev_area_level) {
-                    cerr << "Depth(" << map_depth << "):Area(" << 100 * total_area << "%)\n";
+                    cerr << "Depth(" << pile_top->map_depth << "):Area(" << 100 * total_area << "%)\n";
                     prev_area_level = floor(total_area * 100) + 1;
                 }
 
-                store_region(*map_node_it, map_regions, map_ra, wu_it->working_reg,
-                        curr_count[0]-curr_count[1], map_depth);
+                store_region(pile_top->map_node, map_regions, map_ra, pile_top->good_region.working_reg,
+                        curr_count[0]-curr_count[1], pile_top->map_depth);
 
-                llpile[map_depth].good_regions.pop_back();
-                llpile[map_depth].map_nodes.pop_back();
+                llpile.pop_front();
                 count++;
 
             } else {
                 // Choose MAP dimension
-                int map_dim = get_map_dim(*wu_it, nodes, map_depth);
-
+                int map_dim = get_map_dim(pile_top->good_region, nodes, pile_top->map_depth,cut_pen);
+                
+                cut_counter[map_dim]++;
+                last_cut_depth[map_dim] = pile_top->map_depth;
+                //cerr << "map_dim: " << map_dim << '\n';
+                
                 //cerr << "children: " << map_child_idx_0 << "," << map_child_idx_1 << '\n';
 
                 // Split
-                vector<uint32_t > new_data_0[2];
-                vector<uint32_t > new_data_1[2];
+                vector<uint32_t > new_data_0[2] = {vector<uint32_t >(),vector<uint32_t >()};
+                vector<uint32_t > new_data_1[2] = {vector<uint32_t >(),vector<uint32_t >()};
 
                 // too much data copying going on here
                 for (int k = 0; k < 2; k++) {
-                    cut_region2_one(*all_data, wu_it->data[k], new_data_0[k], new_data_1[k],
-                            map_dim, wu_it->curr_reg.get_lim(map_dim));
+                    int num_vals = pile_top->good_region.data[k].size();
+                    if (num_vals > 0) {
+                        cut_region2_one(*all_data, pile_top->good_region.data[k], new_data_0[k], new_data_1[k],
+                                map_dim, pile_top->good_region.curr_reg.get_lim(map_dim));
+                    }
                 }
                 
-                current_region next_curr_reg0 = wu_it->curr_reg;
-                opt_region next_working_reg0 = wu_it->working_reg;
+                current_region next_curr_reg0 = pile_top->good_region.curr_reg;
+                opt_region next_working_reg0 = pile_top->good_region.working_reg;
                 next_curr_reg0.cut(map_dim, 0);
                 next_working_reg0.cut(map_dim, 0);
 
-                current_region next_curr_reg1 = wu_it->curr_reg;
-                opt_region next_working_reg1 = wu_it->working_reg;
+                current_region next_curr_reg1 = pile_top->good_region.curr_reg;
+                opt_region next_working_reg1 = pile_top->good_region.working_reg;
                 next_curr_reg1.cut(map_dim, 1);
                 next_working_reg1.cut(map_dim, 1);
-
-                // after this point wu_it is invalid
-                llpile.push_back(llc_pile_t());
-                map_depth++;
-
-                map_node_it = (llpile[map_depth - 1].map_nodes.end() - 1);
-
-                //cerr << "ADD PILE " << '\n';
-
-                llpile[map_depth].good_regions.push_back(llc_working_unit_t(new_data_0,
-                        next_curr_reg0, next_working_reg0));
-
-                llpile[map_depth].good_regions.push_back(llc_working_unit_t(new_data_1,
-                        next_curr_reg1, next_working_reg1));
+                
+                uint32_t map_node = pile_top->map_node;
+                int next_depth = pile_top->map_depth+1;
 
                 pair<uint32_t, map_tree_node*> new_map_node0 = map_ra->create_node();
                 pair<uint32_t, map_tree_node*> new_map_node1 = map_ra->create_node();
 
-                //cerr << "children: " << new_map_node0.first
-                //        << "," << new_map_node1.first << '\n';
+                (*map_ra)[map_node]->set_dim(map_dim);
+                (*map_ra)[map_node]->set_child(0, new_map_node0.first);
+                (*map_ra)[map_node]->set_child(1, new_map_node1.first);
+                
+                // after this point wu_it is invalid
+                llpile.push_back(llc_pile_t(num_children));
+                llpile.back().good_region = llc_working_unit_t(new_data_0,next_curr_reg0, next_working_reg0);
+                llpile.back().map_node = new_map_node0.first;
+                llpile.back().map_depth = next_depth;
+                
+                llpile.push_back(llc_pile_t(num_children));
+                llpile.back().good_region = llc_working_unit_t(new_data_1,next_curr_reg1, next_working_reg1);
+                llpile.back().map_node = new_map_node1.first;
+                llpile.back().map_depth = next_depth;
 
-                //cerr << "*map_node_it: " << *map_node_it << '\n';
-
-                (*map_ra)[(*map_node_it)]->set_dim(map_dim);
-                (*map_ra)[(*map_node_it)]->set_child(0, new_map_node0.first);
-                (*map_ra)[(*map_node_it)]->set_child(1, new_map_node1.first);
-
-                llpile[map_depth].map_nodes.push_back(new_map_node0.first);
-                llpile[map_depth].map_nodes.push_back(new_map_node1.first);
-
-                llpile[map_depth - 1].good_regions.pop_back();
-                llpile[map_depth - 1].map_nodes.pop_back();
-
-
+                llpile.pop_front();
             }
 
         }
