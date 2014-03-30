@@ -416,7 +416,7 @@ public:
                     pile[depth].dim++;
                     pile[depth].cut = 0;
                 }
-
+                
                 continue;
             }
         }
@@ -520,7 +520,7 @@ int get_map_dim(ll_working_unit_t &w,opt_region_hash<uint32_t> &region_cache,gam
     void construct_llopt_tree(vector<vector<double> > *all_data,
             map_tree &map_region_tree, opt_region_hash<uint32_t> &map_regions,
             bool prune_tree) {
-
+        
         MT_random rand_gen;
 
         // need to treat the empty tree/data case

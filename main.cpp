@@ -1491,6 +1491,10 @@ int llcoopt(vector<string> params) {
         map_regions.save(den_file);
 
         den_file.close();
+        
+        // compute influence of each dimension
+        print_den_influence(cerr, map_regions.get_regions(),
+                map_region_tree.get_ra(), map_region_tree.get_num_points());
     }
     
     return 0;

@@ -208,7 +208,7 @@ struct llc_mouse_params_t{
     
     vector<vector<double> > *all_data;
     
-    vector<double> *cut_pen;
+    vector<double> *cut_prob;
     
     llc_node_t *output;
 };
@@ -263,7 +263,7 @@ public:
 
 
     // compute lPhi and lP
-    void compute_lPs(llc_tree_node_sparse &self, vector<llc_node_t> &children,int depth,vector<double> &cut_pen) {
+    void compute_lPs(llc_tree_node_sparse &self, vector<llc_node_t> &children,int depth,vector<double> &cut_prob,bool print) {
 
         int num_children = children.size();
         
@@ -289,7 +289,7 @@ public:
             val += children[i].data[0].get_lphi();
             val += children[i].data[1].get_lphi();
             val += gt.compute_lD2(total_count,child_1_count,child_2_count);
-            val -= cut_pen[i];
+            val += cut_prob[i];
             
             lphi_list.push_back(val);
 
@@ -331,10 +331,14 @@ public:
             val += children[i].data[1].get_lP();
             val += gt.compute_lD2(count[0],child_1_count[0],child_2_count[0]);
             val += gt.compute_lD2(count[1],child_1_count[1],child_2_count[1]);
-            val -= cut_pen[i];
+            val += cut_prob[i];
             
             lphi_list[i+1] = val;
-
+            
+            if(print){
+                cerr << "LP ("<<i<<"): " << val << '\n';
+            }
+            
             if(val > max_val){
                 max_val = val;
             }
@@ -364,7 +368,7 @@ public:
         int top_max_depth = p->top_max_depth;
         llc_working_unit_t* wup = p->wup;
         llc_node_t* output = p->output;
-        vector<double>* cut_pen = p->cut_pen;
+        vector<double>* cut_prob = p->cut_prob;
         
         vector<vector<double> > *all_data = p->all_data;
 
@@ -438,7 +442,7 @@ public:
                     int prev_count[2] = {pile[depth].data[0].size(),pile[depth].data[1].size()};
                     self.set_count(prev_count);
                     
-                    compute_lPs(self,pile[depth].nodes,depth + top_depth,*cut_pen);
+                    compute_lPs(self,pile[depth].nodes,depth + top_depth,*cut_prob,false);
 
                     if (depth > 0) {
                         int prev_dim = pile[depth - 1].dim;
@@ -543,7 +547,7 @@ public:
 
 
     void do_small_opt(vector<vector<double> > *all_data, llc_working_unit_t &w,
-            vector<llc_node_t> &nodes, MT_random &rand_gen,int start_depth,vector<double> &cut_pen){
+            vector<llc_node_t> &nodes, MT_random &rand_gen,int start_depth,vector<double> &cut_prob){
 
 
         llc_mouse_params_t* params = new llc_mouse_params_t[num_children];
@@ -558,7 +562,7 @@ public:
             params[d].top_depth = start_depth;
             params[d].wup = &w; 
             params[d].all_data = all_data;
-            params[d].cut_pen = &cut_pen;
+            params[d].cut_prob = &cut_prob;
             params[d].output = &nodes[d];
         }
 
@@ -571,7 +575,7 @@ public:
         delete [] params;
     }
 
-int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,vector<double> &cut_pen) {
+int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,vector<double> &cut_prob) {
         // Choose MAP dimension
 
         int map_dim = 0;
@@ -593,7 +597,7 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,ve
             post_prob += gt.compute_lD2(curr_count[1], count0[1], count1[1]);
             post_prob += nodes[i].data[0].get_lP();
             post_prob += nodes[i].data[1].get_lP();
-            post_prob -= cut_pen[i];
+            post_prob += cut_prob[i];
 
             cerr << "i=" << i << " : " << post_prob << '\n';
             
@@ -639,7 +643,8 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,ve
 
         vector<int> cut_counter(num_children,0);
         vector<int> last_cut_depth(num_children,0);
-        vector<double> cut_pen(num_children,0.0); // penalty for each dimension
+        vector<int> first_cut_depth(num_children,-1);
+        vector<double> cut_prob(num_children,0.0); // penalty for each dimension
         int prev_map_depth = 0;
         
         deque<llc_pile_t> llpile;
@@ -671,7 +676,7 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,ve
             cerr << '\n';
             cerr << "Cut pen: ";
             for(int i = 0;i<num_children;i++){
-                cerr << cut_pen[i] << ',';
+                cerr << cut_prob[i] << ',';
             }
             cerr << '\n';
             
@@ -679,13 +684,33 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,ve
             
             if(pile_top->map_depth > prev_map_depth){
                 prev_map_depth = pile_top->map_depth;
+                
+                double max_pen = 0.0;
                 // recompute cut pens
                 for(int i = 0;i<num_children;i++){
                     if(cut_counter[i] == 0){
-                        cut_pen[i] = (13)*(pile_top->map_depth-last_cut_depth[i]);
+                        cut_prob[i] = -(4)*(pile_top->map_depth-last_cut_depth[i]);
                     }else{
-                        cut_pen[i] = 0.0;
+                        cut_prob[i] = -(2)*(first_cut_depth[i]);
+                    } 
+                    
+                    if(cut_prob[i] > max_pen){
+                        max_pen = cut_prob[i];
                     }
+                }
+
+                // need to normalize cut_prob so it it sums to dim
+                // divide everything by log-sum-exp and times by log(dim)
+                float div_val = max_pen;
+                double sum = 0;
+                for (int i = 0; i < num_children; i++) {
+                    sum += exp(cut_prob[i] - max_pen);
+                }
+                if (sum > 0) div_val += log(sum);
+                div_val = div_val - log(num_children);
+                
+                for (int i = 0; i < num_children; i++) {
+                    cut_prob[i] = cut_prob[i] - div_val - 0.01;
                 }
             }
             
@@ -725,7 +750,7 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,ve
             // do a smaller OPT for the good region to determine which
             // dimension to cut
             vector<llc_node_t> nodes(num_children);
-            do_small_opt(all_data, pile_top->good_region,nodes,rand_gen, pile_top->map_depth,cut_pen);
+            do_small_opt(all_data, pile_top->good_region,nodes,rand_gen, pile_top->map_depth,cut_prob);
 
             //cerr << "\nNodes:" << num_nodes
             //        << " : " << num_zero_nodes
@@ -733,9 +758,9 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,ve
 
             llc_tree_node_sparse self;
             self.set_count(curr_count);
-            compute_lPs(self, nodes,pile_top->map_depth,cut_pen);
+            compute_lPs(self, nodes,pile_top->map_depth,cut_prob,true);
 
-            //cerr << "lphi: " << self.get_lphi() << ", lP: " << self.get_lP() << '\n';
+            cerr << "lphi: " << self.get_lphi() << ", lP: " << self.get_lP() << '\n';
             
             // compute the posterior pho and decide if we stop
             double post_rho = -c::l2;
@@ -744,7 +769,7 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,ve
             post_rho += self.get_lphi();
             post_rho -= self.get_lP();
 
-            //cerr << "post_rho: " << post_rho << '\n';
+            cerr << "post_rho: " << post_rho << '\n';
                     
             // if not stop we split and add the two regions to the good region list
             if (post_rho>-c::l2) {
@@ -766,11 +791,16 @@ int get_map_dim(llc_working_unit_t &w,vector<llc_node_t> &nodes,int map_depth,ve
 
             } else {
                 // Choose MAP dimension
-                int map_dim = get_map_dim(pile_top->good_region, nodes, pile_top->map_depth,cut_pen);
+                int map_dim = get_map_dim(pile_top->good_region, nodes, pile_top->map_depth,cut_prob);
                 
                 cut_counter[map_dim]++;
                 last_cut_depth[map_dim] = pile_top->map_depth;
-                //cerr << "map_dim: " << map_dim << '\n';
+                
+                if(first_cut_depth[map_dim] == -1){
+                    first_cut_depth[map_dim] = pile_top->map_depth;
+                }
+                
+                cerr << "map_dim: " << map_dim << '\n';
                 
                 //cerr << "children: " << map_child_idx_0 << "," << map_child_idx_1 << '\n';
 

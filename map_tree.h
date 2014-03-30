@@ -137,7 +137,7 @@ public:
 };
 
 
-
+// need to use log_sum_exp for area!!
 inline void print_MAP_density(ostream &o,vector<pair<opt_region, uint32_t> > vec,region_allocator<map_tree_node> *ra, int N){
 
     double total_area = 0.0;
@@ -161,6 +161,24 @@ inline void print_MAP_density(ostream &o,vector<pair<opt_region, uint32_t> > vec
     cerr << "Regions: " << vec.size() <<   ", Total area: " << total_area
             << ", Total density: " << total_prob
             << ", Total count: " << total_count << '\n';
+}
+
+inline void print_den_influence(ostream &o,vector<pair<opt_region, uint32_t> > vec,region_allocator<map_tree_node> *ra, int N){
+
+    int num_children = vec[0].first.num_children();
+    vector<double> influence(num_children,0.0);
+
+    for(int i = 0;i<(int)vec.size();i++){
+
+        for (int j = 0; j < num_children; j++) {
+            influence[j] += exp(vec[i].first.get_influence(j)*c::l2); // change to log_sum_exp
+        }
+    }
+
+    for (int j = 0; j < num_children; j++) {
+        o << log(influence[j]) << ',';
+    }
+    o << '\n';
 }
 
 

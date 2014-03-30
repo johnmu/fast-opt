@@ -230,6 +230,23 @@ public:
 
         return area;
     }
+    
+    int get_influence(int dim) {
+
+        if (dim_cuts[dim].size() != 0) {
+            int area = 0;
+
+            for (int i = 0; i < (int) dim_cuts.size(); i++) {
+                if (i != dim) area -= dim_cuts[i].size();
+            }
+            
+            area = area + log(1-exp(-dim_cuts[dim].size()));
+
+            return area;
+        } else {
+            return -c::inf;                    
+        }
+    }
 
     bool is_child(const opt_region &reg) const{
 
